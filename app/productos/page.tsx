@@ -12,6 +12,7 @@ export default async function ProductosPage() {
         {products.map((product) => (
           <ProductCard
             key={product.id}
+            id={product.id}
             nombre={product.nombre}
             precio={product.precio}
           />
