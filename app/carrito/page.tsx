@@ -59,8 +59,28 @@ export default function CarritoPage() {
 
         <input placeholder="Código postal" required />
 
-        <button type="submit">Continuar al pago</button>
+        <button onClick={handleCheckout}>Pagar con MercadoPago</button>
       </form>
     </main>
   );
+
+  async function handleCheckout() {
+    const items = cart.map((item) => ({
+      title: item.nombre,
+      quantity: item.cantidad,
+      unit_price: item.precio,
+    }));
+
+    const res = await fetch("/api/create-payment", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ items }),
+    });
+
+    const data = await res.json();
+
+    window.location.href = `https://www.mercadopago.com/checkout/v1/redirect?pref_id=${data.id}`;
+  }
 }
