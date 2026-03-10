@@ -1,9 +1,25 @@
+"use client";
+
+import { useCart } from "../context/CartContext";
+
 type Props = {
   nombre: string;
   precio: number;
+  id: string;
 };
 
-export default function ProductCard({ nombre, precio }: Props) {
+export default function ProductCard({ nombre, precio, id }: Props) {
+  const { addToCart } = useCart();
+
+  function handleAdd() {
+    addToCart({
+      id,
+      nombre,
+      precio,
+      cantidad: 1,
+    });
+  }
+
   return (
     <div
       style={{
@@ -15,7 +31,8 @@ export default function ProductCard({ nombre, precio }: Props) {
     >
       <h3>{nombre}</h3>
       <p>${precio}</p>
-      <button>Agregar al carrito</button>
+
+      <button onClick={handleAdd}>Agregar al carrito</button>
     </div>
   );
 }

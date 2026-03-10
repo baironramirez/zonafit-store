@@ -1,8 +1,17 @@
 export default function AdminPage() {
   return (
-    <main>
-      <h1>Panel Administrador ZonaFit</h1>
-      <p>Gestión de productos y pedidos</p>
+    <main style={{ padding: "40px" }}>
+      <h1>Panel Administrador</h1>
+
+      <ul>
+        <li>
+          <a href="/admin/productos">Gestionar productos</a>
+        </li>
+
+        <li>
+          <a href="/admin/crear-producto">Crear producto</a>
+        </li>
+      </ul>
     </main>
   );
 }
