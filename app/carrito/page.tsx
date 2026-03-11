@@ -1,13 +1,27 @@
 "use client";
 
 import { useCart } from "../../context/CartContext";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Trash2, ShoppingBag, CreditCard, ChevronLeft, Minus, Plus } from "lucide-react";
 
 export default function CarritoPage() {
   const { cart, removeFromCart, updateQuantity } = useCart();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [dbProductos, setDbProductos] = useState<any[]>([]);
+
+  useEffect(() => {
+    fetch("/api/productos")
+      .then((res) => res.json())
+      .then((data) => {
+        if (Array.isArray(data)) {
+          setDbProductos(data);
+        } else if (data.productos) {
+          setDbProductos(data.productos);
+        }
+      })
+      .catch((err) => console.error("Error fetching db products:", err));
+  }, []);
 
   const total = cart.reduce(
     (acc, item) => acc + item.precio * item.cantidad,
@@ -141,17 +155,21 @@ export default function CarritoPage() {
               </h2>
               
               <div className="flex flex-col gap-6">
-                {cart.map((item) => (
+                {cart.map((item) => {
+                  const dbItem = dbProductos.find((p) => p.id === item.id);
+                  const imageUrl = item.imagen || dbItem?.imagen;
+                  
+                  return (
                   <div
                     key={item.id}
                     className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 pb-6 border-b border-gray-100"
                   >
                     {/* Información del producto */}
                     <div className="flex-1 flex gap-4 items-center">
-                      {/* Imagen placeholder (si hay imagen en el cart state la mostramos, sino un cuadrito) */}
-                      {item.imagen ? (
+                      {/* Imagen dinámica (desde state o db) */}
+                      {imageUrl ? (
                         <div className="w-20 h-24 bg-gray-50 border border-gray-100 flex-shrink-0 flex items-center justify-center overflow-hidden">
-                           <img src={item.imagen} alt={item.nombre} className="w-full h-full object-contain mix-blend-multiply" />
+                           <img src={imageUrl} alt={item.nombre} className="w-full h-full object-contain mix-blend-multiply" />
                         </div>
                       ) : (
                         <div className="w-20 h-24 bg-gray-50 border border-gray-200 flex-shrink-0 flex items-center justify-center">
@@ -210,7 +228,7 @@ export default function CarritoPage() {
                       </div>
                     </div>
                   </div>
-                ))}
+                )})}
               </div>
             </div>
 
