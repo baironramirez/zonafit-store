@@ -2,17 +2,16 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Zap, Lock } from "lucide-react";
-import Image from "next/image";
+import { Lock, Mail, KeyRound, AlertCircle } from "lucide-react";
 
-export default function LoginPage() {
+export default function AdminLogin() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
 
-  async function handleSubmit(e: React.FormEvent) {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setError("");
@@ -20,104 +19,117 @@ export default function LoginPage() {
     try {
       const res = await fetch("/api/auth/login", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify({ email, password }),
       });
 
       if (res.ok) {
+        // Redirigir al panel
         router.push("/admin");
         router.refresh();
       } else {
         const data = await res.json();
-        setError(data.error || "Credenciales inválidas");
+        setError(data.message || "Credenciales inválidas");
       }
     } catch (err) {
       setError("Error de conexión. Inténtalo de nuevo.");
     } finally {
       setIsLoading(false);
     }
-  }
+  };
 
   return (
-    <div className="min-h-screen bg-neutral-950 flex flex-col justify-center py-12 sm:px-6 lg:px-8 selection:bg-orange-500 selection:text-black relative overflow-hidden">
-      <div className="absolute inset-0 z-0 opacity-10 blur-3xl">
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-orange-600 rounded-full mix-blend-screen filter" />
-      </div>
-
-      <div className="sm:mx-auto sm:w-full sm:max-w-md relative z-10">
-        <div className="flex justify-center mb-6">
-          <div className="w-16 h-16 bg-neutral-900 border border-neutral-800 rounded-2xl flex items-center justify-center relative overflow-hidden shadow-2xl">
-            <div className="absolute inset-0 bg-gradient-to-br from-orange-500/20 to-transparent" />
-            <Zap className="w-8 h-8 text-orange-500 relative z-10" />
+    <main className="min-h-screen bg-white text-black flex items-center justify-center p-6 selection:bg-orange-500 selection:text-white">
+      <div className="w-full max-w-md">
+        
+        {/* Logo / Icon */}
+        <div className="flex justify-center mb-8">
+          <div className="w-16 h-16 bg-black rounded-2xl flex items-center justify-center shadow-lg">
+            <Lock className="w-8 h-8 text-white" />
           </div>
         </div>
-        <h2 className="mt-2 text-center text-3xl font-black text-white tracking-tight">
-          Panel de Control
-        </h2>
-        <p className="mt-2 text-center text-sm text-neutral-400">
-          Acceso restringido solo para administradores
-        </p>
-      </div>
 
-      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md relative z-10">
-        <div className="bg-neutral-900 py-8 px-4 shadow-2xl shadow-black sm:rounded-2xl sm:px-10 border border-neutral-800">
-          <form className="space-y-6" onSubmit={handleSubmit}>
+        {/* Header Text */}
+        <div className="text-center mb-8">
+          <h1 className="text-3xl font-black uppercase tracking-tight text-black mb-2">
+            Acceso <span className="text-orange-500">Restringido</span>
+          </h1>
+          <p className="text-gray-500 font-medium text-sm">
+            Ingresa tus credenciales maestras para continuar.
+          </p>
+        </div>
+
+        {/* Login Box */}
+        <div className="bg-gray-50 border border-gray-200 rounded-3xl p-8 shadow-sm">
+          <form onSubmit={handleLogin} className="space-y-6">
+            
+            {/* Email Field */}
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-gray-500 uppercase tracking-widest pl-1">
+                Correo Electrónico
+              </label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                  <Mail className="h-5 w-5 text-gray-400" />
+                </div>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="w-full pl-11 pr-4 py-3 bg-white border border-gray-300 rounded-xl text-black placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent transition-all"
+                  placeholder="admin@zonafit.com"
+                  required
+                />
+              </div>
+            </div>
+
+            {/* Password Field */}
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-gray-500 uppercase tracking-widest pl-1">
+                Contraseña
+              </label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                  <KeyRound className="h-5 w-5 text-gray-400" />
+                </div>
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full pl-11 pr-4 py-3 bg-white border border-gray-300 rounded-xl text-black placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent transition-all"
+                  placeholder="••••••••"
+                  required
+                />
+              </div>
+            </div>
+
+            {/* Error Message */}
             {error && (
-              <div className="bg-red-500/10 border border-red-500/50 rounded-lg p-4 text-sm text-red-400 text-center font-medium">
-                {error}
+              <div className="p-4 bg-red-50 border border-red-200 rounded-xl flex items-start gap-3">
+                <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+                <p className="text-sm font-medium text-red-700">{error}</p>
               </div>
             )}
 
-            <div>
-              <label className="block text-sm font-medium text-neutral-300">
-                Correo Electrónico
-              </label>
-              <div className="mt-1">
-                <input
-                  type="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="appearance-none block w-full px-4 py-3 border border-neutral-800 rounded-xl shadow-sm bg-neutral-950 text-white placeholder-neutral-500 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-colors sm:text-sm"
-                  placeholder="admin@zonafit.com"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-neutral-300">
-                Contraseña
-              </label>
-              <div className="mt-1">
-                <input
-                  type="password"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="appearance-none block w-full px-4 py-3 border border-neutral-800 rounded-xl shadow-sm bg-neutral-950 text-white placeholder-neutral-500 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-colors sm:text-sm"
-                  placeholder="••••••••"
-                />
-              </div>
-            </div>
-
-            <div>
-              <button
-                type="submit"
-                disabled={isLoading}
-                className="w-full flex justify-center items-center gap-2 py-3 px-4 border border-transparent rounded-xl shadow-sm text-sm font-bold text-black bg-orange-500 hover:bg-orange-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-neutral-900 focus:ring-orange-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isLoading ? (
-                  "Autenticando..."
-                ) : (
-                  <>
-                    <Lock className="w-4 h-4" /> Entrar al Sistema
-                  </>
-                )}
-              </button>
-            </div>
+            {/* Submit Button */}
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="w-full py-4 bg-black text-white rounded-xl font-bold uppercase tracking-widest hover:bg-orange-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed mt-4 shadow-lg"
+            >
+              {isLoading ? "Autenticando..." : "Ingresar al Sistema"}
+            </button>
           </form>
         </div>
+
+        {/* Footer info */}
+        <p className="text-center text-xs font-medium text-gray-400 mt-8">
+          Sistema Exclusivo para Administradores de ZonaFit.<br />
+          Toda actividad será registrada.
+        </p>
       </div>
-    </div>
+    </main>
   );
 }

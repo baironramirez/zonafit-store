@@ -1,44 +1,37 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { fetchProducts } from "../../services/apiProducts";
-import ProductCard from "@/components/ProductCard";
+import ProductCard, { ProductoData } from "@/components/ProductCard";
 import { motion } from "framer-motion";
 
-const CATEGORIES = [
-  { id: "all", name: "Todos" },
-  { id: "proteinas", name: "Proteínas" },
-  { id: "preentrenos", name: "Pre-Entrenos" },
-  { id: "creatina", name: "Creatina" },
-  { id: "vitaminas", name: "Vitaminas & Salud" },
-];
-
 export default function ProductosPage() {
-  const [products, setProducts] = useState<any[]>([]);
+  const [productos, setProductos] = useState<ProductoData[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeCategory, setActiveCategory] = useState("all");
+  const [filtroCategoria, setFiltroCategoria] = useState<string>("Todos");
 
   useEffect(() => {
-    async function loadProducts() {
-      try {
-        const data = await fetchProducts();
-        setProducts(data);
-      } catch (error) {
-        console.error("Failed to fetch products:", error);
-      } finally {
+    fetch("/api/productos")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.productos) {
+          setProductos(data.productos);
+        }
         setLoading(false);
-      }
-    }
-    loadProducts();
+      })
+      .catch((err) => {
+        console.error("Error fetching products:", err);
+        setLoading(false);
+      });
   }, []);
 
-  // Filter products by category (assumes product has a category field, otherwise shows all for now)
-  const filteredProducts = activeCategory === "all" 
-    ? products 
-    : products.filter(p => p.categoria?.toLowerCase() === activeCategory);
+  const categorias = ["Todos", "Proteínas", "Pre-Entrenos", "Creatina", "Vitaminas"];
 
-  // Animation variants
-  const containerVars = {
+  const productosFiltrados = filtroCategoria === "Todos" 
+    ? productos 
+    : productos.filter(p => p.categoria.toLowerCase().includes(filtroCategoria.toLowerCase()));
+
+  // Animaciones Framer Motion
+  const containerVariants = {
     hidden: { opacity: 0 },
     show: {
       opacity: 1,
@@ -48,135 +41,112 @@ export default function ProductosPage() {
     }
   };
 
-  const itemVars = {
+  const itemVariants = {
     hidden: { opacity: 0, y: 20 },
     show: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 300 } }
   };
 
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-white text-black flex justify-center items-center pt-24">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-gray-200 border-t-orange-500 rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="font-medium text-gray-500 uppercase tracking-widest text-sm">Cargando Catálogo...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <main className="min-h-screen bg-neutral-950 text-white selection:bg-orange-500 selection:text-black pt-24">
-      {/* Header Section with Background Image */}
-      <div className="relative overflow-hidden bg-neutral-900 py-20 border-b border-neutral-800">
-        <div className="absolute inset-0 z-0">
-          <img 
-            src="https://images.unsplash.com/photo-1579722820308-d74e571900a9?q=80&w=2070&auto=format&fit=crop"
-            alt="Supplements Header"
-            className="w-full h-full object-cover opacity-20 mix-blend-overlay"
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-neutral-950 to-transparent" />
-        </div>
-
-        <div className="container relative z-10 px-6 mx-auto text-center">
-          <motion.h1 
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="text-4xl md:text-6xl font-black mb-4 uppercase tracking-tight"
-          >
-            Nutrición de <span className="text-orange-500">Élite</span>
-          </motion.h1>
-          <motion.p 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.2 }}
-            className="text-lg md:text-xl text-neutral-400 max-w-2xl mx-auto"
-          >
-            Descubre nuestra selección premium de suplementos diseñados para llevar tu rendimiento deportivo al siguiente nivel.
-          </motion.p>
-        </div>
-      </div>
-
-      <div className="container mx-auto px-6 py-12 flex flex-col md:flex-row gap-12">
-        {/* Sidebar / Filters */}
-        <aside className="w-full md:w-64 flex-shrink-0">
-          <div className="sticky top-32">
-            <h3 className="text-xl font-bold mb-6 text-white border-b border-neutral-800 pb-4">Categorías</h3>
-            <div className="flex flex-col gap-2">
-              {CATEGORIES.map((cat) => (
-                <button
-                  key={cat.id}
-                  onClick={() => setActiveCategory(cat.id)}
-                  className={`text-left px-4 py-3 rounded-xl font-medium transition-all ${
-                    activeCategory === cat.id 
-                      ? "bg-orange-500 text-black shadow-lg shadow-orange-500/20" 
-                      : "text-neutral-400 hover:text-white hover:bg-neutral-900"
-                  }`}
-                >
-                  {cat.name}
-                </button>
-              ))}
-            </div>
-          </div>
-        </aside>
-
-        {/* Products Grid */}
-        <div className="flex-1">
-          <div className="flex justify-between items-center mb-8 border-b border-neutral-800 pb-4">
-            <h2 className="text-2xl font-bold text-white">
-              {filteredProducts.length} Suplemento{filteredProducts.length !== 1 ? "s" : ""}
-            </h2>
-            <div className="text-sm font-medium text-orange-500 bg-orange-500/10 px-4 py-2 rounded-full border border-orange-500/20">
-              Stock Premium
-            </div>
-          </div>
-
-          {loading ? (
-             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-               {[1, 2, 3, 4, 5, 6].map((skeleton) => (
-                 <div key={skeleton} className="h-96 bg-neutral-900 animate-pulse rounded-2xl border border-neutral-800" />
-               ))}
-             </div>
-          ) : filteredProducts.length === 0 ? (
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="text-center py-20 bg-neutral-900 rounded-3xl border border-neutral-800"
-            >
-              <div className="text-6xl mb-4 opacity-50">🧪</div>
-              <h2 className="text-2xl font-bold text-white mb-2">
-                Categoría en Restock
-              </h2>
-              <p className="text-neutral-400 max-w-md mx-auto">
-                Actualmente no tenemos suplementos en esta categoría. Estamos reabasteciendo nuestro almacén con lo mejor del mercado.
-              </p>
-              <button 
-                onClick={() => setActiveCategory("all")}
-                className="mt-8 px-6 py-3 bg-neutral-800 hover:bg-neutral-700 text-white font-medium rounded-lg transition-colors"
-              >
-                Ver Todo el Catálogo
-              </button>
-            </motion.div>
-          ) : (
-            <motion.div 
-              variants={containerVars}
-              initial="hidden"
-              animate="show"
-              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
-            >
-              {filteredProducts.map((product: any) => (
-                <motion.div variants={itemVars as any} key={product.id}>
-                  <ProductCard product={product} />
-                </motion.div>
-              ))}
-            </motion.div>
-          )}
-        </div>
-      </div>
-
-      {/* Footer / Contact Banner */}
-      <div className="mt-12 bg-orange-600 text-black py-16 relative overflow-hidden">
-        <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1546483875-ad9014c88eba?q=80&w=2082&auto=format&fit=crop')] opacity-10 mix-blend-multiply bg-cover bg-center" />
-        <div className="container mx-auto px-6 relative z-10 text-center">
-          <h3 className="text-3xl md:text-4xl font-black mb-4">
-            ¿Buscas compras por mayor o asesoría?
-          </h3>
-          <p className="text-black/80 font-medium text-lg md:text-xl max-w-2xl mx-auto mb-8">
-            Contáctanos para compras mayoristas, equipo para gimnasios o asesoramiento personalizado sobre qué suplemento elegir.
+    <main className="min-h-screen bg-white text-black selection:bg-orange-500 selection:text-white pt-24">
+      {/* Header Compacto Minimalista */}
+      <div className="bg-gray-50 border-b border-gray-200 py-12 px-6">
+        <div className="max-w-7xl mx-auto">
+          <h1 className="text-4xl md:text-5xl font-black uppercase tracking-tight text-black mb-4">
+            Catálogo de <span className="text-orange-500">Rendimiento</span>
+          </h1>
+          <p className="text-gray-600 font-medium text-lg max-w-2xl">
+            Herramientas diseñadas para maximizar tus resultados físicos. Sin compromisos.
           </p>
-          <button className="bg-black text-white hover:bg-neutral-900 font-bold py-4 px-10 rounded-xl transition-all shadow-xl hover:shadow-2xl hover:-translate-y-1">
-            Hablar con un Experto
+        </div>
+      </div>
+
+      <div className="max-w-7xl mx-auto px-6 py-12">
+        <div className="flex flex-col lg:flex-row gap-12">
+          
+          {/* Sidebar de Filtros Minimalista */}
+          <div className="w-full lg:w-64 flex-shrink-0">
+            <div className="sticky top-32">
+              <h2 className="text-sm font-bold uppercase tracking-widest text-gray-400 mb-6 pb-4 border-b border-gray-200">
+                Líneas de Producto
+              </h2>
+              <div className="flex lg:flex-col gap-2 overflow-x-auto pb-4 lg:pb-0 scrollbar-hide">
+                {categorias.map(cat => (
+                  <button
+                    key={cat}
+                    onClick={() => setFiltroCategoria(cat)}
+                    className={`whitespace-nowrap px-4 py-3 text-left rounded-lg text-sm font-bold uppercase tracking-wide transition-all ${
+                      filtroCategoria === cat 
+                        ? "bg-black text-white" 
+                        : "text-gray-600 hover:bg-gray-100 hover:text-black"
+                    }`}
+                  >
+                    {cat}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Grid de Productos C/ Animación */}
+          <div className="flex-1">
+            <div className="flex justify-between items-center mb-8 pb-4 border-b border-gray-100">
+              <p className="text-gray-500 font-medium">
+                Mostrando <span className="text-black font-bold">{productosFiltrados.length}</span> suplementos
+              </p>
+            </div>
+
+            {productosFiltrados.length === 0 ? (
+              <div className="text-center py-20 bg-gray-50 rounded-2xl border border-gray-200">
+                <p className="text-gray-500 text-lg mb-4">No encontramos suplementos en esta categoría.</p>
+                <button 
+                  onClick={() => setFiltroCategoria("Todos")}
+                  className="text-black font-bold underline hover:text-orange-500 uppercase tracking-widest text-sm"
+                >
+                  Ver todos los productos
+                </button>
+              </div>
+            ) : (
+              <motion.div 
+                variants={containerVariants}
+                initial="hidden"
+                animate="show"
+                className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6 lg:gap-8"
+              >
+                {productosFiltrados.map((producto) => (
+                  <motion.div variants={itemVariants} key={producto.id}>
+                    <ProductCard producto={producto} />
+                  </motion.div>
+                ))}
+              </motion.div>
+            )}
+          </div>
+
+        </div>
+      </div>
+
+      {/* Footer Banner Minimalista */}
+      <section className="bg-black text-white py-16 mt-20">
+        <div className="max-w-4xl mx-auto px-6 text-center">
+          <h2 className="text-2xl md:text-3xl font-black uppercase tracking-widest mb-4">¿Compras por Mayor?</h2>
+          <p className="text-gray-400 mb-8 max-w-xl mx-auto font-medium">
+            Contacta a nuestro equipo de ventas para acceder a la lista de precios mayoristas para gimnasios y preparadores físicos.
+          </p>
+          <button className="bg-white text-black px-8 py-3 font-bold uppercase tracking-widest text-sm hover:bg-orange-500 hover:text-white transition-colors">
+            Solicitar Presupuesto
           </button>
         </div>
-      </div>
+      </section>
     </main>
   );
 }
