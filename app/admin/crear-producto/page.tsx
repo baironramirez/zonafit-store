@@ -3,6 +3,8 @@
 import { storage } from "@/lib/firebase";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { useState } from "react";
+import { ArrowLeft, UploadCloud } from "lucide-react";
+import Link from "next/link";
 
 export default function CrearProducto() {
   const [nombre, setNombre] = useState("");
@@ -82,34 +84,43 @@ export default function CrearProducto() {
   }
 
   return (
-    <main className="p-8 bg-gray-50 min-h-screen">
-      <div className="max-w-2xl mx-auto">
-        <h1 className="text-3xl font-bold text-gray-900 mb-8">
-          Crear nuevo producto
+    <main className="min-h-screen bg-neutral-950 text-white selection:bg-orange-500 selection:text-black py-12 px-6 pt-24">
+      <div className="max-w-3xl mx-auto">
+        
+        <Link 
+          href="/admin" 
+          className="inline-flex items-center gap-2 text-neutral-400 hover:text-white mb-8 transition-colors group"
+        >
+          <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-1" />
+          Volver al Panel
+        </Link>
+        
+        <h1 className="text-3xl font-black text-white mb-8">
+          Crear <span className="text-orange-500">Nuevo Suplemento</span>
         </h1>
 
-        <div className="bg-white rounded-lg shadow-md p-8">
+        <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-8">
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Nombre */}
             <div>
-              <label className="block text-sm font-medium text-gray-900 mb-2">
+              <label className="block text-sm font-medium text-neutral-300 mb-2">
                 Nombre del producto *
               </label>
               <input
                 type="text"
-                placeholder="Ej: Proteína Whey, Creatina Monohidrato"
+                placeholder="Ej: Whey Protein Isolate 5lbs"
                 value={nombre}
                 onChange={(e) => setNombre(e.target.value)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-colors placeholder-gray-500 text-gray-900"
+                className="w-full px-4 py-3 bg-neutral-950 border border-neutral-800 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-colors placeholder-neutral-600 text-white"
                 required
               />
             </div>
 
             {/* Precio y Stock */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label className="block text-sm font-medium text-gray-900 mb-2">
-                  Precio *
+                <label className="block text-sm font-medium text-neutral-300 mb-2">
+                  Precio (ARS) *
                 </label>
                 <input
                   type="number"
@@ -117,12 +128,12 @@ export default function CrearProducto() {
                   min="0"
                   step="0.01"
                   onChange={(e) => setPrecio(Number(e.target.value))}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-colors placeholder-gray-500 text-gray-900"
+                  className="w-full px-4 py-3 bg-neutral-950 border border-neutral-800 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-colors placeholder-neutral-600 text-white"
                   required
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-900 mb-2">
+                <label className="block text-sm font-medium text-neutral-300 mb-2">
                   Stock *
                 </label>
                 <input
@@ -130,7 +141,7 @@ export default function CrearProducto() {
                   placeholder="0"
                   min="0"
                   onChange={(e) => setStock(Number(e.target.value))}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-colors placeholder-gray-500 text-gray-900"
+                  className="w-full px-4 py-3 bg-neutral-950 border border-neutral-800 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-colors placeholder-neutral-600 text-white"
                   required
                 />
               </div>
@@ -138,61 +149,76 @@ export default function CrearProducto() {
 
             {/* Categoría */}
             <div>
-              <label className="block text-sm font-medium text-gray-900 mb-2">
+              <label className="block text-sm font-medium text-neutral-300 mb-2">
                 Categoría
               </label>
               <input
                 type="text"
-                placeholder="Ej: Suplementos, Ropa deportiva, Accesorios"
+                placeholder="Ej: Proteínas, Pre-Entrenos, Creatina"
                 value={categoria}
                 onChange={(e) => setCategoria(e.target.value)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-colors placeholder-gray-500 text-gray-900"
+                className="w-full px-4 py-3 bg-neutral-950 border border-neutral-800 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-colors placeholder-neutral-600 text-white"
               />
             </div>
 
-            {/* Imagen */}
-            <div>
-              <label className="block text-sm font-medium text-gray-900 mb-2">
-                Imagen del producto
+            {/* Configuración de Imagen */}
+            <div className="pt-4 border-t border-neutral-800">
+              <label className="block text-sm font-medium text-neutral-300 mb-4">
+                Fotografía del Suplemento
               </label>
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handleImageChange}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-colors file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-orange-50 file:text-orange-700 hover:file:bg-orange-100"
-              />
-              {previewUrl && (
-                <div className="mt-4">
-                  <img
-                    src={previewUrl}
-                    alt="Preview"
-                    className="w-32 h-32 object-cover rounded-lg border border-gray-200"
-                  />
+              
+              <div className="flex flex-col md:flex-row items-start gap-6">
+                <div className="flex-1 w-full">
+                  <div className="flex items-center justify-center w-full">
+                    <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-neutral-800 border-dashed rounded-xl cursor-pointer bg-neutral-950 hover:bg-neutral-900 hover:border-orange-500/50 transition-colors">
+                      <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                        <UploadCloud className="w-8 h-8 text-neutral-500 mb-2" />
+                        <p className="mb-2 text-sm text-neutral-400 font-medium">Click para subir foto</p>
+                        <p className="text-xs text-neutral-500">PNG, JPG hasta 5MB</p>
+                      </div>
+                      <input 
+                        type="file" 
+                        className="hidden" 
+                        accept="image/*"
+                        onChange={handleImageChange}
+                      />
+                    </label>
+                  </div>
                 </div>
-              )}
+
+                {previewUrl && (
+                  <div className="w-full md:w-32 h-32 relative rounded-xl overflow-hidden border border-neutral-800 bg-neutral-950">
+                    <img
+                      src={previewUrl}
+                      alt="Preview"
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Descripción */}
-            <div>
-              <label className="block text-sm font-medium text-gray-900 mb-2">
+            <div className="pt-4 border-t border-neutral-800">
+              <label className="block text-sm font-medium text-neutral-300 mb-2">
                 Descripción
               </label>
               <textarea
-                placeholder="Describe las características del producto, beneficios, composición, etc."
+                placeholder="Ingredientes clave, modo de uso, tabla nutricional..."
                 value={descripcion}
                 onChange={(e) => setDescripcion(e.target.value)}
-                rows={4}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-colors resize-vertical placeholder-gray-500 text-gray-900"
+                rows={5}
+                className="w-full px-4 py-3 bg-neutral-950 border border-neutral-800 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-colors resize-vertical placeholder-neutral-600 text-white"
               />
             </div>
 
-            {/* Botón */}
+            {/* Botón Guardar */}
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full bg-orange-500 text-white py-3 px-6 rounded-lg font-semibold hover:bg-orange-600 focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full bg-orange-500 text-black py-4 px-6 rounded-xl font-bold hover:bg-orange-400 focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 focus:ring-offset-neutral-900 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-orange-500/20"
             >
-              {isLoading ? "Creando producto..." : "Crear producto"}
+              {isLoading ? "Subiendo producto a Firestore..." : "Publicar Suplemento"}
             </button>
           </form>
         </div>
