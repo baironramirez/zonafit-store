@@ -13,7 +13,9 @@ export default function ProductosPage() {
     fetch("/api/productos")
       .then((res) => res.json())
       .then((data) => {
-        if (data.productos) {
+        if (Array.isArray(data)) {
+          setProductos(data);
+        } else if (data.productos) {
           setProductos(data.productos);
         }
         setLoading(false);
