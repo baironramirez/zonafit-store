@@ -11,28 +11,68 @@ export default function CarritoPage() {
     0,
   );
 
-  async function handleCheckout(e: React.FormEvent<HTMLFormElement>) {
+  async function handleCheckout(e: any) {
     e.preventDefault();
 
+    const form = e.target.closest("form");
+    const formData = new FormData(form);
+
+    const cliente = {
+      nombre: formData.get("nombre"),
+      cedula: formData.get("cedula"),
+      telefono: formData.get("telefono"),
+      direccion: formData.get("direccion"),
+      ciudad: formData.get("ciudad"),
+      departamento: formData.get("departamento"),
+      codigoPostal: formData.get("codigoPostal"),
+    };
+
     const items = cart.map((item) => ({
-      title: item.nombre,
-      quantity: item.cantidad,
-      unit_price: item.precio,
+      nombre: item.nombre,
+      precio: item.precio,
+      cantidad: item.cantidad,
     }));
 
-    const res = await fetch("/api/create-payment", {
+    const total = cart.reduce(
+      (acc, item) => acc + item.precio * item.cantidad,
+      0,
+    );
+
+    // 1️⃣ crear pedido
+    const orderRes = await fetch("/api/orders", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ items }),
+      body: JSON.stringify({
+        cliente,
+        items,
+        total,
+      }),
     });
 
-    const data = await res.json();
+    const orderData = await orderRes.json();
 
-    window.location.href = `https://www.mercadopago.com/checkout/v1/redirect?pref_id=${data.id}`;
+    // 2️⃣ crear pago
+    const mpRes = await fetch("/api/create-payment", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        items: cart.map((item) => ({
+          title: item.nombre,
+          quantity: item.cantidad,
+          unit_price: item.precio,
+        })),
+        orderId: orderData.orderId,
+      }),
+    });
+
+    const mpData = await mpRes.json();
+
+    window.location.href = `https://www.mercadopago.com/checkout/v1/redirect?pref_id=${mpData.id}`;
   }
-
   return (
     <main style={{ padding: "40px" }}>
       <h1>Carrito de compras</h1>
