@@ -1,6 +1,7 @@
 "use client";
 
 import { useCart } from "../context/CartContext";
+import { addToCart } from "@/lib/cart";
 
 type Props = {
   id: string;
@@ -39,6 +40,19 @@ export default function ProductCard({ id, nombre, precio, imagen }: Props) {
 
       <h3>{nombre}</h3>
       <p>${precio}</p>
+
+      <button
+        onClick={handleAdd}
+        style={{
+          marginTop: "10px",
+          padding: "8px 12px",
+          background: "#000",
+          color: "#fff",
+          border: "none",
+          borderRadius: "4px",
+          cursor: "pointer",
+        }}
+      ></button>
 
       <button onClick={handleAdd}>Agregar al carrito</button>
     </div>

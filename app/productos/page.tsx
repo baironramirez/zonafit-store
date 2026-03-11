@@ -1,5 +1,6 @@
 import { fetchProducts } from "../../services/apiProducts";
 import ProductCard from "../../components/ProductCard";
+import { addToCart } from "@/lib/cart";
 
 export default async function ProductosPage() {
   const products = await fetchProducts();

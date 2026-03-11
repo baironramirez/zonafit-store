@@ -11,6 +11,28 @@ export default function CarritoPage() {
     0,
   );
 
+  async function handleCheckout(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+
+    const items = cart.map((item) => ({
+      title: item.nombre,
+      quantity: item.cantidad,
+      unit_price: item.precio,
+    }));
+
+    const res = await fetch("/api/create-payment", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ items }),
+    });
+
+    const data = await res.json();
+
+    window.location.href = `https://www.mercadopago.com/checkout/v1/redirect?pref_id=${data.id}`;
+  }
+
   return (
     <main style={{ padding: "40px" }}>
       <h1>Carrito de compras</h1>
@@ -44,43 +66,20 @@ export default function CarritoPage() {
 
       <h2>Datos de envío</h2>
 
-      <form style={{ display: "grid", gap: "10px", maxWidth: "400px" }}>
+      <form
+        onSubmit={handleCheckout}
+        style={{ display: "grid", gap: "10px", maxWidth: "400px" }}
+      >
         <input placeholder="Nombre completo" required />
-
         <input placeholder="Cédula" required />
-
         <input placeholder="Teléfono" required />
-
         <input placeholder="Dirección" required />
-
         <input placeholder="Ciudad" required />
-
         <input placeholder="Departamento" required />
-
         <input placeholder="Código postal" required />
 
-        <button onClick={handleCheckout}>Pagar con MercadoPago</button>
+        <button type="submit">Pagar con MercadoPago</button>
       </form>
     </main>
   );
-
-  async function handleCheckout() {
-    const items = cart.map((item) => ({
-      title: item.nombre,
-      quantity: item.cantidad,
-      unit_price: item.precio,
-    }));
-
-    const res = await fetch("/api/create-payment", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ items }),
-    });
-
-    const data = await res.json();
-
-    window.location.href = `https://www.mercadopago.com/checkout/v1/redirect?pref_id=${data.id}`;
-  }
 }
