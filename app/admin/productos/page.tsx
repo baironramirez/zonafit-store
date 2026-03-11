@@ -47,7 +47,7 @@ export default function AdminProductos() {
                 </h3>
 
                 {product.categoria && (
-                  <p className="text-sm text-blue-600 font-medium mb-2">
+                  <p className="text-sm text-orange-600 font-medium mb-2">
                     Categoría: {product.categoria}
                   </p>
                 )}

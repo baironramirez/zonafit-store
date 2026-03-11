@@ -92,12 +92,12 @@ export default function CarritoPage() {
   }
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 py-12">
+    <main className="min-h-screen bg-white py-12">
       <div className="max-w-6xl mx-auto px-4">
         {/* Header */}
         <div className="mb-12">
           <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-2">
-            🛒 Carrito de Compras
+            <span className="text-orange-500">🛒</span> Carrito de Compras
           </h1>
           <p className="text-gray-600 text-lg">
             Revisa tus productos antes de proceder al pago
@@ -106,7 +106,7 @@ export default function CarritoPage() {
 
         {cart.length === 0 ? (
           <div className="text-center py-16 bg-white rounded-xl shadow-md">
-            <div className="text-6xl mb-4">🛍️</div>
+            <div className="text-6xl mb-4 text-orange-500">🛍️</div>
             <h2 className="text-2xl font-bold text-gray-900 mb-2">
               Tu carrito está vacío
             </h2>
@@ -115,7 +115,7 @@ export default function CarritoPage() {
             </p>
             <a
               href="/productos"
-              className="inline-block bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-8 rounded-lg transition-colors duration-200"
+              className="inline-block bg-orange-500 hover:bg-orange-600 text-white font-semibold py-3 px-8 rounded-lg transition-colors duration-200"
             >
               Ir a productos
             </a>
@@ -126,7 +126,7 @@ export default function CarritoPage() {
             <div className="lg:col-span-2">
               <div className="bg-white rounded-xl shadow-md overflow-hidden">
                 {/* Header de la tabla */}
-                <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-6">
+                <div className="bg-gradient-to-r from-orange-500 to-orange-700 text-white p-6">
                   <h2 className="text-2xl font-bold">
                     {cart.length} producto{cart.length !== 1 ? "s" : ""} en tu
                     carrito
@@ -145,7 +145,7 @@ export default function CarritoPage() {
                         <h3 className="text-lg font-semibold text-gray-900 mb-1">
                           {item.nombre}
                         </h3>
-                        <p className="text-2xl font-bold text-blue-600">
+                        <p className="text-2xl font-bold text-orange-600">
                           ${item.precio.toLocaleString("es-AR")}
                         </p>
                       </div>
@@ -235,7 +235,7 @@ export default function CarritoPage() {
                   <span className="text-2xl font-bold text-gray-900">
                     Total:
                   </span>
-                  <span className="text-2xl font-bold text-blue-600">
+                  <span className="text-2xl font-bold text-orange-600">
                     ${total.toLocaleString("es-AR")}
                   </span>
                 </div>
@@ -255,7 +255,7 @@ export default function CarritoPage() {
                     <input
                       name="nombre"
                       placeholder="Ej: Juan Pérez"
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors text-gray-900"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-colors text-gray-900"
                       required
                     />
                   </div>
@@ -268,7 +268,7 @@ export default function CarritoPage() {
                       <input
                         name="cedula"
                         placeholder="Ej: 1234567890"
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors text-gray-900"
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-colors text-gray-900"
                         required
                       />
                     </div>
@@ -279,7 +279,7 @@ export default function CarritoPage() {
                       <input
                         name="telefono"
                         placeholder="Ej: 3001234567"
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors text-gray-900"
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-colors text-gray-900"
                         required
                       />
                     </div>
@@ -292,7 +292,7 @@ export default function CarritoPage() {
                     <input
                       name="direccion"
                       placeholder="Ej: Cra 5 # 10-20"
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors text-gray-900"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-colors text-gray-900"
                       required
                     />
                   </div>
@@ -305,7 +305,7 @@ export default function CarritoPage() {
                       <input
                         name="ciudad"
                         placeholder="Ej: Bogotá"
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors text-gray-900"
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-colors text-gray-900"
                         required
                       />
                     </div>
@@ -316,7 +316,7 @@ export default function CarritoPage() {
                       <input
                         name="departamento"
                         placeholder="Ej: Cundinamarca"
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors text-gray-900"
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-colors text-gray-900"
                         required
                       />
                     </div>
@@ -329,7 +329,7 @@ export default function CarritoPage() {
                     <input
                       name="codigoPostal"
                       placeholder="Ej: 110111"
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors text-gray-900"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-colors text-gray-900"
                       required
                     />
                   </div>
@@ -337,11 +337,16 @@ export default function CarritoPage() {
                   <button
                     type="submit"
                     disabled={isSubmitting}
-                    className="w-full mt-6 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-bold py-3 px-6 rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    className="w-full mt-6 bg-gradient-to-r from-orange-500 to-orange-700 hover:from-orange-600 hover:to-orange-800 text-white font-bold py-3 px-6 rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                   >
-                    {isSubmitting
-                      ? "Procesando..."
-                      : "💳 Pagar con MercadoPago"}
+                    {isSubmitting ? (
+                      "Procesando..."
+                    ) : (
+                      <>
+                        <span className="text-orange-500">💳</span> Pagar con
+                        MercadoPago
+                      </>
+                    )}
                   </button>
                 </form>
               </div>

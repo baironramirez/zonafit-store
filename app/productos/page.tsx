@@ -5,15 +5,15 @@ export default async function ProductosPage() {
   const products = await fetchProducts();
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
+    <main className="min-h-screen bg-white">
       {/* Header Section */}
-      <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white">
+      <div className="bg-gradient-to-r from-orange-500 to-orange-700 text-white">
         <div className="max-w-7xl mx-auto px-4 py-16 sm:px-6 lg:px-8">
           <div className="text-center">
             <h1 className="text-4xl md:text-6xl font-bold mb-4">
               Productos ZonaFit
             </h1>
-            <p className="text-xl md:text-2xl text-blue-100 max-w-3xl mx-auto">
+            <p className="text-xl md:text-2xl text-orange-100 max-w-3xl mx-auto">
               Descubre nuestra selección premium de suplementos deportivos y
               artículos fitness
             </p>
@@ -63,7 +63,7 @@ export default async function ProductosPage() {
           <p className="text-gray-300 mb-6">
             Contáctanos para conocer sobre nuevos productos y ofertas especiales
           </p>
-          <button className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-8 rounded-lg transition-colors duration-200">
+          <button className="bg-orange-500 hover:bg-orange-600 text-white font-semibold py-3 px-8 rounded-lg transition-colors duration-200">
             Contactar
           </button>
         </div>
