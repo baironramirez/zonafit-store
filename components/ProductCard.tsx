@@ -33,7 +33,8 @@ export default function ProductCard({ producto }: { producto: ProductoData }) {
         nombre: producto.nombre,
         precio: producto.precio,
         imagen: producto.imagen,
-      });
+        cantidad: 1
+      } as any);
     }
   };
 

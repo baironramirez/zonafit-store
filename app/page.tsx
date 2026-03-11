@@ -93,7 +93,7 @@ export default function Home() {
                 description: "Miles de atletas confían en nosotros para romper sus récords."
               }
             ].map((feature, index) => (
-              <motion.div variants={itemVars} key={index} className="text-center group">
+              <motion.div variants={itemVars as any} key={index} className="text-center group">
                 <div className="w-16 h-16 mx-auto bg-white border border-gray-200 rounded-2xl flex items-center justify-center mb-6 shadow-sm group-hover:border-black group-hover:shadow-md transition-all">
                   {feature.icon}
                 </div>

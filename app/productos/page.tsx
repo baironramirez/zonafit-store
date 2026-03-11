@@ -124,7 +124,7 @@ export default function ProductosPage() {
                 className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6 lg:gap-8"
               >
                 {productosFiltrados.map((producto) => (
-                  <motion.div variants={itemVariants} key={producto.id}>
+                  <motion.div variants={itemVariants as any} key={producto.id}>
                     <ProductCard producto={producto} />
                   </motion.div>
                 ))}
