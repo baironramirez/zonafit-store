@@ -2,6 +2,8 @@
 
 import { useCart } from "../../context/CartContext";
 import { useState } from "react";
+import Link from "next/link";
+import { Trash2, ShoppingBag, CreditCard, ChevronLeft, Minus, Plus } from "lucide-react";
 
 export default function CarritoPage() {
   const { cart, removeFromCart, updateQuantity } = useCart();
@@ -92,265 +94,205 @@ export default function CarritoPage() {
   }
 
   return (
-    <main className="min-h-screen bg-white py-12">
-      <div className="max-w-6xl mx-auto px-4">
+    <main className="min-h-screen bg-white text-black selection:bg-orange-500 selection:text-white pt-24 pb-12">
+      <div className="max-w-7xl mx-auto px-6">
+        
+        {/* Breadcrumb / Regresar */}
+        <Link href="/productos" className="inline-flex items-center gap-2 text-sm font-bold uppercase tracking-widest text-gray-500 hover:text-black transition-colors mb-8">
+          <ChevronLeft className="w-4 h-4" /> Seguir Comprando
+        </Link>
+
         {/* Header */}
-        <div className="mb-12">
-          <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-2">
-            <span className="text-orange-500">🛒</span> Carrito de Compras
+        <div className="mb-12 border-b border-gray-200 pb-8">
+          <h1 className="text-4xl md:text-5xl font-black uppercase tracking-tight text-black mb-2 flex items-center gap-4">
+            Tu Pedido <ShoppingBag className="w-8 h-8 text-orange-500" />
           </h1>
-          <p className="text-gray-600 text-lg">
-            Revisa tus productos antes de proceder al pago
+          <p className="text-gray-500 font-medium text-lg tracking-wide">
+            Asegúrate de llevar todo lo necesario para romper tus récords.
           </p>
         </div>
 
         {cart.length === 0 ? (
-          <div className="text-center py-16 bg-white rounded-xl shadow-md">
-            <div className="text-6xl mb-4 text-orange-500">🛍️</div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">
-              Tu carrito está vacío
+          // Empty State Minimalista
+          <div className="text-center py-24 bg-gray-50 border border-gray-200 rounded-none">
+            <div className="w-24 h-24 bg-white border border-gray-200 rounded-xl flex items-center justify-center mx-auto mb-6">
+              <ShoppingBag className="w-10 h-10 text-gray-400" />
+            </div>
+            <h2 className="text-2xl font-black uppercase tracking-widest text-black mb-2">
+              Bolsa Vacía
             </h2>
-            <p className="text-gray-600 mb-6">
-              Comienza a agregar productos para completar tu compra
+            <p className="text-gray-500 font-medium mb-8 max-w-sm mx-auto">
+              Aún no has agregado suplementos a tu pedido. El camino a la grandeza empieza en la tienda.
             </p>
-            <a
+            <Link
               href="/productos"
-              className="inline-block bg-orange-500 hover:bg-orange-600 text-white font-semibold py-3 px-8 rounded-lg transition-colors duration-200"
+              className="inline-block bg-black text-white font-bold uppercase tracking-widest py-4 px-10 hover:bg-orange-500 transition-colors"
             >
-              Ir a productos
-            </a>
+              Ir al Catálogo
+            </Link>
           </div>
         ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* Lista de productos */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-12 lg:gap-16">
+            
+            {/* Lista de productos Minimalista */}
             <div className="lg:col-span-2">
-              <div className="bg-white rounded-xl shadow-md overflow-hidden">
-                {/* Header de la tabla */}
-                <div className="bg-gradient-to-r from-orange-500 to-orange-700 text-white p-6">
-                  <h2 className="text-2xl font-bold">
-                    {cart.length} producto{cart.length !== 1 ? "s" : ""} en tu
-                    carrito
-                  </h2>
-                </div>
-
-                {/* Items */}
-                <div className="divide-y divide-gray-200">
-                  {cart.map((item) => (
-                    <div
-                      key={item.id}
-                      className="p-6 hover:bg-gray-50 transition-colors duration-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4"
-                    >
-                      {/* Información del producto */}
-                      <div className="flex-1">
-                        <h3 className="text-lg font-semibold text-gray-900 mb-1">
+              <h2 className="text-sm font-bold uppercase tracking-widest text-gray-400 mb-6 pb-2 border-b border-gray-200">
+                Resumen de Items ({cart.length})
+              </h2>
+              
+              <div className="flex flex-col gap-6">
+                {cart.map((item) => (
+                  <div
+                    key={item.id}
+                    className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 pb-6 border-b border-gray-100"
+                  >
+                    {/* Información del producto */}
+                    <div className="flex-1 flex gap-4 items-center">
+                      {/* Imagen placeholder (si hay imagen en el cart state la mostramos, sino un cuadrito) */}
+                      {item.imagen ? (
+                        <div className="w-20 h-24 bg-gray-50 border border-gray-100 flex-shrink-0 flex items-center justify-center overflow-hidden">
+                           <img src={item.imagen} alt={item.nombre} className="w-full h-full object-contain mix-blend-multiply" />
+                        </div>
+                      ) : (
+                        <div className="w-20 h-24 bg-gray-50 border border-gray-200 flex-shrink-0 flex items-center justify-center">
+                          <ShoppingBag className="w-6 h-6 text-gray-300" />
+                        </div>
+                      )}
+                      
+                      <div>
+                        <h3 className="text-lg font-black uppercase tracking-widest text-black mb-1">
                           {item.nombre}
                         </h3>
-                        <p className="text-2xl font-bold text-orange-600">
+                        <p className="text-xl font-medium text-gray-900">
                           ${item.precio.toLocaleString("es-AR")}
                         </p>
                       </div>
-
-                      {/* Cantidad */}
-                      <div className="flex items-center gap-3">
-                        <label className="text-sm font-medium text-gray-700">
-                          Cantidad:
-                        </label>
-                        <div className="flex items-center border border-gray-300 rounded-lg overflow-hidden">
-                          <button
-                            onClick={() =>
-                              updateQuantity(
-                                item.id,
-                                Math.max(1, item.cantidad - 1),
-                              )
-                            }
-                            className="px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold transition-colors"
-                          >
-                            −
-                          </button>
-                          <input
-                            type="number"
-                            value={item.cantidad}
-                            min={1}
-                            onChange={(e) =>
-                              updateQuantity(
-                                item.id,
-                                Math.max(1, Number(e.target.value)),
-                              )
-                            }
-                            className="w-12 text-center font-semibold border-0 focus:ring-0"
-                          />
-                          <button
-                            onClick={() =>
-                              updateQuantity(item.id, item.cantidad + 1)
-                            }
-                            className="px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold transition-colors"
-                          >
-                            +
-                          </button>
-                        </div>
-                      </div>
-
-                      {/* Subtotal */}
-                      <div className="text-right">
-                        <p className="text-sm text-gray-600 mb-2">Subtotal</p>
-                        <p className="text-xl font-bold text-gray-900">
-                          $
-                          {(item.precio * item.cantidad).toLocaleString(
-                            "es-AR",
-                          )}
-                        </p>
-                      </div>
-
-                      {/* Eliminar */}
-                      <button
-                        onClick={() => removeFromCart(item.id)}
-                        className="w-full sm:w-auto px-4 py-2 bg-red-50 hover:bg-red-100 text-red-600 font-semibold rounded-lg transition-colors duration-200"
-                      >
-                        🗑️ Eliminar
-                      </button>
                     </div>
-                  ))}
-                </div>
+
+                    <div className="flex items-center gap-8 w-full sm:w-auto justify-between sm:justify-end">
+                      {/* Cantidad estricta */}
+                      <div className="flex items-center border border-gray-200">
+                        <button
+                          onClick={() => updateQuantity(item.id, Math.max(1, item.cantidad - 1))}
+                          className="w-10 h-10 flex items-center justify-center bg-gray-50 hover:bg-gray-100 text-black transition-colors"
+                        >
+                          <Minus className="w-4 h-4" />
+                        </button>
+                        <input
+                          type="number"
+                          value={item.cantidad}
+                          min={1}
+                          onChange={(e) => updateQuantity(item.id, Math.max(1, Number(e.target.value)))}
+                          className="w-12 h-10 text-center font-bold text-black border-none focus:ring-0 bg-transparent p-0"
+                        />
+                        <button
+                          onClick={() => updateQuantity(item.id, item.cantidad + 1)}
+                          className="w-10 h-10 flex items-center justify-center bg-gray-50 hover:bg-gray-100 text-black transition-colors"
+                        >
+                          <Plus className="w-4 h-4" />
+                        </button>
+                      </div>
+
+                      {/* Subtotal & Eliminar */}
+                      <div className="flex items-center gap-6">
+                        <div className="text-right hidden sm:block">
+                          <p className="text-lg font-black text-black">
+                            ${(item.precio * item.cantidad).toLocaleString("es-AR")}
+                          </p>
+                        </div>
+                        <button
+                          onClick={() => removeFromCart(item.id)}
+                          className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                          title="Eliminar producto"
+                        >
+                          <Trash2 className="w-5 h-5" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
 
-            {/* Resumen y formulario */}
+            {/* Panel de Pago Brutalista */}
             <div>
-              {/* Resumen de precios */}
-              <div className="bg-white rounded-xl shadow-md p-6 mb-6">
-                <h3 className="text-xl font-bold text-gray-900 mb-4">
-                  Resumen de pedido
+              <div className="bg-gray-50 border border-gray-200 p-8 sticky top-32">
+                <h3 className="text-sm font-bold uppercase tracking-widest text-gray-400 mb-6 pb-2 border-b border-gray-200">
+                  Totalización
                 </h3>
 
-                <div className="mb-4 pb-4 border-b border-gray-200">
-                  <div className="flex justify-between text-gray-700 mb-3">
-                    <span>Subtotal:</span>
-                    <span className="font-semibold">
-                      ${total.toLocaleString("es-AR")}
-                    </span>
-                  </div>
+                {/* Subtotales */}
+                <div className="flex justify-between items-center mb-4 text-black font-medium">
+                  <span>Subtotal</span>
+                  <span>${total.toLocaleString("es-AR")}</span>
+                </div>
+                <div className="flex justify-between items-center mb-6 text-black font-medium pb-6 border-b border-gray-200">
+                  <span>Envío</span>
+                  <span className="text-orange-500 text-sm font-bold uppercase tracking-wider">Por Calcular</span>
                 </div>
 
-                <div className="flex justify-between mb-6">
-                  <span className="text-2xl font-bold text-gray-900">
-                    Total:
+                {/* Total Final */}
+                <div className="flex justify-between items-end mb-8">
+                  <span className="text-sm font-bold uppercase tracking-widest text-gray-500">
+                    Total a Pagar
                   </span>
-                  <span className="text-2xl font-bold text-orange-600">
+                  <span className="text-3xl font-black text-black leading-none">
                     ${total.toLocaleString("es-AR")}
                   </span>
                 </div>
-              </div>
 
-              {/* Formulario de envío */}
-              <div className="bg-white rounded-xl shadow-md p-6">
-                <h3 className="text-xl font-bold text-gray-900 mb-4">
-                  Datos de envío
-                </h3>
-
+                {/* Checkout Form */}
                 <form onSubmit={handleCheckout} className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Nombre completo *
-                    </label>
-                    <input
-                      name="nombre"
-                      placeholder="Ej: Juan Pérez"
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-colors text-gray-900"
-                      required
-                    />
-                  </div>
+                  <h3 className="text-sm font-bold uppercase tracking-widest text-gray-400 mb-4 pt-4 border-t border-gray-200">
+                    Datos de la Orden
+                  </h3>
 
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Cédula *
-                      </label>
-                      <input
-                        name="cedula"
-                        placeholder="Ej: 1234567890"
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-colors text-gray-900"
-                        required
-                      />
+                  <div className="space-y-3">
+                    <input name="nombre" placeholder="NOMBRE COMPLETO" required
+                      className="w-full px-4 py-3 bg-white border border-gray-300 text-black placeholder-gray-400 font-medium text-sm focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent transition-all" />
+                    
+                    <div className="grid grid-cols-2 gap-3">
+                      <input name="cedula" placeholder="CÉDULA" required
+                        className="w-full px-4 py-3 bg-white border border-gray-300 text-black placeholder-gray-400 font-medium text-sm focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent transition-all" />
+                      <input name="telefono" placeholder="TELÉFONO" required
+                        className="w-full px-4 py-3 bg-white border border-gray-300 text-black placeholder-gray-400 font-medium text-sm focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent transition-all" />
                     </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Teléfono *
-                      </label>
-                      <input
-                        name="telefono"
-                        placeholder="Ej: 3001234567"
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-colors text-gray-900"
-                        required
-                      />
-                    </div>
-                  </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Dirección *
-                    </label>
-                    <input
-                      name="direccion"
-                      placeholder="Ej: Cra 5 # 10-20"
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-colors text-gray-900"
-                      required
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Ciudad *
-                      </label>
-                      <input
-                        name="ciudad"
-                        placeholder="Ej: Bogotá"
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-colors text-gray-900"
-                        required
-                      />
+                    <input name="direccion" placeholder="DIRECCIÓN DE ENVÍO" required
+                      className="w-full px-4 py-3 bg-white border border-gray-300 text-black placeholder-gray-400 font-medium text-sm focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent transition-all" />
+                    
+                    <div className="grid grid-cols-2 gap-3">
+                      <input name="ciudad" placeholder="CIUDAD" required
+                        className="w-full px-4 py-3 bg-white border border-gray-300 text-black placeholder-gray-400 font-medium text-sm focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent transition-all" />
+                      <input name="departamento" placeholder="DEPARTAMENTO" required
+                        className="w-full px-4 py-3 bg-white border border-gray-300 text-black placeholder-gray-400 font-medium text-sm focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent transition-all" />
                     </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Departamento *
-                      </label>
-                      <input
-                        name="departamento"
-                        placeholder="Ej: Cundinamarca"
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-colors text-gray-900"
-                        required
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Código postal *
-                    </label>
-                    <input
-                      name="codigoPostal"
-                      placeholder="Ej: 110111"
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-colors text-gray-900"
-                      required
-                    />
+                    
+                    <input name="codigoPostal" placeholder="CÓDIGO POSTAL" required
+                      className="w-full px-4 py-3 bg-white border border-gray-300 text-black placeholder-gray-400 font-medium text-sm focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent transition-all" />
                   </div>
 
                   <button
                     type="submit"
                     disabled={isSubmitting}
-                    className="w-full mt-6 bg-gradient-to-r from-orange-500 to-orange-700 hover:from-orange-600 hover:to-orange-800 text-white font-bold py-3 px-6 rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    className="w-full mt-8 bg-black hover:bg-orange-500 text-white font-bold uppercase tracking-widest py-4 px-6 transition-colors duration-200 flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed group"
                   >
                     {isSubmitting ? (
-                      "Procesando..."
+                      "PROCESANDO..."
                     ) : (
                       <>
-                        <span className="text-orange-500">💳</span> Pagar con
-                        MercadoPago
+                        <CreditCard className="w-5 h-5 group-hover:scale-110 transition-transform" /> 
+                        PAGAR AHORA
                       </>
                     )}
                   </button>
+                  <p className="text-center text-xs font-bold uppercase tracking-widest text-gray-400 mt-4 flex items-center justify-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-green-500"></span> Pagos seguros por MercadoPago
+                  </p>
                 </form>
               </div>
             </div>
+
           </div>
         )}
       </div>
