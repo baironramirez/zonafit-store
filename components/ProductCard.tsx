@@ -3,12 +3,13 @@
 import { useCart } from "../context/CartContext";
 
 type Props = {
+  id: string;
   nombre: string;
   precio: number;
-  id: string;
+  imagen: string;
 };
 
-export default function ProductCard({ nombre, precio, id }: Props) {
+export default function ProductCard({ id, nombre, precio, imagen }: Props) {
   const { addToCart } = useCart();
 
   function handleAdd() {
@@ -29,6 +30,13 @@ export default function ProductCard({ nombre, precio, id }: Props) {
         width: "200px",
       }}
     >
+      <img
+        src={imagen}
+        alt={nombre}
+        width="150"
+        style={{ marginBottom: "10px" }}
+      />
+
       <h3>{nombre}</h3>
       <p>${precio}</p>
 

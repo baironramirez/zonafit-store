@@ -15,6 +15,7 @@ export default async function ProductosPage() {
             id={product.id}
             nombre={product.nombre}
             precio={product.precio}
+            imagen={product.imagen}
           />
         ))}
       </div>

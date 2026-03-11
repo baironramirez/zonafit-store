@@ -1,5 +1,7 @@
 "use client";
 
+import { storage } from "@/lib/firebase";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { useState } from "react";
 
 export default function CrearProducto() {
@@ -8,10 +10,20 @@ export default function CrearProducto() {
   const [stock, setStock] = useState(0);
   const [categoria, setCategoria] = useState("");
   const [descripcion, setDescripcion] = useState("");
-  const [imagen, setImagen] = useState("");
+  const [imageFile, setImageFile] = useState<File | null>(null);
 
   async function handleSubmit(e: any) {
     e.preventDefault();
+
+    let imageUrl = "";
+
+    if (imageFile) {
+      const imageRef = ref(storage, `products/${Date.now()}-${imageFile.name}`);
+
+      await uploadBytes(imageRef, imageFile);
+
+      imageUrl = await getDownloadURL(imageRef);
+    }
 
     const res = await fetch("/api/admin/productos", {
       method: "POST",
@@ -24,7 +36,7 @@ export default function CrearProducto() {
         stock,
         categoria,
         descripcion,
-        imagen,
+        imagen: imageUrl,
         activo: true,
       }),
     });
@@ -70,8 +82,13 @@ export default function CrearProducto() {
         />
 
         <input
-          placeholder="Imagen URL"
-          onChange={(e) => setImagen(e.target.value)}
+          type="file"
+          accept="image/*"
+          onChange={(e) => {
+            if (e.target.files) {
+              setImageFile(e.target.files[0]);
+            }
+          }}
         />
 
         <textarea
