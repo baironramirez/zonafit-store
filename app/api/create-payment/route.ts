@@ -4,39 +4,82 @@ import { Preference } from "mercadopago";
 
 export async function POST(req: Request) {
   try {
+
+    // 🔹 validar access token
     if (!process.env.MP_ACCESS_TOKEN) {
       return NextResponse.json(
         { error: "MP_ACCESS_TOKEN no configurado" },
-        { status: 500 },
+        { status: 500 }
       );
     }
 
     const body = await req.json();
 
+    if (!body.items || !Array.isArray(body.items)) {
+      return NextResponse.json(
+        { error: "Items inválidos o vacíos" },
+        { status: 400 }
+      );
+    }
+
+    // 🔹 transformar items al formato que exige MercadoPago
+    const items = body.items.map((item: any) => ({
+      id: item.id ?? "item",
+      title: item.title ?? "Producto",
+      quantity: Number(item.quantity ?? 1),
+      unit_price: Number(item.unit_price ?? 0),
+      // currency_id se remueve para que MercadoPago use la moneda nativa de la cuenta (evita error "algo anduvo mal")
+    }));
+
+
+    console.log("Items enviados a MercadoPago:", items);
+
+    // 🔹 url base del proyecto
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://example.com";
+
     const preference = new Preference(client);
 
+    // 🔹 crear preferencia de pago
     const response = await preference.create({
       body: {
-        items: body.items,
+        items,
+
+        external_reference: body.orderId ?? null,
+
+        // ⚠️ IMPORTANTE: Si envías un payer.email y es EL MISMO correo de tu cuenta de vendedor de MercadoPago, 
+        // MercadoPago bloqueará el pago con el error "Oh, no, algo anduvo mal"
+        // payer: {
+        //   email: body.email,
+        // },
+
         back_urls: {
-          success: "http://localhost:3000/success",
-          failure: "http://localhost:3000/failure",
+          success: `${baseUrl}/success`,
+          failure: `${baseUrl}/failure`,
+          pending: `${baseUrl}/pending`,
         },
+
         auto_return: "approved",
       },
     });
 
+    console.log("Preferencia creada:", response.id);
+
     return NextResponse.json({
       id: response.id,
+      init_point: response.init_point,
     });
-  } catch (error) {
+
+  } catch (error: any) {
+
     console.error("Error en create-payment:", error);
+
     return NextResponse.json(
       {
         error: "Error creando preferencia de pago",
-        details: error instanceof Error ? error.message : String(error),
+        details: error?.message || error,
+        mp_details: error?.cause || null,
       },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }

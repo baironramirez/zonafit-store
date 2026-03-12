@@ -81,25 +81,41 @@ export default function CarritoPage() {
         },
         body: JSON.stringify({
           items: cart.map((item) => ({
+            id: item.id,
             title: item.nombre,
-            quantity: item.cantidad,
-            unit_price: item.precio,
+            quantity: Number(item.cantidad),
+            unit_price: Number(item.precio),
           })),
           orderId: orderData.orderId,
+          email: orderData.email
         }),
       });
 
+
+      // 2️⃣ Manejo de error del backend
       if (!mpRes.ok) {
         const errorText = await mpRes.text();
         console.error("Error creating payment:", mpRes.status, errorText);
+
         alert(
-          `Error (${mpRes.status}): ${errorText || "Sin detalles del error"}`,
+          `Error (${mpRes.status}): ${errorText || "Error al crear preferencia de pago"}`
         );
+
         setIsSubmitting(false);
         return;
       }
-
       const mpData = await mpRes.json();
+
+      console.log("Preferencia creada:", mpData);
+
+      // 4️⃣ Redirigir a checkout de MercadoPago
+      if (mpData.init_point) {
+        window.location.href = mpData.init_point;
+      } else {
+        alert("No se pudo iniciar el pago");
+        setIsSubmitting(false);
+      }
+
 
       window.location.href = `https://www.mercadopago.com/checkout/v1/redirect?pref_id=${mpData.id}`;
     } catch (error) {
@@ -111,7 +127,7 @@ export default function CarritoPage() {
   return (
     <main className="min-h-screen bg-white text-black selection:bg-orange-500 selection:text-white pt-24 pb-12">
       <div className="max-w-7xl mx-auto px-6">
-        
+
         {/* Breadcrumb / Regresar */}
         <Link href="/productos" className="inline-flex items-center gap-2 text-sm font-bold uppercase tracking-widest text-gray-500 hover:text-black transition-colors mb-8">
           <ChevronLeft className="w-4 h-4" /> Seguir Comprando
@@ -147,10 +163,10 @@ export default function CarritoPage() {
             </Link>
           </div>
         ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-12 lg:gap-16">
-            
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16">
+
             {/* Panel de Pago Brutalista (IZQUIERDA) */}
-            <div className="lg:col-span-2">
+            <div className="lg:col-span-7">
               <div className="bg-gray-50 border border-gray-200 p-8">
                 <h3 className="text-sm font-bold uppercase tracking-widest text-gray-400 mb-6 pb-2 border-b border-gray-200">
                   Totalización
@@ -188,7 +204,7 @@ export default function CarritoPage() {
 
                     <input name="nombre" placeholder="NOMBRE COMPLETO" required minLength={3}
                       className="w-full px-4 py-3 bg-white border border-gray-300 text-black placeholder-gray-400 font-medium text-sm focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent transition-all" />
-                    
+
                     <div className="grid grid-cols-2 gap-3">
                       <input name="cedula" placeholder="CÉDULA" required pattern="\d+" title="Ingrese solo números"
                         className="w-full px-4 py-3 bg-white border border-gray-300 text-black placeholder-gray-400 font-medium text-sm focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent transition-all" />
@@ -198,14 +214,14 @@ export default function CarritoPage() {
 
                     <input name="direccion" placeholder="DIRECCIÓN DE ENVÍO" required minLength={5}
                       className="w-full px-4 py-3 bg-white border border-gray-300 text-black placeholder-gray-400 font-medium text-sm focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent transition-all" />
-                    
+
                     <div className="grid grid-cols-2 gap-3">
                       <input name="ciudad" placeholder="CIUDAD" required minLength={3}
                         className="w-full px-4 py-3 bg-white border border-gray-300 text-black placeholder-gray-400 font-medium text-sm focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent transition-all" />
                       <input name="departamento" placeholder="DEPARTAMENTO" required minLength={3}
                         className="w-full px-4 py-3 bg-white border border-gray-300 text-black placeholder-gray-400 font-medium text-sm focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent transition-all" />
                     </div>
-                    
+
                     <input name="codigoPostal" placeholder="CÓDIGO POSTAL" required minLength={4}
                       className="w-full px-4 py-3 bg-white border border-gray-300 text-black placeholder-gray-400 font-medium text-sm focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent transition-all" />
                   </div>
@@ -219,7 +235,7 @@ export default function CarritoPage() {
                       "PROCESANDO..."
                     ) : (
                       <>
-                        <CreditCard className="w-5 h-5 group-hover:scale-110 transition-transform" /> 
+                        <CreditCard className="w-5 h-5 group-hover:scale-110 transition-transform" />
                         PAGAR AHORA
                       </>
                     )}
@@ -232,86 +248,87 @@ export default function CarritoPage() {
             </div>
 
             {/* Lista de productos Minimalista (DERECHA y STICKY) */}
-            <div className="lg:col-span-1 sticky top-32 h-fit">
+            <div className="lg:col-span-5 sticky top-32 h-fit">
               <h2 className="text-sm font-bold uppercase tracking-widest text-gray-400 mb-6 pb-2 border-b border-gray-200">
                 Resumen de Items ({cart.length})
               </h2>
-              
+
               <div className="flex flex-col gap-6">
                 {cart.map((item) => {
                   const dbItem = dbProductos.find((p) => p.id === item.id);
                   const imageUrl = item.imagen || dbItem?.imagen;
-                  
+
                   return (
-                  <div
-                    key={item.id}
-                    className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 pb-6 border-b border-gray-100"
-                  >
-                    {/* Información del producto */}
-                    <div className="flex-1 flex gap-4 items-center">
-                      {/* Imagen dinámica (desde state o db) */}
-                      {imageUrl ? (
-                        <div className="w-20 h-24 bg-gray-50 border border-gray-100 flex-shrink-0 flex items-center justify-center overflow-hidden">
-                           <img src={imageUrl} alt={item.nombre} className="w-full h-full object-contain mix-blend-multiply" />
-                        </div>
-                      ) : (
-                        <div className="w-20 h-24 bg-gray-50 border border-gray-200 flex-shrink-0 flex items-center justify-center">
-                          <ShoppingBag className="w-6 h-6 text-gray-300" />
-                        </div>
-                      )}
-                      
-                      <div>
-                        <h3 className="text-lg font-black uppercase tracking-widest text-black mb-1">
-                          {item.nombre}
-                        </h3>
-                        <p className="text-xl font-medium text-gray-900">
-                          ${item.precio.toLocaleString("es-AR")}
-                        </p>
-                      </div>
-                    </div>
+                    <div
+                      key={item.id}
+                      className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 pb-6 border-b border-gray-100"
+                    >
+                      {/* Información del producto */}
+                      <div className="flex-1 flex gap-4 items-center">
+                        {/* Imagen dinámica (desde state o db) */}
+                        {imageUrl ? (
+                          <div className="w-20 h-24 bg-gray-50 border border-gray-100 flex-shrink-0 flex items-center justify-center overflow-hidden">
+                            <img src={imageUrl} alt={item.nombre} className="w-full h-full object-contain mix-blend-multiply" />
+                          </div>
+                        ) : (
+                          <div className="w-20 h-24 bg-gray-50 border border-gray-200 flex-shrink-0 flex items-center justify-center">
+                            <ShoppingBag className="w-6 h-6 text-gray-300" />
+                          </div>
+                        )}
 
-                    <div className="flex items-center gap-8 w-full sm:w-auto justify-between sm:justify-end">
-                      {/* Cantidad estricta */}
-                      <div className="flex items-center border border-gray-200">
-                        <button
-                          onClick={() => updateQuantity(item.id, Math.max(1, item.cantidad - 1))}
-                          className="w-10 h-10 flex items-center justify-center bg-gray-50 hover:bg-gray-100 text-black transition-colors"
-                        >
-                          <Minus className="w-4 h-4" />
-                        </button>
-                        <input
-                          type="number"
-                          value={item.cantidad}
-                          min={1}
-                          onChange={(e) => updateQuantity(item.id, Math.max(1, Number(e.target.value)))}
-                          className="w-12 h-10 text-center font-bold text-black border-none focus:ring-0 bg-transparent p-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                        />
-                        <button
-                          onClick={() => updateQuantity(item.id, item.cantidad + 1)}
-                          className="w-10 h-10 flex items-center justify-center bg-gray-50 hover:bg-gray-100 text-black transition-colors"
-                        >
-                          <Plus className="w-4 h-4" />
-                        </button>
-                      </div>
-
-                      {/* Subtotal & Eliminar */}
-                      <div className="flex items-center gap-6">
-                        <div className="text-right hidden sm:block">
-                          <p className="text-lg font-black text-black">
-                            ${(item.precio * item.cantidad).toLocaleString("es-AR")}
+                        <div>
+                          <h3 className="text-lg font-black uppercase tracking-widest text-black mb-1">
+                            {item.nombre}
+                          </h3>
+                          <p className="text-xl font-medium text-gray-900">
+                            ${item.precio.toLocaleString("es-AR")}
                           </p>
                         </div>
-                        <button
-                          onClick={() => removeFromCart(item.id)}
-                          className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                          title="Eliminar producto"
-                        >
-                          <Trash2 className="w-5 h-5" />
-                        </button>
+                      </div>
+
+                      <div className="flex items-center gap-8 w-full sm:w-auto justify-between sm:justify-end">
+                        {/* Cantidad estricta */}
+                        <div className="flex items-center border border-gray-200">
+                          <button
+                            onClick={() => updateQuantity(item.id, Math.max(1, item.cantidad - 1))}
+                            className="w-10 h-10 flex items-center justify-center bg-gray-50 hover:bg-gray-100 text-black transition-colors"
+                          >
+                            <Minus className="w-4 h-4" />
+                          </button>
+                          <input
+                            type="number"
+                            value={item.cantidad}
+                            min={1}
+                            onChange={(e) => updateQuantity(item.id, Math.max(1, Number(e.target.value)))}
+                            className="w-12 h-10 text-center font-bold text-black border-none focus:ring-0 bg-transparent p-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                          />
+                          <button
+                            onClick={() => updateQuantity(item.id, item.cantidad + 1)}
+                            className="w-10 h-10 flex items-center justify-center bg-gray-50 hover:bg-gray-100 text-black transition-colors"
+                          >
+                            <Plus className="w-4 h-4" />
+                          </button>
+                        </div>
+
+                        {/* Subtotal & Eliminar */}
+                        <div className="flex items-center gap-6">
+                          <div className="text-right hidden sm:block">
+                            <p className="text-lg font-black text-black">
+                              ${(item.precio * item.cantidad).toLocaleString("es-AR")}
+                            </p>
+                          </div>
+                          <button
+                            onClick={() => removeFromCart(item.id)}
+                            className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                            title="Eliminar producto"
+                          >
+                            <Trash2 className="w-5 h-5" />
+                          </button>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                )})}
+                  )
+                })}
               </div>
             </div>
 
