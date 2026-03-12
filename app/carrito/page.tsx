@@ -150,8 +150,8 @@ export default function CarritoPage() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-12 lg:gap-16">
             
             {/* Panel de Pago Brutalista (IZQUIERDA) */}
-            <div>
-              <div className="bg-gray-50 border border-gray-200 p-8 sticky top-32">
+            <div className="lg:col-span-2">
+              <div className="bg-gray-50 border border-gray-200 p-8">
                 <h3 className="text-sm font-bold uppercase tracking-widest text-gray-400 mb-6 pb-2 border-b border-gray-200">
                   Totalización
                 </h3>
@@ -186,27 +186,27 @@ export default function CarritoPage() {
                     <input name="correo" type="email" placeholder="CORREO ELECTRÓNICO" required
                       className="w-full px-4 py-3 bg-white border border-gray-300 text-black placeholder-gray-400 font-medium text-sm focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent transition-all" />
 
-                    <input name="nombre" placeholder="NOMBRE COMPLETO" required
+                    <input name="nombre" placeholder="NOMBRE COMPLETO" required minLength={3}
                       className="w-full px-4 py-3 bg-white border border-gray-300 text-black placeholder-gray-400 font-medium text-sm focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent transition-all" />
                     
                     <div className="grid grid-cols-2 gap-3">
-                      <input name="cedula" placeholder="CÉDULA" required
+                      <input name="cedula" placeholder="CÉDULA" required pattern="\d+" title="Ingrese solo números"
                         className="w-full px-4 py-3 bg-white border border-gray-300 text-black placeholder-gray-400 font-medium text-sm focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent transition-all" />
-                      <input name="telefono" placeholder="TELÉFONO" required
+                      <input name="telefono" placeholder="TELÉFONO" required pattern="\d{10}" title="Debe contener exactamente 10 dígitos"
                         className="w-full px-4 py-3 bg-white border border-gray-300 text-black placeholder-gray-400 font-medium text-sm focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent transition-all" />
                     </div>
 
-                    <input name="direccion" placeholder="DIRECCIÓN DE ENVÍO" required
+                    <input name="direccion" placeholder="DIRECCIÓN DE ENVÍO" required minLength={5}
                       className="w-full px-4 py-3 bg-white border border-gray-300 text-black placeholder-gray-400 font-medium text-sm focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent transition-all" />
                     
                     <div className="grid grid-cols-2 gap-3">
-                      <input name="ciudad" placeholder="CIUDAD" required
+                      <input name="ciudad" placeholder="CIUDAD" required minLength={3}
                         className="w-full px-4 py-3 bg-white border border-gray-300 text-black placeholder-gray-400 font-medium text-sm focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent transition-all" />
-                      <input name="departamento" placeholder="DEPARTAMENTO" required
+                      <input name="departamento" placeholder="DEPARTAMENTO" required minLength={3}
                         className="w-full px-4 py-3 bg-white border border-gray-300 text-black placeholder-gray-400 font-medium text-sm focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent transition-all" />
                     </div>
                     
-                    <input name="codigoPostal" placeholder="CÓDIGO POSTAL" required
+                    <input name="codigoPostal" placeholder="CÓDIGO POSTAL" required minLength={4}
                       className="w-full px-4 py-3 bg-white border border-gray-300 text-black placeholder-gray-400 font-medium text-sm focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent transition-all" />
                   </div>
 
@@ -231,8 +231,8 @@ export default function CarritoPage() {
               </div>
             </div>
 
-            {/* Lista de productos Minimalista (DERECHA) */}
-            <div className="lg:col-span-2">
+            {/* Lista de productos Minimalista (DERECHA y STICKY) */}
+            <div className="lg:col-span-1 sticky top-32 h-fit">
               <h2 className="text-sm font-bold uppercase tracking-widest text-gray-400 mb-6 pb-2 border-b border-gray-200">
                 Resumen de Items ({cart.length})
               </h2>
