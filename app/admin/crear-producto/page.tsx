@@ -84,26 +84,26 @@ export default function CrearProducto() {
   }
 
   return (
-    <main className="min-h-screen bg-neutral-950 text-white selection:bg-orange-500 selection:text-black py-12 px-6 pt-24">
+    <main className="min-h-screen bg-gray-50 text-black selection:bg-orange-500 selection:text-white py-12 px-6 pt-24">
       <div className="max-w-3xl mx-auto">
         
         <Link 
           href="/admin" 
-          className="inline-flex items-center gap-2 text-neutral-400 hover:text-white mb-8 transition-colors group"
+          className="inline-flex items-center gap-2 text-sm font-bold uppercase tracking-widest text-gray-400 hover:text-black mb-8 transition-colors group"
         >
           <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-1" />
           Volver al Panel
         </Link>
         
-        <h1 className="text-3xl font-black text-white mb-8">
-          Crear <span className="text-orange-500">Nuevo Suplemento</span>
+        <h1 className="text-4xl font-black uppercase tracking-tight text-black mb-8">
+          Crear <span className="text-orange-500">Suplemento</span>
         </h1>
 
-        <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-8">
-          <form onSubmit={handleSubmit} className="space-y-6">
+        <div className="bg-white border border-gray-200 rounded-none p-8 md:p-12 shadow-sm">
+          <form onSubmit={handleSubmit} className="space-y-8">
             {/* Nombre */}
             <div>
-              <label className="block text-sm font-medium text-neutral-300 mb-2">
+              <label className="block text-sm font-bold uppercase tracking-widest text-gray-500 mb-3">
                 Nombre del producto *
               </label>
               <input
@@ -111,15 +111,15 @@ export default function CrearProducto() {
                 placeholder="Ej: Whey Protein Isolate 5lbs"
                 value={nombre}
                 onChange={(e) => setNombre(e.target.value)}
-                className="w-full px-4 py-3 bg-neutral-950 border border-neutral-800 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-colors placeholder-neutral-600 text-white"
+                className="w-full px-4 py-4 bg-gray-50 border border-gray-200 focus:bg-white focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent transition-all placeholder-gray-400 text-black font-medium"
                 required
               />
             </div>
 
             {/* Precio y Stock */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               <div>
-                <label className="block text-sm font-medium text-neutral-300 mb-2">
+                <label className="block text-sm font-bold uppercase tracking-widest text-gray-500 mb-3">
                   Precio (ARS) *
                 </label>
                 <input
@@ -128,20 +128,20 @@ export default function CrearProducto() {
                   min="0"
                   step="0.01"
                   onChange={(e) => setPrecio(Number(e.target.value))}
-                  className="w-full px-4 py-3 bg-neutral-950 border border-neutral-800 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-colors placeholder-neutral-600 text-white"
+                  className="w-full px-4 py-4 bg-gray-50 border border-gray-200 focus:bg-white focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent transition-all placeholder-gray-400 text-black font-bold"
                   required
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-neutral-300 mb-2">
-                  Stock *
+                <label className="block text-sm font-bold uppercase tracking-widest text-gray-500 mb-3">
+                  Stock Inicial *
                 </label>
                 <input
                   type="number"
                   placeholder="0"
                   min="0"
                   onChange={(e) => setStock(Number(e.target.value))}
-                  className="w-full px-4 py-3 bg-neutral-950 border border-neutral-800 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-colors placeholder-neutral-600 text-white"
+                  className="w-full px-4 py-4 bg-gray-50 border border-gray-200 focus:bg-white focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent transition-all placeholder-gray-400 text-black font-bold"
                   required
                 />
               </div>
@@ -149,32 +149,32 @@ export default function CrearProducto() {
 
             {/* Categoría */}
             <div>
-              <label className="block text-sm font-medium text-neutral-300 mb-2">
-                Categoría
+              <label className="block text-sm font-bold uppercase tracking-widest text-gray-500 mb-3">
+                Categoría principal
               </label>
               <input
                 type="text"
                 placeholder="Ej: Proteínas, Pre-Entrenos, Creatina"
                 value={categoria}
                 onChange={(e) => setCategoria(e.target.value)}
-                className="w-full px-4 py-3 bg-neutral-950 border border-neutral-800 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-colors placeholder-neutral-600 text-white"
+                className="w-full px-4 py-4 bg-gray-50 border border-gray-200 focus:bg-white focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent transition-all placeholder-gray-400 text-black font-medium"
               />
             </div>
 
             {/* Configuración de Imagen */}
-            <div className="pt-4 border-t border-neutral-800">
-              <label className="block text-sm font-medium text-neutral-300 mb-4">
-                Fotografía del Suplemento
+            <div className="pt-8 border-t border-gray-100">
+              <label className="block text-sm font-bold uppercase tracking-widest text-gray-500 mb-4">
+                Fotografía Oficial
               </label>
               
               <div className="flex flex-col md:flex-row items-start gap-6">
                 <div className="flex-1 w-full">
                   <div className="flex items-center justify-center w-full">
-                    <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-neutral-800 border-dashed rounded-xl cursor-pointer bg-neutral-950 hover:bg-neutral-900 hover:border-orange-500/50 transition-colors">
+                    <label className="flex flex-col items-center justify-center w-full h-40 border-2 border-gray-200 border-dashed cursor-pointer bg-gray-50 hover:bg-gray-100 hover:border-black transition-colors">
                       <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                        <UploadCloud className="w-8 h-8 text-neutral-500 mb-2" />
-                        <p className="mb-2 text-sm text-neutral-400 font-medium">Click para subir foto</p>
-                        <p className="text-xs text-neutral-500">PNG, JPG hasta 5MB</p>
+                        <UploadCloud className="w-10 h-10 text-gray-400 mb-3" />
+                        <p className="mb-2 text-sm text-gray-600 font-bold uppercase tracking-wide">Subir Archivo Gráfico</p>
+                        <p className="text-xs text-gray-400 font-medium">PNG ó JPG (hasta 5MB)</p>
                       </div>
                       <input 
                         type="file" 
@@ -187,11 +187,11 @@ export default function CrearProducto() {
                 </div>
 
                 {previewUrl && (
-                  <div className="w-full md:w-32 h-32 relative rounded-xl overflow-hidden border border-neutral-800 bg-neutral-950">
+                  <div className="w-full md:w-40 h-40 relative overflow-hidden border border-gray-200 bg-white flex-shrink-0 flex items-center justify-center">
                     <img
                       src={previewUrl}
                       alt="Preview"
-                      className="w-full h-full object-cover"
+                      className="w-full h-full object-contain p-2 mix-blend-multiply"
                     />
                   </div>
                 )}
@@ -199,16 +199,16 @@ export default function CrearProducto() {
             </div>
 
             {/* Descripción */}
-            <div className="pt-4 border-t border-neutral-800">
-              <label className="block text-sm font-medium text-neutral-300 mb-2">
-                Descripción
+            <div className="pt-8 border-t border-gray-100">
+              <label className="block text-sm font-bold uppercase tracking-widest text-gray-500 mb-3">
+                Descripción Detallada
               </label>
               <textarea
-                placeholder="Ingredientes clave, modo de uso, tabla nutricional..."
+                placeholder="Tabla nutricional, beneficios, modo de preparación..."
                 value={descripcion}
                 onChange={(e) => setDescripcion(e.target.value)}
                 rows={5}
-                className="w-full px-4 py-3 bg-neutral-950 border border-neutral-800 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-colors resize-vertical placeholder-neutral-600 text-white"
+                className="w-full px-4 py-4 bg-gray-50 border border-gray-200 focus:bg-white focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent transition-all resize-none placeholder-gray-400 text-black font-medium leading-relaxed"
               />
             </div>
 
@@ -216,9 +216,15 @@ export default function CrearProducto() {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full bg-orange-500 text-black py-4 px-6 rounded-xl font-bold hover:bg-orange-400 focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 focus:ring-offset-neutral-900 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-orange-500/20"
+              className="w-full bg-black text-white py-5 px-8 font-black uppercase tracking-widest hover:bg-orange-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed mt-4 group flex justify-center items-center gap-3"
             >
-              {isLoading ? "Subiendo producto a Firestore..." : "Publicar Suplemento"}
+              {isLoading ? (
+                "SINCRONIZANDO..."
+              ) : (
+                <>
+                   PUBLICAR EN CATÁLOGO
+                </>
+              )}
             </button>
           </form>
         </div>

@@ -1,13 +1,17 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { X, Save, Edit2 } from "lucide-react";
+import { X, Save, Edit2, UploadCloud } from "lucide-react";
+import { storage } from "@/lib/firebase";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 
 export default function AdminProductos() {
   const [products, setProducts] = useState<any[]>([]);
   const [isEditing, setIsEditing] = useState(false);
   const [editingProduct, setEditingProduct] = useState<any>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   useEffect(() => {
     fetchProducts();
@@ -21,12 +25,16 @@ export default function AdminProductos() {
 
   function openEditModal(product: any) {
     setEditingProduct({ ...product });
+    setImageFile(null);
+    setPreviewUrl(product.imagen || null);
     setIsEditing(true);
   }
 
   function closeEditModal() {
     setIsEditing(false);
     setEditingProduct(null);
+    setImageFile(null);
+    setPreviewUrl(null);
   }
 
   async function handleEditSubmit(e: React.FormEvent) {
@@ -34,12 +42,24 @@ export default function AdminProductos() {
     setIsSaving(true);
 
     try {
+      let finalImageUrl = editingProduct.imagen;
+
+      // Si subieron una nueva imagen, reemplazarla en storage
+      if (imageFile) {
+        const imageRef = ref(
+          storage,
+          `products/${Date.now()}-${imageFile.name}`,
+        );
+        await uploadBytes(imageRef, imageFile);
+        finalImageUrl = await getDownloadURL(imageRef);
+      }
+
       const res = await fetch("/api/admin/productos/edit", {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(editingProduct),
+        body: JSON.stringify({ ...editingProduct, imagen: finalImageUrl }),
       });
 
       if (res.ok) {
@@ -74,6 +94,19 @@ export default function AdminProductos() {
   function handleInputChange(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) {
     const { name, value } = e.target;
     setEditingProduct({ ...editingProduct, [name]: value });
+  }
+
+  function handleImageChange(e: React.ChangeEvent<HTMLInputElement>) {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      setImageFile(file);
+
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setPreviewUrl(e.target?.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
   }
 
   return (
@@ -233,14 +266,37 @@ export default function AdminProductos() {
                 </div>
                 
                 <div className="md:col-span-2">
-                  <label className="block text-sm font-bold uppercase tracking-widest text-gray-500 mb-2">URL de la Imagen</label>
-                  <input
-                    type="url"
-                    name="imagen"
-                    value={editingProduct.imagen || ""}
-                    onChange={handleInputChange}
-                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 text-black font-medium focus:outline-none focus:ring-2 focus:ring-black focus:bg-white transition-all rounded-lg"
-                  />
+                  <label className="block text-sm font-bold uppercase tracking-widest text-gray-500 mb-2">Fotografía del Suplemento</label>
+                  
+                  <div className="flex flex-col md:flex-row items-start gap-6">
+                    <div className="flex-1 w-full">
+                      <div className="flex items-center justify-center w-full">
+                        <label className="flex flex-col items-center justify-center w-full h-32 border border-gray-200 border-dashed rounded-xl cursor-pointer bg-gray-50 hover:bg-gray-100 transition-colors">
+                          <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                            <UploadCloud className="w-8 h-8 text-gray-400 mb-2" />
+                            <p className="mb-2 text-sm text-gray-500 font-medium">Click para subir foto nueva</p>
+                            <p className="text-xs text-gray-400">PNG, JPG hasta 5MB</p>
+                          </div>
+                          <input 
+                            type="file" 
+                            className="hidden" 
+                            accept="image/*"
+                            onChange={handleImageChange}
+                          />
+                        </label>
+                      </div>
+                    </div>
+
+                    {previewUrl && (
+                      <div className="w-full md:w-32 h-32 relative rounded-xl overflow-hidden border border-gray-200 bg-white flex-shrink-0">
+                        <img
+                          src={previewUrl}
+                          alt="Preview"
+                          className="w-full h-full object-contain"
+                        />
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 <div className="md:col-span-2">

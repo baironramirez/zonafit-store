@@ -36,6 +36,7 @@ export default function CarritoPage() {
     const formData = new FormData(form);
 
     const cliente = {
+      correo: formData.get("correo"),
       nombre: formData.get("nombre"),
       cedula: formData.get("cedula"),
       telefono: formData.get("telefono"),
@@ -266,6 +267,9 @@ export default function CarritoPage() {
                   </h3>
 
                   <div className="space-y-3">
+                    <input name="correo" type="email" placeholder="CORREO ELECTRÓNICO" required
+                      className="w-full px-4 py-3 bg-white border border-gray-300 text-black placeholder-gray-400 font-medium text-sm focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent transition-all" />
+
                     <input name="nombre" placeholder="NOMBRE COMPLETO" required
                       className="w-full px-4 py-3 bg-white border border-gray-300 text-black placeholder-gray-400 font-medium text-sm focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent transition-all" />
                     

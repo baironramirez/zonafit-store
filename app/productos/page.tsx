@@ -123,7 +123,7 @@ export default function ProductosPage() {
                 variants={containerVariants}
                 initial="hidden"
                 animate="show"
-                className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6 lg:gap-8"
+                className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6"
               >
                 {productosFiltrados.map((producto) => (
                   <motion.div variants={itemVariants as any} key={producto.id}>

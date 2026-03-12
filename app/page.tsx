@@ -42,16 +42,16 @@ export default function Home() {
             transition={{ duration: 0.7 }}
           >
             <span className="inline-block py-1 px-3 rounded-full bg-black text-white text-xs font-bold tracking-widest uppercase mb-6">
-              Nueva Colección de Rendimiento
+              Desafia tus limites
             </span>
             <h1 className="text-6xl md:text-8xl lg:text-9xl font-black mb-6 tracking-tighter uppercase leading-none text-black">
-              Desata Tu<br /> 
+              Desata Tu<br />
               <span className="text-orange-500">Poder</span>
             </h1>
             <p className="text-lg md:text-2xl text-gray-800 mb-10 max-w-2xl mx-auto font-medium">
               Suplementación de grado élite para resultados que hablan por sí solos.
             </p>
-            
+
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
               <Link
                 href="/productos"
@@ -69,7 +69,7 @@ export default function Home() {
       {/* Features Section */}
       <section className="py-24 bg-gray-50 border-t border-gray-200">
         <div className="max-w-7xl mx-auto px-6">
-          <motion.div 
+          <motion.div
             variants={containerVars}
             initial="hidden"
             whileInView="show"
@@ -121,8 +121,8 @@ export default function Home() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <Link href="/productos" className="group relative h-[500px] overflow-hidden bg-gray-100 flex items-end">
-              <img 
-                src="https://images.unsplash.com/photo-1593095948071-474c5cc2989d?q=80&w=2070&auto=format&fit=crop" 
+              <img
+                src="https://images.unsplash.com/photo-1593095948071-474c5cc2989d?q=80&w=2070&auto=format&fit=crop"
                 className="absolute inset-0 w-full h-full object-cover opacity-80 group-hover:scale-105 transition-transform duration-700"
                 alt="Proteínas"
               />
@@ -134,8 +134,8 @@ export default function Home() {
             </Link>
 
             <Link href="/productos" className="group relative h-[500px] overflow-hidden bg-gray-100 flex items-end">
-              <img 
-                src="https://images.unsplash.com/photo-1554284126-aa888050901e?q=80&w=2070&auto=format&fit=crop" 
+              <img
+                src="https://images.unsplash.com/photo-1554284126-aa888050901e?q=80&w=2070&auto=format&fit=crop"
                 className="absolute inset-0 w-full h-full object-cover opacity-80 group-hover:scale-105 transition-transform duration-700"
                 alt="Pre-Entrenos"
               />
@@ -147,8 +147,8 @@ export default function Home() {
             </Link>
 
             <Link href="/productos" className="group relative h-[500px] overflow-hidden bg-gray-100 flex items-end md:col-span-2 lg:col-span-1">
-              <img 
-                src="https://images.unsplash.com/photo-1517836357463-d25dfeac3438?q=80&w=2070&auto=format&fit=crop" 
+              <img
+                src="https://images.unsplash.com/photo-1517836357463-d25dfeac3438?q=80&w=2070&auto=format&fit=crop"
                 className="absolute inset-0 w-full h-full object-cover opacity-80 group-hover:scale-105 transition-transform duration-700"
                 alt="Creatina"
               />
@@ -159,7 +159,7 @@ export default function Home() {
               </div>
             </Link>
           </div>
-          
+
           <div className="mt-12 text-center">
             <Link href="/productos" className="inline-block border-b-2 border-black pb-1 font-bold text-black uppercase tracking-widest hover:text-orange-500 hover:border-orange-500 transition-colors">
               Ver Todo el Catálogo
@@ -177,15 +177,15 @@ export default function Home() {
           <p className="text-gray-600 font-medium text-lg mb-10">
             Recibe acceso anticipado a restocks de suplementos, protocolos de nutrición y ofertas exclusivas en tu correo.
           </p>
-          
+
           <form className="flex flex-col sm:flex-row gap-4 max-w-2xl mx-auto">
-            <input 
-              type="email" 
-              placeholder="TU CORREO ELECTRÓNICO" 
+            <input
+              type="email"
+              placeholder="TU CORREO ELECTRÓNICO"
               className="flex-1 px-6 py-4 bg-white border border-gray-300 text-black placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-black transition-all uppercase text-sm font-bold tracking-wider"
               required
             />
-            <button 
+            <button
               type="submit"
               className="px-8 py-4 bg-black text-white font-bold uppercase tracking-widest hover:bg-orange-500 transition-colors whitespace-nowrap"
             >
