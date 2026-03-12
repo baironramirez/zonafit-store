@@ -149,91 +149,7 @@ export default function CarritoPage() {
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-12 lg:gap-16">
             
-            {/* Lista de productos Minimalista */}
-            <div className="lg:col-span-2">
-              <h2 className="text-sm font-bold uppercase tracking-widest text-gray-400 mb-6 pb-2 border-b border-gray-200">
-                Resumen de Items ({cart.length})
-              </h2>
-              
-              <div className="flex flex-col gap-6">
-                {cart.map((item) => {
-                  const dbItem = dbProductos.find((p) => p.id === item.id);
-                  const imageUrl = item.imagen || dbItem?.imagen;
-                  
-                  return (
-                  <div
-                    key={item.id}
-                    className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 pb-6 border-b border-gray-100"
-                  >
-                    {/* Información del producto */}
-                    <div className="flex-1 flex gap-4 items-center">
-                      {/* Imagen dinámica (desde state o db) */}
-                      {imageUrl ? (
-                        <div className="w-20 h-24 bg-gray-50 border border-gray-100 flex-shrink-0 flex items-center justify-center overflow-hidden">
-                           <img src={imageUrl} alt={item.nombre} className="w-full h-full object-contain mix-blend-multiply" />
-                        </div>
-                      ) : (
-                        <div className="w-20 h-24 bg-gray-50 border border-gray-200 flex-shrink-0 flex items-center justify-center">
-                          <ShoppingBag className="w-6 h-6 text-gray-300" />
-                        </div>
-                      )}
-                      
-                      <div>
-                        <h3 className="text-lg font-black uppercase tracking-widest text-black mb-1">
-                          {item.nombre}
-                        </h3>
-                        <p className="text-xl font-medium text-gray-900">
-                          ${item.precio.toLocaleString("es-AR")}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-8 w-full sm:w-auto justify-between sm:justify-end">
-                      {/* Cantidad estricta */}
-                      <div className="flex items-center border border-gray-200">
-                        <button
-                          onClick={() => updateQuantity(item.id, Math.max(1, item.cantidad - 1))}
-                          className="w-10 h-10 flex items-center justify-center bg-gray-50 hover:bg-gray-100 text-black transition-colors"
-                        >
-                          <Minus className="w-4 h-4" />
-                        </button>
-                        <input
-                          type="number"
-                          value={item.cantidad}
-                          min={1}
-                          onChange={(e) => updateQuantity(item.id, Math.max(1, Number(e.target.value)))}
-                          className="w-12 h-10 text-center font-bold text-black border-none focus:ring-0 bg-transparent p-0"
-                        />
-                        <button
-                          onClick={() => updateQuantity(item.id, item.cantidad + 1)}
-                          className="w-10 h-10 flex items-center justify-center bg-gray-50 hover:bg-gray-100 text-black transition-colors"
-                        >
-                          <Plus className="w-4 h-4" />
-                        </button>
-                      </div>
-
-                      {/* Subtotal & Eliminar */}
-                      <div className="flex items-center gap-6">
-                        <div className="text-right hidden sm:block">
-                          <p className="text-lg font-black text-black">
-                            ${(item.precio * item.cantidad).toLocaleString("es-AR")}
-                          </p>
-                        </div>
-                        <button
-                          onClick={() => removeFromCart(item.id)}
-                          className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                          title="Eliminar producto"
-                        >
-                          <Trash2 className="w-5 h-5" />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                )})}
-              </div>
-            </div>
-
-            {/* Panel de Pago Brutalista */}
+            {/* Panel de Pago Brutalista (IZQUIERDA) */}
             <div>
               <div className="bg-gray-50 border border-gray-200 p-8 sticky top-32">
                 <h3 className="text-sm font-bold uppercase tracking-widest text-gray-400 mb-6 pb-2 border-b border-gray-200">
@@ -312,6 +228,90 @@ export default function CarritoPage() {
                     <span className="w-2 h-2 rounded-full bg-green-500"></span> Pagos seguros por MercadoPago
                   </p>
                 </form>
+              </div>
+            </div>
+
+            {/* Lista de productos Minimalista (DERECHA) */}
+            <div className="lg:col-span-2">
+              <h2 className="text-sm font-bold uppercase tracking-widest text-gray-400 mb-6 pb-2 border-b border-gray-200">
+                Resumen de Items ({cart.length})
+              </h2>
+              
+              <div className="flex flex-col gap-6">
+                {cart.map((item) => {
+                  const dbItem = dbProductos.find((p) => p.id === item.id);
+                  const imageUrl = item.imagen || dbItem?.imagen;
+                  
+                  return (
+                  <div
+                    key={item.id}
+                    className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 pb-6 border-b border-gray-100"
+                  >
+                    {/* Información del producto */}
+                    <div className="flex-1 flex gap-4 items-center">
+                      {/* Imagen dinámica (desde state o db) */}
+                      {imageUrl ? (
+                        <div className="w-20 h-24 bg-gray-50 border border-gray-100 flex-shrink-0 flex items-center justify-center overflow-hidden">
+                           <img src={imageUrl} alt={item.nombre} className="w-full h-full object-contain mix-blend-multiply" />
+                        </div>
+                      ) : (
+                        <div className="w-20 h-24 bg-gray-50 border border-gray-200 flex-shrink-0 flex items-center justify-center">
+                          <ShoppingBag className="w-6 h-6 text-gray-300" />
+                        </div>
+                      )}
+                      
+                      <div>
+                        <h3 className="text-lg font-black uppercase tracking-widest text-black mb-1">
+                          {item.nombre}
+                        </h3>
+                        <p className="text-xl font-medium text-gray-900">
+                          ${item.precio.toLocaleString("es-AR")}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-8 w-full sm:w-auto justify-between sm:justify-end">
+                      {/* Cantidad estricta */}
+                      <div className="flex items-center border border-gray-200">
+                        <button
+                          onClick={() => updateQuantity(item.id, Math.max(1, item.cantidad - 1))}
+                          className="w-10 h-10 flex items-center justify-center bg-gray-50 hover:bg-gray-100 text-black transition-colors"
+                        >
+                          <Minus className="w-4 h-4" />
+                        </button>
+                        <input
+                          type="number"
+                          value={item.cantidad}
+                          min={1}
+                          onChange={(e) => updateQuantity(item.id, Math.max(1, Number(e.target.value)))}
+                          className="w-12 h-10 text-center font-bold text-black border-none focus:ring-0 bg-transparent p-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                        />
+                        <button
+                          onClick={() => updateQuantity(item.id, item.cantidad + 1)}
+                          className="w-10 h-10 flex items-center justify-center bg-gray-50 hover:bg-gray-100 text-black transition-colors"
+                        >
+                          <Plus className="w-4 h-4" />
+                        </button>
+                      </div>
+
+                      {/* Subtotal & Eliminar */}
+                      <div className="flex items-center gap-6">
+                        <div className="text-right hidden sm:block">
+                          <p className="text-lg font-black text-black">
+                            ${(item.precio * item.cantidad).toLocaleString("es-AR")}
+                          </p>
+                        </div>
+                        <button
+                          onClick={() => removeFromCart(item.id)}
+                          className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                          title="Eliminar producto"
+                        >
+                          <Trash2 className="w-5 h-5" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )})}
               </div>
             </div>
 
