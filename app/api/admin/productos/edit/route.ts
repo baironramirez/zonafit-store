@@ -20,6 +20,14 @@ export async function PUT(req: Request) {
     if (updateData.precio) updateData.precio = Number(updateData.precio);
     if (updateData.stock) updateData.stock = Number(updateData.stock);
 
+    if (updateData.variantes && Array.isArray(updateData.variantes)) {
+      updateData.variantes = updateData.variantes.map((v: any) => ({
+        ...v,
+        precio: Number(v.precio),
+        stock: Number(v.stock)
+      }));
+    }
+
     await updateDoc(productRef, {
       ...updateData,
       updatedAt: new Date(),

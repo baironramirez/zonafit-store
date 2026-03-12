@@ -4,6 +4,13 @@ import { useCart } from "@/context/CartContext";
 import { Plus } from "lucide-react";
 import { useState } from "react";
 
+export interface Variante {
+  id: string; // E.g., Date.now.toString()
+  nombre: string; // E.g., "Sabor Fresa 2LBs"
+  precio: number;
+  stock: number;
+}
+
 export interface ProductoData {
   id: string;
   nombre: string;
@@ -13,6 +20,7 @@ export interface ProductoData {
   imagen: string;
   descripcion: string;
   activo: boolean;
+  variantes?: Variante[];
 }
 
 export default function ProductCard({ producto }: { producto: ProductoData }) {

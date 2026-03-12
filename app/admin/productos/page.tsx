@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { X, Save, Edit2, UploadCloud } from "lucide-react";
+import { X, Save, Edit2, UploadCloud, Plus, Trash2 } from "lucide-react";
 import { storage } from "@/lib/firebase";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { Variante } from "@/components/ProductCard";
 
 export default function AdminProductos() {
   const [products, setProducts] = useState<any[]>([]);
@@ -12,6 +13,11 @@ export default function AdminProductos() {
   const [isSaving, setIsSaving] = useState(false);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+
+  // Temporary state for adding a new variant in edit mode
+  const [newVarNombre, setNewVarNombre] = useState("");
+  const [newVarPrecio, setNewVarPrecio] = useState(0);
+  const [newVarStock, setNewVarStock] = useState(0);
 
   useEffect(() => {
     fetchProducts();
@@ -24,10 +30,14 @@ export default function AdminProductos() {
   }
 
   function openEditModal(product: any) {
-    setEditingProduct({ ...product });
+    // Ensure variantes array exists even if old product
+    setEditingProduct({ ...product, variantes: product.variantes || [] });
     setImageFile(null);
     setPreviewUrl(product.imagen || null);
     setIsEditing(true);
+    setNewVarNombre("");
+    setNewVarPrecio(0);
+    setNewVarStock(0);
   }
 
   function closeEditModal() {
@@ -44,7 +54,6 @@ export default function AdminProductos() {
     try {
       let finalImageUrl = editingProduct.imagen;
 
-      // Si subieron una nueva imagen, reemplazarla en storage
       if (imageFile) {
         const imageRef = ref(
           storage,
@@ -93,7 +102,7 @@ export default function AdminProductos() {
 
   function handleInputChange(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) {
     const { name, value } = e.target;
-    setEditingProduct({ ...editingProduct, [name]: value });
+    setEditingProduct({ ...editingProduct, [name]: name === 'precio' || name === 'stock' ? Number(value) : value });
   }
 
   function handleImageChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -109,11 +118,49 @@ export default function AdminProductos() {
     }
   }
 
+  /* --- VARIANT HANDLERS (EDIT MODAL) --- */
+  const handleVarianteChange = (id: string, field: keyof Variante, value: string | number) => {
+    const updatedVariantes = editingProduct.variantes.map((v: Variante) => {
+      if (v.id === id) {
+        return { ...v, [field]: value };
+      }
+      return v;
+    });
+    setEditingProduct({ ...editingProduct, variantes: updatedVariantes });
+  };
+
+  const removeVarianteEdit = (id: string) => {
+    const updatedVariantes = editingProduct.variantes.filter((v: Variante) => v.id !== id);
+    setEditingProduct({ ...editingProduct, variantes: updatedVariantes });
+  };
+
+  const handleAddNewVarianteEdit = () => {
+    if (!newVarNombre.trim()) {
+      alert("El nombre de la variante es obligatorio.");
+      return;
+    }
+    const nuevaVariante: Variante = {
+      id: Date.now().toString(),
+      nombre: newVarNombre.trim(),
+      precio: newVarPrecio,
+      stock: newVarStock
+    };
+    
+    setEditingProduct({
+      ...editingProduct,
+      variantes: [...editingProduct.variantes, nuevaVariante]
+    });
+    
+    setNewVarNombre("");
+    setNewVarPrecio(0);
+    setNewVarStock(0);
+  };
+
   return (
     <main className="p-8 bg-gray-50 min-h-screen">
       <div className="max-w-7xl mx-auto">
         <h1 className="text-3xl font-bold text-gray-900 mb-8">
-          Gestión de productos
+          Gestión de inventario
         </h1>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -145,13 +192,22 @@ export default function AdminProductos() {
                   </p>
                 )}
 
-                <div className="flex justify-between items-center mb-3">
-                  <p className="text-2xl font-bold text-gray-900">
-                    ${product.precio?.toLocaleString("es-AR")}
-                  </p>
-                  <p className="text-sm text-gray-600 border border-gray-200 px-2 py-1 rounded">
-                    Stock: {product.stock}
-                  </p>
+                <div className="mb-3">
+                  {product.variantes && product.variantes.length > 0 ? (
+                    <div className="space-y-1 mt-2">
+                      <p className="text-xs font-bold uppercase text-gray-400">Variantes ({product.variantes.length})</p>
+                      <p className="text-lg font-bold text-gray-900">Desde ${Math.min(...product.variantes.map((v:any) => v.precio)).toLocaleString("es-AR")}</p>
+                    </div>
+                  ) : (
+                    <div className="flex justify-between items-center mt-2">
+                      <p className="text-2xl font-bold text-gray-900">
+                        ${product.precio?.toLocaleString("es-AR")}
+                      </p>
+                      <p className="text-sm text-gray-600 border border-gray-200 px-2 py-1 rounded">
+                        Stock: {product.stock}
+                      </p>
+                    </div>
+                  )}
                 </div>
 
                 {product.descripcion && (
@@ -160,11 +216,18 @@ export default function AdminProductos() {
                   </p>
                 )}
 
-                <div className="mt-auto flex justify-between items-center">
-                  <div className="flex gap-2">
+                <div className="mt-auto flex justify-between items-center bg-gray-50 -mx-6 -mb-6 p-4 border-t border-gray-100">
+                  <div className="flex gap-2 w-full justify-between">
+                    <button
+                      onClick={() => openEditModal(product)}
+                      className="flex items-center justify-center gap-2 flex-1 rounded-md font-bold uppercase tracking-wider text-xs border border-gray-300 bg-white text-black hover:bg-black hover:text-white transition-colors duration-200 py-2 shadow-sm"
+                    >
+                      <Edit2 className="w-4 h-4" /> Configurar
+                    </button>
+                    
                     <button
                       onClick={() => toggleProduct(product.id, product.activo)}
-                      className={`px-3 py-1.5 rounded-md font-medium text-sm transition-colors duration-200 ${
+                      className={`flex-1 flex justify-center items-center py-2 rounded-md font-bold uppercase tracking-wider text-xs transition-colors duration-200 ${
                         product.activo
                           ? "bg-red-50 text-red-600 hover:bg-red-100"
                           : "bg-green-50 text-green-600 hover:bg-green-100"
@@ -172,21 +235,7 @@ export default function AdminProductos() {
                     >
                       {product.activo ? "Ocultar" : "Mostrar"}
                     </button>
-                    
-                    <button
-                      onClick={() => openEditModal(product)}
-                      className="flex items-center gap-1 px-3 py-1.5 rounded-md font-medium text-sm bg-gray-100 text-gray-700 hover:bg-gray-200 hover:text-black transition-colors duration-200"
-                    >
-                      <Edit2 className="w-4 h-4" /> Editar
-                    </button>
                   </div>
-
-                  <span
-                    className={`w-2 h-2 rounded-full ${
-                      product.activo ? "bg-green-500" : "bg-red-500"
-                    }`}
-                    title={product.activo ? "Activo" : "Inactivo"}
-                  />
                 </div>
               </div>
             </div>
@@ -204,131 +253,229 @@ export default function AdminProductos() {
 
       {/* MODAL DE EDICIÓN */}
       {isEditing && editingProduct && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-            <div className="flex justify-between items-center p-6 border-b border-gray-100 sticky top-0 bg-white/95 backdrop-blur z-10">
-              <h2 className="text-2xl font-black uppercase tracking-tight text-black">Editar Producto</h2>
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 md:p-6 overflow-y-auto">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col relative my-auto">
+            
+            <div className="flex justify-between items-center p-6 border-b border-gray-100 sticky top-0 bg-white z-10 rounded-t-xl shrink-0">
+              <h2 className="text-2xl font-black uppercase tracking-tight text-black">⚙️ Configurar Producto</h2>
               <button 
                 onClick={closeEditModal}
-                className="p-2 text-gray-400 hover:text-black hover:bg-gray-50 rounded-lg transition-colors"
+                className="p-2 text-gray-400 hover:text-red-500 bg-gray-50 hover:bg-red-50 rounded-lg transition-colors"
               >
                 <X className="w-6 h-6" />
               </button>
             </div>
             
-            <form onSubmit={handleEditSubmit} className="p-6 space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="overflow-y-auto p-6 md:p-8 flex-1">
+              <form id="editProductForm" onSubmit={handleEditSubmit} className="space-y-10">
+                {/* 1. Base Info */}
                 <div>
-                  <label className="block text-sm font-bold uppercase tracking-widest text-gray-500 mb-2">Nombre</label>
-                  <input
-                    type="text"
-                    name="nombre"
-                    value={editingProduct.nombre || ""}
-                    onChange={handleInputChange}
-                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 text-black font-medium focus:outline-none focus:ring-2 focus:ring-black focus:bg-white transition-all rounded-lg"
-                    required
-                  />
+                  <h3 className="text-sm font-black uppercase text-gray-400 tracking-widest border-b border-gray-100 pb-2 mb-4">1. Datos Generales</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <label className="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-2">Nombre</label>
+                      <input
+                        type="text"
+                        name="nombre"
+                        value={editingProduct.nombre || ""}
+                        onChange={handleInputChange}
+                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 text-black font-medium focus:outline-none focus:ring-2 focus:ring-black focus:bg-white transition-all rounded-lg"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-2">Categoría</label>
+                      <input
+                        type="text"
+                        name="categoria"
+                        value={editingProduct.categoria || ""}
+                        onChange={handleInputChange}
+                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 text-black font-medium focus:outline-none focus:ring-2 focus:ring-black focus:bg-white transition-all rounded-lg"
+                      />
+                    </div>
+                  </div>
                 </div>
 
+                {/* 2. Variantes & Precios */}
                 <div>
-                  <label className="block text-sm font-bold uppercase tracking-widest text-gray-500 mb-2">Categoría</label>
-                  <input
-                    type="text"
-                    name="categoria"
-                    value={editingProduct.categoria || ""}
-                    onChange={handleInputChange}
-                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 text-black font-medium focus:outline-none focus:ring-2 focus:ring-black focus:bg-white transition-all rounded-lg"
-                  />
-                </div>
+                  <div className="flex justify-between items-end border-b border-gray-100 pb-2 mb-4">
+                    <h3 className="text-sm font-black uppercase text-gray-400 tracking-widest">2. Variantes, Tamaños y Precios</h3>
+                  </div>
 
-                <div>
-                  <label className="block text-sm font-bold uppercase tracking-widest text-gray-500 mb-2">Precio ($)</label>
-                  <input
-                    type="number"
-                    name="precio"
-                    value={editingProduct.precio || ""}
-                    onChange={handleInputChange}
-                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 text-black font-medium focus:outline-none focus:ring-2 focus:ring-black focus:bg-white transition-all rounded-lg"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-bold uppercase tracking-widest text-gray-500 mb-2">Stock</label>
-                  <input
-                    type="number"
-                    name="stock"
-                    value={editingProduct.stock || ""}
-                    onChange={handleInputChange}
-                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 text-black font-medium focus:outline-none focus:ring-2 focus:ring-black focus:bg-white transition-all rounded-lg"
-                    required
-                  />
-                </div>
-                
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-bold uppercase tracking-widest text-gray-500 mb-2">Fotografía del Suplemento</label>
-                  
-                  <div className="flex flex-col md:flex-row items-start gap-6">
-                    <div className="flex-1 w-full">
-                      <div className="flex items-center justify-center w-full">
-                        <label className="flex flex-col items-center justify-center w-full h-32 border border-gray-200 border-dashed rounded-xl cursor-pointer bg-gray-50 hover:bg-gray-100 transition-colors">
-                          <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                            <UploadCloud className="w-8 h-8 text-gray-400 mb-2" />
-                            <p className="mb-2 text-sm text-gray-500 font-medium">Click para subir foto nueva</p>
-                            <p className="text-xs text-gray-400">PNG, JPG hasta 5MB</p>
+                  {editingProduct.variantes && editingProduct.variantes.length > 0 ? (
+                    <div className="space-y-4 mb-6">
+                      {editingProduct.variantes.map((v: Variante) => (
+                        <div key={v.id} className="flex flex-col md:flex-row gap-3 items-end bg-gray-50 p-4 border border-gray-200 rounded-lg">
+                          <div className="w-full md:flex-1">
+                            <label className="block text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-1">Nombre Variante</label>
+                            <input
+                              type="text"
+                              value={v.nombre}
+                              onChange={(e) => handleVarianteChange(v.id, "nombre", e.target.value)}
+                              className="w-full px-3 py-2 bg-white border border-gray-200 focus:outline-none focus:border-black text-sm font-bold"
+                            />
                           </div>
-                          <input 
-                            type="file" 
-                            className="hidden" 
-                            accept="image/*"
-                            onChange={handleImageChange}
-                          />
+                          <div className="w-full md:w-32">
+                            <label className="block text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-1">Precio ($)</label>
+                            <input
+                              type="number"
+                              value={v.precio}
+                              onChange={(e) => handleVarianteChange(v.id, "precio", Number(e.target.value))}
+                              className="w-full px-3 py-2 bg-white border border-gray-200 focus:outline-none focus:border-black text-sm font-bold"
+                            />
+                          </div>
+                          <div className="w-full md:w-24">
+                            <label className="block text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-1">Stock</label>
+                            <input
+                              type="number"
+                              value={v.stock}
+                              onChange={(e) => handleVarianteChange(v.id, "stock", Number(e.target.value))}
+                              className="w-full px-3 py-2 bg-white border border-gray-200 focus:outline-none focus:border-black text-sm font-bold"
+                            />
+                          </div>
+                          <button 
+                            type="button" 
+                            onClick={() => removeVarianteEdit(v.id)}
+                            className="bg-red-50 text-red-500 p-2 border border-red-200 rounded hover:bg-red-500 hover:text-white transition-colors h-[38px] w-full md:w-auto flex justify-center items-center"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-gray-50 p-6 rounded-lg mb-6 border border-gray-200">
+                      <div>
+                        <label className="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-2">Precio Único ($)</label>
+                        <input
+                          type="number"
+                          name="precio"
+                          value={editingProduct.precio || ""}
+                          onChange={handleInputChange}
+                          className="w-full px-4 py-3 bg-white border border-gray-200 text-black font-bold focus:outline-none focus:ring-2 focus:ring-black transition-all rounded-lg"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-2">Stock Único</label>
+                        <input
+                          type="number"
+                          name="stock"
+                          value={editingProduct.stock || ""}
+                          onChange={handleInputChange}
+                          className="w-full px-4 py-3 bg-white border border-gray-200 text-black font-bold focus:outline-none focus:ring-2 focus:ring-black transition-all rounded-lg"
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Add variant inside edit */}
+                  <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end p-4 border-2 border-dashed border-gray-200 rounded-lg bg-gray-50/50">
+                    <div className="md:col-span-12 mb-2">
+                       <p className="text-xs font-bold uppercase tracking-widest text-black">Añadir Otra Variante</p>
+                    </div>
+                    <div className="md:col-span-6">
+                      <input
+                        type="text"
+                        placeholder="Nueva variante (Ej: Sabor Chocolate)"
+                        value={newVarNombre}
+                        onChange={(e) => setNewVarNombre(e.target.value)}
+                        className="w-full px-3 py-2 bg-white border border-gray-300 focus:outline-none focus:border-black text-sm font-medium"
+                      />
+                    </div>
+                    <div className="md:col-span-2">
+                      <input
+                        type="number"
+                        placeholder="Precio"
+                        min="0"
+                        value={newVarPrecio}
+                        onChange={(e) => setNewVarPrecio(Number(e.target.value))}
+                        className="w-full px-3 py-2 bg-white border border-gray-300 focus:outline-none focus:border-black text-sm font-medium"
+                      />
+                    </div>
+                    <div className="md:col-span-2">
+                      <input
+                        type="number"
+                        placeholder="Stock"
+                        min="0"
+                        value={newVarStock}
+                        onChange={(e) => setNewVarStock(Number(e.target.value))}
+                        className="w-full px-3 py-2 bg-white border border-gray-300 focus:outline-none focus:border-black text-sm font-medium"
+                      />
+                    </div>
+                    <div className="md:col-span-2">
+                      <button 
+                        type="button"
+                        onClick={handleAddNewVarianteEdit}
+                        className="w-full bg-black text-white py-2 border border-black hover:bg-white hover:text-black font-bold uppercase text-[10px] tracking-widest flex justify-center items-center gap-1 h-[38px] transition-colors"
+                      >
+                        <Plus className="w-3 h-3" /> Añadir
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 3. Media & Description */}
+                <div>
+                  <h3 className="text-sm font-black uppercase text-gray-400 tracking-widest border-b border-gray-100 pb-2 mb-4">3. Contenido Visual y Descripción</h3>
+                  
+                  <div className="space-y-6">
+                    <div className="flex flex-col md:flex-row items-center justify-start gap-6 border border-gray-200 p-4 rounded-lg bg-gray-50">
+                      {previewUrl ? (
+                        <div className="w-32 h-32 relative rounded-lg overflow-hidden border border-gray-300 bg-white flex-shrink-0">
+                          <img src={previewUrl} alt="Preview" className="w-full h-full object-contain p-1" />
+                        </div>
+                      ) : (
+                        <div className="w-32 h-32 bg-gray-200 rounded-lg flex items-center justify-center text-gray-400">
+                          Sin Foto
+                        </div>
+                      )}
+                      
+                      <div className="flex-1 w-full">
+                        <label className="flex flex-col items-center justify-center w-full h-24 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-white hover:bg-gray-100 transition-colors">
+                          <div className="flex flex-col items-center justify-center py-4">
+                            <UploadCloud className="w-6 h-6 text-gray-400 mb-1" />
+                            <p className="text-xs text-gray-500 font-bold uppercase tracking-wider">Cambiar Imagen</p>
+                          </div>
+                          <input type="file" className="hidden" accept="image/*" onChange={handleImageChange} />
                         </label>
                       </div>
                     </div>
 
-                    {previewUrl && (
-                      <div className="w-full md:w-32 h-32 relative rounded-xl overflow-hidden border border-gray-200 bg-white flex-shrink-0">
-                        <img
-                          src={previewUrl}
-                          alt="Preview"
-                          className="w-full h-full object-contain"
-                        />
-                      </div>
-                    )}
+                    <div>
+                      <textarea
+                        name="descripcion"
+                        placeholder="Descripción detallada del producto..."
+                        value={editingProduct.descripcion || ""}
+                        onChange={handleInputChange}
+                        rows={4}
+                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 text-black font-medium focus:outline-none focus:ring-2 focus:ring-black focus:bg-white transition-all rounded-lg resize-none"
+                      />
+                    </div>
                   </div>
                 </div>
 
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-bold uppercase tracking-widest text-gray-500 mb-2">Descripción</label>
-                  <textarea
-                    name="descripcion"
-                    value={editingProduct.descripcion || ""}
-                    onChange={handleInputChange}
-                    rows={4}
-                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 text-black font-medium focus:outline-none focus:ring-2 focus:ring-black focus:bg-white transition-all rounded-lg resize-none"
-                  />
-                </div>
-              </div>
+              </form>
+            </div>
+            
+            <div className="p-4 md:p-6 border-t border-gray-100 flex flex-col sm:flex-row justify-end gap-3 bg-gray-50 rounded-b-xl shrink-0">
+              <button
+                type="button"
+                onClick={closeEditModal}
+                className="w-full sm:w-auto px-6 py-4 font-bold uppercase tracking-widest text-black bg-white border border-gray-200 hover:bg-gray-100 transition-colors rounded-lg text-sm"
+                disabled={isSaving}
+              >
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                form="editProductForm"
+                disabled={isSaving}
+                className="w-full sm:w-auto px-10 py-4 bg-black hover:bg-orange-500 text-white font-black uppercase tracking-widest transition-colors flex justify-center items-center gap-2 rounded-lg disabled:opacity-50 text-sm shadow-lg"
+              >
+                {isSaving ? "GUARDANDO..." : <><Save className="w-5 h-5" /> ACTUALIZAR INVENTARIO</>}
+              </button>
+            </div>
 
-              <div className="pt-6 border-t border-gray-100 flex justify-end gap-3 sticky bottom-0 bg-white">
-                <button
-                  type="button"
-                  onClick={closeEditModal}
-                  className="px-6 py-3 font-bold uppercase tracking-widest text-gray-500 hover:text-black hover:bg-gray-50 transition-colors rounded-lg"
-                  disabled={isSaving}
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSaving}
-                  className="px-8 py-3 bg-black hover:bg-orange-500 text-white font-bold uppercase tracking-widest transition-colors flex items-center gap-2 rounded-lg disabled:opacity-50"
-                >
-                  {isSaving ? "Guardando..." : <><Save className="w-4 h-4" /> Guardar Cambios</>}
-                </button>
-              </div>
-            </form>
           </div>
         </div>
       )}

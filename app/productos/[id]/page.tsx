@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useCart } from "@/context/CartContext";
-import { ProductoData } from "@/components/ProductCard";
+import { ProductoData, Variante } from "@/components/ProductCard";
 import { ArrowLeft, Check, Heart, Share, Star } from "lucide-react";
 import Link from "next/link";
 import { motion } from "framer-motion";
@@ -15,14 +15,10 @@ export default function ProductDetailPage() {
   
   const [producto, setProducto] = useState<ProductoData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [selectedSize, setSelectedSize] = useState<string>("2 Lbs");
+  const [selectedVariant, setSelectedVariant] = useState<Variante | null>(null);
   const [isAdded, setIsAdded] = useState(false);
 
-  // Mock sizes for supplement simulation Gymshark-style
-  const sizes = ["1 Lbs", "2 Lbs", "5 Lbs"];
-
   useEffect(() => {
-    // Fetch all products to find the specific one by ID (matching existing API pattern)
     fetch("/api/productos")
       .then((res) => res.json())
       .then((data) => {
@@ -36,6 +32,10 @@ export default function ProductDetailPage() {
         const found = allProducts.find(p => p.id === id);
         if (found) {
           setProducto(found);
+          // Auto-select first variant if exists
+          if (found.variantes && found.variantes.length > 0) {
+            setSelectedVariant(found.variantes[0]);
+          }
         }
         setLoading(false);
       })
@@ -47,10 +47,22 @@ export default function ProductDetailPage() {
 
   const handleAddToCart = () => {
     if (producto) {
+      
+      // If product has variants but none is selected (shouldn't happen due to auto-select, but fallback)
+      if (producto.variantes && producto.variantes.length > 0 && !selectedVariant) {
+        alert("Por favor selecciona una opción antes de agregar a la bolsa.");
+        return;
+      }
+
+      const finalPrice = selectedVariant ? selectedVariant.precio : producto.precio;
+      const finalName = selectedVariant 
+        ? `${producto.nombre} - ${selectedVariant.nombre}` 
+        : producto.nombre;
+
       addToCart({
-        id: producto.id,
-        nombre: producto.nombre,
-        precio: producto.precio,
+        id: selectedVariant ? `${producto.id}-${selectedVariant.id}` : producto.id,
+        nombre: finalName,
+        precio: finalPrice,
         imagen: producto.imagen,
         cantidad: 1
       } as any);
@@ -83,6 +95,14 @@ export default function ProductDetailPage() {
   }
 
   const defaultImage = producto.imagen || "https://images.unsplash.com/photo-1593095948071-474c5cc2989d?q=80&w=800&auto=format&fit=crop";
+
+  // Determine Display Price
+  let displayPrice = producto.precio;
+  if (selectedVariant) {
+    displayPrice = selectedVariant.precio;
+  } else if (producto.variantes && producto.variantes.length > 0) {
+    displayPrice = Math.min(...producto.variantes.map(v => v.precio));
+  }
 
   return (
     <main className="min-h-screen bg-white text-black pt-20 md:pt-24 selection:bg-black selection:text-white">
@@ -132,36 +152,40 @@ export default function ProductDetailPage() {
                   {producto.nombre}
                 </h1>
                 <p className="text-2xl font-bold text-black border-b border-gray-100 pb-6">
-                  ${producto.precio?.toLocaleString("es-AR") || "0"}
+                  {producto.variantes && producto.variantes.length > 0 && !selectedVariant && "Desde "}
+                  ${displayPrice.toLocaleString("es-AR")}
                 </p>
               </div>
 
-              {/* Faux Size Selector */}
-              <div className="mb-8">
-                <div className="flex justify-between items-center mb-4">
-                  <span className="text-sm font-bold uppercase tracking-wider text-gray-800">Selecciona el Tamaño</span>
-                  <button className="text-xs font-bold uppercase tracking-widest border-b border-black">Guía de Tamaños</button>
+              {/* Dynamic Variants Selector */}
+              {producto.variantes && producto.variantes.length > 0 && (
+                <div className="mb-8">
+                  <div className="flex justify-between items-center mb-4">
+                    <span className="text-sm font-bold uppercase tracking-wider text-gray-800">
+                      Selecciona una Opción: <span className="text-gray-500 font-medium">{selectedVariant?.nombre}</span>
+                    </span>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                    {producto.variantes.map((variante: Variante) => (
+                      <button
+                        key={variante.id}
+                        onClick={() => setSelectedVariant(variante)}
+                        className={`py-4 px-2 text-xs md:text-sm font-bold uppercase tracking-widest border transition-all ${
+                          selectedVariant?.id === variante.id
+                            ? "bg-black text-white border-black" 
+                            : "bg-white text-black border-gray-300 hover:border-black"
+                        }`}
+                      >
+                        {variante.nombre}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-                
-                <div className="grid grid-cols-3 gap-3">
-                  {sizes.map((size) => (
-                    <button
-                      key={size}
-                      onClick={() => setSelectedSize(size)}
-                      className={`py-4 text-sm font-bold uppercase tracking-widest border border-gray-300 transition-all ${
-                        selectedSize === size 
-                          ? "bg-black text-white border-black" 
-                          : "bg-white text-black hover:border-black"
-                      }`}
-                    >
-                      {size}
-                    </button>
-                  ))}
-                </div>
-              </div>
+              )}
 
               {/* Acciones principales */}
-              <div className="space-y-4 mb-10">
+              <div className="space-y-4 mb-10 mt-6">
                 <button
                   onClick={handleAddToCart}
                   className={`w-full py-5 flex items-center justify-center gap-2 font-black uppercase tracking-widest text-sm transition-all duration-300 shadow-[0_10px_30px_-10px_rgba(0,0,0,0.3)] hover:shadow-[0_15px_40px_-10px_rgba(0,0,0,0.5)] ${
