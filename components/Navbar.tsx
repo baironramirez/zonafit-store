@@ -19,51 +19,50 @@ export default function Navbar() {
   const totalItems = cart.reduce((acc, item) => acc + item.cantidad, 0);
 
   return (
-    <motion.nav 
+    <motion.nav
       initial={{ y: -100 }}
       animate={{ y: 0 }}
       transition={{ duration: 0.5 }}
-      className={`fixed top-0 left-0 right-0 z-50 w-full px-6 flex items-center transition-all duration-300 ${
-        isScrolled 
-          ? "bg-white/95 backdrop-blur-md border-b border-gray-200 py-3" 
-          : "bg-transparent py-5"
-      }`}
+      className={`fixed top-0 left-0 right-0 z-50 w-full px-6 flex items-center transition-all duration-300 ${isScrolled
+        ? "bg-white/95 backdrop-blur-md border-b border-gray-200 py-3"
+        : "bg-transparent py-5"
+        }`}
     >
       {/* 3-Column Grid for Gymshark Minimalist Layout */}
       <div className="w-full max-w-[1400px] mx-auto grid grid-cols-3 items-center">
-        
+
         {/* LEFT COLUMN: Main Navigation Links */}
         <div className="flex items-center justify-start gap-4 md:gap-8">
-          <Link 
-            href="/productos" 
+          <Link
+            href="/productos"
             className="text-[13px] font-bold text-black hover:text-gray-500 transition-colors uppercase tracking-widest"
           >
             Productos
           </Link>
-          <Link 
-            href="/productos" 
+          <Link
+            href="/productos"
             className="hidden md:block text-[13px] font-bold text-black hover:text-gray-500 transition-colors uppercase tracking-widest"
           >
-            Novedades
+
           </Link>
         </div>
 
         {/* CENTER COLUMN: Absolute Center Logo */}
         <div className="flex items-center justify-center">
           <Link href="/" className="flex flex-col sm:flex-row items-center gap-2 hover:opacity-70 transition-opacity">
-            <div className="relative w-7 h-7 md:w-8 md:h-8">
-              <Image 
-                src="/images/logo-icon.png" 
-                alt="ZonaFit Icon" 
-                fill 
+            <div className="relative w-9 h-9 md:w-10 md:h-10">
+              <Image
+                src="/images/logo-icon.png"
+                alt="ZonaFit Icon"
+                fill
                 className="object-contain"
               />
             </div>
-            <div className="relative h-5 w-20 md:h-6 md:w-28 hidden sm:block">
-              <Image 
-                src="/images/logo-text.png" 
-                alt="ZonaFit Text" 
-                fill 
+            <div className="relative h-7 w-28 md:h-8 md:w-36 hidden sm:block">
+              <Image
+                src="/images/logo-text.png"
+                alt="ZonaFit Text"
+                fill
                 className="object-contain"
               />
             </div>
@@ -75,20 +74,20 @@ export default function Navbar() {
           <button className="text-black hover:text-gray-500 transition-colors hidden sm:block">
             <Search className="w-5 h-5 stroke-[1.5]" />
           </button>
-          
+
           <button className="text-black hover:text-gray-500 transition-colors hidden sm:block">
-             <Heart className="w-5 h-5 stroke-[1.5]" />
+            <Heart className="w-5 h-5 stroke-[1.5]" />
           </button>
 
-          <Link 
-            href="/admin/login" 
+          <Link
+            href="/admin/login"
             className="text-black hover:text-gray-500 transition-colors"
           >
-             <User className="w-5 h-5 stroke-[1.5]" />
+            <User className="w-5 h-5 stroke-[1.5]" />
           </Link>
 
-          <Link 
-            href="/carrito" 
+          <Link
+            href="/carrito"
             className="relative text-black hover:text-gray-500 transition-colors flex items-center"
           >
             <ShoppingCart className="w-5 h-5 stroke-[1.5]" />
