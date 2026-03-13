@@ -3,12 +3,14 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useCart } from "@/context/CartContext";
+import { useAuth } from "@/context/AuthContext";
 import { motion, useScroll, useMotionValueEvent } from "framer-motion";
 import { useState } from "react";
 import { ShoppingCart, Package, User, Search, Heart } from "lucide-react";
 
 export default function Navbar() {
   const { cart } = useCart();
+  const { currentUser, userProfile, loading, logout } = useAuth();
   const { scrollY } = useScroll();
   const [isScrolled, setIsScrolled] = useState(false);
 
@@ -79,12 +81,45 @@ export default function Navbar() {
             <Heart className="w-5 h-5 stroke-[1.5]" />
           </button>
 
-          <Link
-            href="/admin/login"
-            className="text-black hover:text-gray-500 transition-colors"
-          >
-            <User className="w-5 h-5 stroke-[1.5]" />
-          </Link>
+          {/* Dinámica de Usuario basado en Firebase Auth */}
+          {loading ? (
+            <div className="w-5 h-5 border-2 border-gray-200 border-t-black rounded-full animate-spin"></div>
+          ) : currentUser ? (
+            <div className="relative group cursor-pointer flex items-center">
+              <User className="w-5 h-5 stroke-[1.5] text-black" />
+              {/* Dropdown flotante Gymshark Style */}
+              <div className="absolute right-0 top-full mt-2 w-48 bg-white border border-gray-100 shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 rounded-xl overflow-hidden flex flex-col pt-2 pb-2">
+                <div className="px-4 py-3 border-b border-gray-100 mb-1">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">Sesión Activa</p>
+                  <p className="text-xs font-bold text-black truncate">{userProfile?.email || currentUser.email}</p>
+                </div>
+                
+                {userProfile?.rol === "admin" && (
+                  <Link href="/admin" className="px-4 py-2 text-xs font-bold uppercase tracking-widest text-black hover:bg-gray-50 transition-colors">
+                    Panel Admin
+                  </Link>
+                )}
+                
+                <Link href="/pedidos" className="px-4 py-2 text-xs font-bold uppercase tracking-widest text-black hover:bg-gray-50 transition-colors">
+                  Mis Pedidos
+                </Link>
+                
+                <button 
+                  onClick={() => logout()}
+                  className="px-4 py-2 text-xs font-bold uppercase tracking-widest text-red-600 hover:bg-red-50 text-left transition-colors mt-1 border-t border-gray-100"
+                >
+                  Cerrar Sesión
+                </button>
+              </div>
+            </div>
+          ) : (
+            <Link
+              href="/login"
+              className="text-black hover:text-gray-500 transition-colors"
+            >
+              <User className="w-5 h-5 stroke-[1.5]" />
+            </Link>
+          )}
 
           <Link
             href="/carrito"

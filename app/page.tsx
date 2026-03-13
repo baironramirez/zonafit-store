@@ -39,7 +39,7 @@ export default function Home() {
         {/* Background Image */}
         <div className="absolute inset-0 z-0">
           <img
-            src="https://www.gymshark.com/_next/image?url=https%3A%2F%2Fimages.ctfassets.net%2Fwl6q2in9o7k3%2F6JyMiYDTWQSP3KOuJH5fJ8%2F61104efcea3ed33eb884ea0df37067eb%2FHeadless_Desktop_-_25790114.jpeg&w=3840&q=85"
+            src="https://www.gymshark.com/_next/image?url=https%3A%2F%2Fimages.ctfassets.net%2Fwl6q2in9o7k3%2F2b4sfrCyzG6lmenlupFXZ4%2Fca35509d35cf667640aa970fa08ca570%2FHeadless_Desktop_-_25825472.jpeg&w=3840&q=85"
             alt="Atletas entrenando duro"
             className="w-full h-full object-cover object-center"
           />
@@ -108,7 +108,7 @@ export default function Home() {
               <div className="w-12 h-12 border-4 border-gray-100 border-t-black rounded-full animate-spin"></div>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
               {productos.map((producto) => (
                 <div key={producto.id} className="group relative">
                   <ProductCard producto={producto} />

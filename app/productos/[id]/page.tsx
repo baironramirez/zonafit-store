@@ -12,7 +12,7 @@ export default function ProductDetailPage() {
   const { id } = useParams();
   const router = useRouter();
   const { addToCart } = useCart();
-  
+
   const [producto, setProducto] = useState<ProductoData | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedVariant, setSelectedVariant] = useState<Variante | null>(null);
@@ -28,7 +28,7 @@ export default function ProductDetailPage() {
         } else if (data.productos) {
           allProducts = data.productos;
         }
-        
+
         const found = allProducts.find(p => p.id === id);
         if (found) {
           setProducto(found);
@@ -47,7 +47,7 @@ export default function ProductDetailPage() {
 
   const handleAddToCart = () => {
     if (producto) {
-      
+
       // If product has variants but none is selected (shouldn't happen due to auto-select, but fallback)
       if (producto.variantes && producto.variantes.length > 0 && !selectedVariant) {
         alert("Por favor selecciona una opción antes de agregar a la bolsa.");
@@ -55,8 +55,8 @@ export default function ProductDetailPage() {
       }
 
       const finalPrice = selectedVariant ? selectedVariant.precio : producto.precio;
-      const finalName = selectedVariant 
-        ? `${producto.nombre} - ${selectedVariant.nombre}` 
+      const finalName = selectedVariant
+        ? `${producto.nombre} - ${selectedVariant.nombre}`
         : producto.nombre;
 
       addToCart({
@@ -66,7 +66,7 @@ export default function ProductDetailPage() {
         imagen: producto.imagen,
         cantidad: 1
       } as any);
-      
+
       setIsAdded(true);
       setTimeout(() => setIsAdded(false), 2000);
     }
@@ -106,7 +106,7 @@ export default function ProductDetailPage() {
 
   return (
     <main className="min-h-screen bg-white text-black pt-20 md:pt-24 selection:bg-black selection:text-white">
-      
+
       {/* Breadcrumb / Back Navigation */}
       <div className="max-w-[1400px] mx-auto px-6 py-4 flex items-center border-b border-gray-100 mb-6 hidden md:flex">
         <button onClick={() => router.back()} className="flex items-center gap-2 text-sm font-bold uppercase tracking-wider hover:text-gray-500 transition-colors">
@@ -116,7 +116,7 @@ export default function ProductDetailPage() {
 
       <div className="max-w-[1400px] mx-auto px-0 md:px-6 pb-24">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-0 md:gap-12">
-          
+
           {/* LADO IZQUIERDO: GALERÍA DE IMÁGENES (Gymshark Scroll Style) */}
           <div className="lg:col-span-7 xl:col-span-8">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-1 md:gap-4 lg:grid-cols-2">
@@ -131,7 +131,7 @@ export default function ProductDetailPage() {
                   {/* Faux text overlay on image 1 for that sick Gymshark typographic vibe */}
                   {index === 1 && (
                     <div className="absolute top-6 left-6 text-black font-black uppercase tracking-tighter leading-none text-2xl opacity-20 pointer-events-none">
-                      PREMIUM<br/>QUALITY<br/>FORMULA
+                      PREMIUM<br />QUALITY<br />FORMULA
                     </div>
                   )}
                 </div>
@@ -142,7 +142,7 @@ export default function ProductDetailPage() {
           {/* LADO DERECHO: PANEL DE DETALLES FIJOS (Sticky) */}
           <div className="lg:col-span-5 xl:col-span-4 px-6 md:px-0 mt-8 lg:mt-0">
             <div className="sticky top-28">
-              
+
               {/* Header Info */}
               <div className="mb-6">
                 <p className="text-sm font-bold text-gray-500 uppercase tracking-widest mb-2">
@@ -165,17 +165,16 @@ export default function ProductDetailPage() {
                       Selecciona una Opción: <span className="text-gray-500 font-medium">{selectedVariant?.nombre}</span>
                     </span>
                   </div>
-                  
+
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                     {producto.variantes.map((variante: Variante) => (
                       <button
                         key={variante.id}
                         onClick={() => setSelectedVariant(variante)}
-                        className={`py-4 px-2 text-xs md:text-sm font-bold uppercase tracking-widest border transition-all ${
-                          selectedVariant?.id === variante.id
-                            ? "bg-black text-white border-black" 
+                        className={`py-4 px-2 text-xs md:text-sm font-bold uppercase tracking-widest border transition-all ${selectedVariant?.id === variante.id
+                            ? "bg-black text-white border-black"
                             : "bg-white text-black border-gray-300 hover:border-black"
-                        }`}
+                          }`}
                       >
                         {variante.nombre}
                       </button>
@@ -188,9 +187,8 @@ export default function ProductDetailPage() {
               <div className="space-y-4 mb-10 mt-6">
                 <button
                   onClick={handleAddToCart}
-                  className={`w-full py-5 flex items-center justify-center gap-2 font-black uppercase tracking-widest text-sm transition-all duration-300 shadow-[0_10px_30px_-10px_rgba(0,0,0,0.3)] hover:shadow-[0_15px_40px_-10px_rgba(0,0,0,0.5)] ${
-                    isAdded ? "bg-green-600 text-white" : "bg-black text-white hover:scale-[1.02]"
-                  }`}
+                  className={`w-full py-5 flex items-center justify-center gap-2 font-black uppercase tracking-widest text-sm transition-all duration-300 shadow-[0_10px_30px_-10px_rgba(0,0,0,0.3)] hover:shadow-[0_15px_40px_-10px_rgba(0,0,0,0.5)] ${isAdded ? "bg-orange-500 text-white" : "bg-black text-white hover:scale-[1.02]"
+                    }`}
                 >
                   {isAdded ? (
                     <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="flex items-center gap-2">
@@ -200,7 +198,7 @@ export default function ProductDetailPage() {
                     "AGREGAR A LA BOLSA"
                   )}
                 </button>
-                
+
                 <button className="w-full py-4 flex items-center justify-center gap-2 font-bold uppercase tracking-widest text-sm border border-black hover:bg-gray-50 transition-colors">
                   <Heart className="w-4 h-4" /> Agregar a Lista de Deseos
                 </button>
@@ -214,12 +212,12 @@ export default function ProductDetailPage() {
                     {producto.descripcion || "Diseñado meticulosamente para atletas que exigen lo mejor. Esta fórmula probada clínicamente aporta los nutrientes vitales para maximizar tu recuperación, destruir tus métricas pasadas y mantener de forma sostenible tu pico de rendimiento."}
                   </p>
                 </div>
-                
+
                 <div className="py-5 border-b border-gray-200 flex justify-between items-center cursor-pointer group">
                   <h3 className="text-sm font-black uppercase tracking-widest text-black group-hover:text-gray-500">Materiales & Cuidado</h3>
                   <span className="text-2xl font-light leading-none">+</span>
                 </div>
-                
+
                 <div className="py-5 border-b border-gray-200 flex justify-between items-center cursor-pointer group">
                   <h3 className="text-sm font-black uppercase tracking-widest text-black group-hover:text-gray-500">Envíos & Devoluciones</h3>
                   <span className="text-2xl font-light leading-none">+</span>
