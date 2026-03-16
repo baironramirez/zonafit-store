@@ -35,6 +35,8 @@ export default function AjustesPage() {
   const [featuredProductIds, setFeaturedProductIds] = useState<string[]>([]);
   const [categorias, setCategorias] = useState<string[]>([]);
   const [newCategory, setNewCategory] = useState<string>("");
+  const [marcas, setMarcas] = useState<string[]>([]);
+  const [newMarca, setNewMarca] = useState<string>("");
 
   useEffect(() => {
     async function fetchSettings() {
@@ -69,8 +71,14 @@ export default function AjustesPage() {
           } else {
             setCategorias(["Proteínas", "Pre-Entrenos", "Creatina", "Vitaminas"]);
           }
+          if (data.marcas && Array.isArray(data.marcas)) {
+            setMarcas(data.marcas);
+          } else {
+            setMarcas(["Optimum Nutrition", "Dymatize", "MuscleTech", "BSN", "Cellucor"]);
+          }
         } else {
           setCategorias(["Proteínas", "Pre-Entrenos", "Creatina", "Vitaminas"]);
+          setMarcas(["Optimum Nutrition", "Dymatize", "MuscleTech", "BSN", "Cellucor"]);
         }
 
         // Fetch gallery from storage
@@ -136,6 +144,20 @@ export default function AjustesPage() {
     setCategorias(categorias.filter((c) => c !== cat));
   };
 
+  const handleAddMarca = () => {
+    if (!newMarca.trim()) return;
+    if (marcas.includes(newMarca.trim())) {
+      alert("La marca ya existe.");
+      return;
+    }
+    setMarcas([...marcas, newMarca.trim()]);
+    setNewMarca("");
+  };
+
+  const removeMarca = (marca: string) => {
+    setMarcas(marcas.filter((m) => m !== marca));
+  };
+
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
@@ -177,7 +199,8 @@ export default function AjustesPage() {
         promoActive,
         promoText,
         featuredProductIds,
-        categorias
+        categorias,
+        marcas
       }, { merge: true });
       alert("¡Ajustes guardados correctamente!");
     } catch (error) {
@@ -536,6 +559,53 @@ export default function AjustesPage() {
                 />
                 <button 
                   onClick={handleAddCategory}
+                  className="bg-black text-white px-6 py-3 rounded-lg font-bold uppercase tracking-widest text-xs hover:bg-gray-800 transition-colors whitespace-nowrap"
+                >
+                  Agregar
+                </button>
+              </div>
+            </div>
+
+            {/* SECCIÓN MARCAS DE LA TIENDA */}
+            <div className="p-6 md:p-8 bg-white border-t border-gray-200">
+              <div className="flex items-center gap-3 mb-6 pb-6 border-b border-gray-100">
+                <div className="p-3 bg-blue-50 text-blue-600 rounded-xl">
+                  {/* Using an SVg for brand representation */}
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2l8 4-8 4-8-4 8-4z"/><path d="M4 10v6l8 4 8-4v-6"/><path d="M4 14l8 4 8-4"/></svg>
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold uppercase tracking-wide">Marcas de la Tienda</h2>
+                  <p className="text-sm text-gray-500">Administra las marcas de los suplementos para filtrarlos mejor.</p>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap gap-3 mb-6">
+                {marcas.map((marca, idx) => (
+                  <div key={idx} className="flex items-center gap-2 bg-gray-100 px-4 py-2 rounded-full border border-gray-200">
+                    <span className="text-sm font-bold uppercase tracking-wider text-black">{marca}</span>
+                    <button 
+                      onClick={() => removeMarca(marca)}
+                      className="text-gray-400 hover:text-red-500 transition-colors bg-white rounded-full p-0.5"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                      </svg>
+                    </button>
+                  </div>
+                ))}
+              </div>
+
+              <div className="flex items-center gap-4 max-w-sm">
+                <input 
+                  type="text" 
+                  value={newMarca}
+                  onChange={(e) => setNewMarca(e.target.value)}
+                  placeholder="Nueva marca..."
+                  className="flex-1 px-4 py-3 bg-white border border-gray-300 rounded-lg text-sm font-medium focus:border-black focus:ring-1 focus:ring-black outline-none"
+                  onKeyDown={(e) => e.key === 'Enter' && handleAddMarca()}
+                />
+                <button 
+                  onClick={handleAddMarca}
                   className="bg-black text-white px-6 py-3 rounded-lg font-bold uppercase tracking-widest text-xs hover:bg-gray-800 transition-colors whitespace-nowrap"
                 >
                   Agregar

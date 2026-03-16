@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { X, Save, Edit2, UploadCloud, Plus, Trash2 } from "lucide-react";
-import { storage } from "@/lib/firebase";
+import { storage, db } from "@/lib/firebase";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { doc, getDoc } from "firebase/firestore";
 import { Variante } from "@/components/ProductCard";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
@@ -21,9 +22,37 @@ export default function AdminProductos() {
   const [newVarPrecio, setNewVarPrecio] = useState(0);
   const [newVarStock, setNewVarStock] = useState(0);
 
+  const [categorias, setCategorias] = useState<string[]>([]);
+  const [marcas, setMarcas] = useState<string[]>([]);
+  const [loadingConfig, setLoadingConfig] = useState(true);
+
   useEffect(() => {
     fetchProducts();
+    loadConfig();
   }, []);
+
+  async function loadConfig() {
+    try {
+      const docRef = doc(db, "settings", "home");
+      const docSnap = await getDoc(docRef);
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        if (data.categorias) setCategorias(data.categorias);
+        else setCategorias(["Proteínas", "Pre-Entrenos", "Creatina", "Vitaminas"]);
+        
+        if (data.marcas) setMarcas(data.marcas);
+        else setMarcas(["Optimum Nutrition", "Dymatize", "MuscleTech", "BSN", "Cellucor"]);
+      } else {
+        setCategorias(["Proteínas", "Pre-Entrenos", "Creatina", "Vitaminas"]);
+        setMarcas(["Optimum Nutrition", "Dymatize", "MuscleTech", "BSN", "Cellucor"]);
+      }
+    } catch (e) {
+      setCategorias(["Proteínas", "Pre-Entrenos", "Creatina", "Vitaminas"]);
+      setMarcas(["Optimum Nutrition", "Dymatize", "MuscleTech", "BSN", "Cellucor"]);
+    } finally {
+      setLoadingConfig(false);
+    }
+  }
 
   async function fetchProducts() {
     const res = await fetch("/api/admin/productos/list");
@@ -102,7 +131,7 @@ export default function AdminProductos() {
     fetchProducts();
   }
 
-  function handleInputChange(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) {
+  function handleInputChange(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) {
     const { name, value } = e.target;
     setEditingProduct({ ...editingProduct, [name]: name === 'precio' || name === 'stock' ? Number(value) : value });
   }
@@ -198,8 +227,14 @@ export default function AdminProductos() {
                 </h3>
 
                 {product.categoria && (
-                  <p className="text-sm text-orange-600 font-medium mb-2">
+                  <p className="text-sm text-orange-600 font-medium mb-1">
                     Categoría: {product.categoria}
+                  </p>
+                )}
+                
+                {product.marca && (
+                  <p className="text-xs text-blue-600 font-bold mb-2 uppercase tracking-tight">
+                    Marca: {product.marca}
                   </p>
                 )}
 
@@ -288,7 +323,7 @@ export default function AdminProductos() {
                 {/* 1. Base Info */}
                 <div>
                   <h3 className="text-sm font-black uppercase text-gray-400 tracking-widest border-b border-gray-100 pb-2 mb-4">1. Datos Generales</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div>
                       <label className="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-2">Nombre</label>
                       <input
@@ -302,13 +337,33 @@ export default function AdminProductos() {
                     </div>
                     <div>
                       <label className="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-2">Categoría</label>
-                      <input
-                        type="text"
+                      <select
                         name="categoria"
                         value={editingProduct.categoria || ""}
                         onChange={handleInputChange}
                         className="w-full px-4 py-3 bg-gray-50 border border-gray-200 text-black font-medium focus:outline-none focus:ring-2 focus:ring-black focus:bg-white transition-all rounded-lg"
-                      />
+                        disabled={loadingConfig}
+                      >
+                        <option value="" disabled>{loadingConfig ? "Cargando..." : "Seleccionar Categoría"}</option>
+                        {categorias.map((cat, idx) => (
+                          <option key={idx} value={cat}>{cat}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-2">Marca</label>
+                      <select
+                        name="marca"
+                        value={editingProduct.marca || ""}
+                        onChange={handleInputChange}
+                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 text-black font-medium focus:outline-none focus:ring-2 focus:ring-black focus:bg-white transition-all rounded-lg"
+                        disabled={loadingConfig}
+                      >
+                        <option value="" disabled>{loadingConfig ? "Cargando..." : "Seleccionar Marca"}</option>
+                        {marcas.map((m, idx) => (
+                          <option key={idx} value={m}>{m}</option>
+                        ))}
+                      </select>
                     </div>
                   </div>
                 </div>

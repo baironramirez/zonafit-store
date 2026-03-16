@@ -15,6 +15,7 @@ export default function CrearProducto() {
   const [precioBase, setPrecioBase] = useState(0);
   const [stockBase, setStockBase] = useState(0);
   const [categoria, setCategoria] = useState("");
+  const [marca, setMarca] = useState("");
   const [descripcion, setDescripcion] = useState("");
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -25,19 +26,27 @@ export default function CrearProducto() {
   // Variantes State
   const [variantes, setVariantes] = useState<Variante[]>([]);
   const [categorias, setCategorias] = useState<string[]>([]);
+  const [marcas, setMarcas] = useState<string[]>([]);
   
   useEffect(() => {
     async function loadConfig() {
       try {
         const docRef = doc(db, "settings", "home");
         const docSnap = await getDoc(docRef);
-        if (docSnap.exists() && docSnap.data().categorias) {
-          setCategorias(docSnap.data().categorias);
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          if (data.categorias) setCategorias(data.categorias);
+          else setCategorias(["Proteínas", "Pre-Entrenos", "Creatina", "Vitaminas"]);
+          
+          if (data.marcas) setMarcas(data.marcas);
+          else setMarcas(["Optimum Nutrition", "Dymatize", "MuscleTech", "BSN", "Cellucor"]);
         } else {
           setCategorias(["Proteínas", "Pre-Entrenos", "Creatina", "Vitaminas"]);
+          setMarcas(["Optimum Nutrition", "Dymatize", "MuscleTech", "BSN", "Cellucor"]);
         }
       } catch (e) {
         setCategorias(["Proteínas", "Pre-Entrenos", "Creatina", "Vitaminas"]);
+        setMarcas(["Optimum Nutrition", "Dymatize", "MuscleTech", "BSN", "Cellucor"]);
       } finally {
         setLoadingConfig(false);
       }
@@ -100,6 +109,7 @@ export default function CrearProducto() {
           precio: precioBase,
           stock: stockBase,
           categoria,
+          marca,
           descripcion,
           imagen: imageUrl,
           activo: true,
@@ -114,6 +124,7 @@ export default function CrearProducto() {
         setPrecioBase(0);
         setStockBase(0);
         setCategoria("");
+        setMarca("");
         setDescripcion("");
         setVariantes([]);
         setImageFile(null);
@@ -179,24 +190,46 @@ export default function CrearProducto() {
                 />
               </div>
 
-              <div>
-                <label className="block text-sm font-bold uppercase tracking-widest text-gray-500 mb-3">
-                  Categoría *
-                </label>
-                <select
-                  value={categoria}
-                  onChange={(e) => setCategoria(e.target.value)}
-                  className="w-full px-4 py-4 bg-gray-50 border border-gray-200 focus:bg-white focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent transition-all text-black font-medium"
-                  required
-                  disabled={loadingConfig}
-                >
-                  <option value="" disabled>
-                    {loadingConfig ? "Cargando categorías..." : "Selecciona una categoría"}
-                  </option>
-                  {categorias.map((cat, idx) => (
-                    <option key={idx} value={cat}>{cat}</option>
-                  ))}
-                </select>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-bold uppercase tracking-widest text-gray-500 mb-3">
+                    Categoría *
+                  </label>
+                  <select
+                    value={categoria}
+                    onChange={(e) => setCategoria(e.target.value)}
+                    className="w-full px-4 py-4 bg-gray-50 border border-gray-200 focus:bg-white focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent transition-all text-black font-medium"
+                    required
+                    disabled={loadingConfig}
+                  >
+                    <option value="" disabled>
+                      {loadingConfig ? "Cargando categorías..." : "Selecciona una categoría"}
+                    </option>
+                    {categorias.map((cat, idx) => (
+                      <option key={idx} value={cat}>{cat}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-bold uppercase tracking-widest text-gray-500 mb-3">
+                    Marca *
+                  </label>
+                  <select
+                    value={marca}
+                    onChange={(e) => setMarca(e.target.value)}
+                    className="w-full px-4 py-4 bg-gray-50 border border-gray-200 focus:bg-white focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent transition-all text-black font-medium"
+                    required
+                    disabled={loadingConfig}
+                  >
+                    <option value="" disabled>
+                      {loadingConfig ? "Cargando marcas..." : "Selecciona una marca"}
+                    </option>
+                    {marcas.map((m, idx) => (
+                      <option key={idx} value={m}>{m}</option>
+                    ))}
+                  </select>
+                </div>
               </div>
             </div>
 

@@ -18,6 +18,7 @@ export interface ProductoData {
   precio: number;
   stock: number;
   categoria: string;
+  marca?: string;
   imagen: string;
   descripcion: string;
   activo: boolean;
@@ -34,6 +35,7 @@ export default function ProductCard({ producto }: { producto: ProductoData }) {
   const precio = producto?.precio || 0;
   const imagen = producto?.imagen || "https://images.unsplash.com/photo-1593095948071-474c5cc2989d?q=80&w=800&auto=format&fit=crop";
   const categoria = producto?.categoria || "Sin categoría";
+  const marca = producto?.marca;
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault(); // Prevent link navigation
@@ -96,9 +98,20 @@ export default function ProductCard({ producto }: { producto: ProductoData }) {
       <div className="p-5">
         <div className="flex justify-between items-start mb-2">
           <div>
-            <p className="text-xs font-bold text-orange-500 uppercase tracking-wider mb-1">
-              {categoria}
-            </p>
+            <div className="flex gap-2 items-center mb-1">
+              <p className="text-xs font-bold text-orange-500 uppercase tracking-wider">
+                {categoria}
+              </p>
+              {marca && (
+                <>
+                  <span className="text-gray-300 text-xs">•</span>
+                  <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest bg-gray-100 px-1.5 py-0.5 rounded-sm">
+                    {marca}
+                  </p>
+                </>
+              )}
+            </div>
+            
             <h3 className="font-bold text-black text-lg leading-tight group-hover:text-orange-500 transition-colors line-clamp-2">
               {nombre}
             </h3>
