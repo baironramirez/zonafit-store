@@ -5,6 +5,8 @@ import { X, Save, Edit2, UploadCloud, Plus, Trash2 } from "lucide-react";
 import { storage } from "@/lib/firebase";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { Variante } from "@/components/ProductCard";
+import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
 
 export default function AdminProductos() {
   const [products, setProducts] = useState<any[]>([]);
@@ -145,20 +147,29 @@ export default function AdminProductos() {
       precio: newVarPrecio,
       stock: newVarStock
     };
-    
+
     setEditingProduct({
       ...editingProduct,
       variantes: [...editingProduct.variantes, nuevaVariante]
     });
-    
+
     setNewVarNombre("");
     setNewVarPrecio(0);
     setNewVarStock(0);
   };
 
   return (
-    <main className="p-8 bg-gray-50 min-h-screen">
+    <main className="min-h-screen bg-gray-50 text-black py-12 px-6 pt-24">
       <div className="max-w-7xl mx-auto">
+
+        <Link
+          href="/admin"
+          className="inline-flex items-center gap-2 text-sm font-bold uppercase tracking-widest text-gray-400 hover:text-black mb-8 transition-colors group"
+        >
+          <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-1" />
+          Volver al Panel
+        </Link>
+
         <h1 className="text-3xl font-bold text-gray-900 mb-8">
           Gestión de inventario
         </h1>
@@ -195,8 +206,15 @@ export default function AdminProductos() {
                 <div className="mb-3">
                   {product.variantes && product.variantes.length > 0 ? (
                     <div className="space-y-1 mt-2">
-                      <p className="text-xs font-bold uppercase text-gray-400">Variantes ({product.variantes.length})</p>
-                      <p className="text-lg font-bold text-gray-900">Desde ${Math.min(...product.variantes.map((v:any) => v.precio)).toLocaleString("es-AR")}</p>
+                      <p className="text-xs font-bold uppercase text-gray-400">
+                        Variantes ({product.variantes.length})
+                      </p>
+                      <p className="text-lg font-bold text-gray-900">
+                        Desde $
+                        {Math.min(
+                          ...product.variantes.map((v: any) => v.precio)
+                        ).toLocaleString("es-AR")}
+                      </p>
                     </div>
                   ) : (
                     <div className="flex justify-between items-center mt-2">
@@ -224,14 +242,13 @@ export default function AdminProductos() {
                     >
                       <Edit2 className="w-4 h-4" /> Configurar
                     </button>
-                    
+
                     <button
                       onClick={() => toggleProduct(product.id, product.activo)}
-                      className={`flex-1 flex justify-center items-center py-2 rounded-md font-bold uppercase tracking-wider text-xs transition-colors duration-200 ${
-                        product.activo
+                      className={`flex-1 flex justify-center items-center py-2 rounded-md font-bold uppercase tracking-wider text-xs transition-colors duration-200 ${product.activo
                           ? "bg-red-50 text-red-600 hover:bg-red-100"
                           : "bg-green-50 text-green-600 hover:bg-green-100"
-                      }`}
+                        }`}
                     >
                       {product.activo ? "Ocultar" : "Mostrar"}
                     </button>
@@ -255,17 +272,17 @@ export default function AdminProductos() {
       {isEditing && editingProduct && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 md:p-6 overflow-y-auto">
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col relative my-auto">
-            
+
             <div className="flex justify-between items-center p-6 border-b border-gray-100 sticky top-0 bg-white z-10 rounded-t-xl shrink-0">
               <h2 className="text-2xl font-black uppercase tracking-tight text-black">⚙️ Configurar Producto</h2>
-              <button 
+              <button
                 onClick={closeEditModal}
                 className="p-2 text-gray-400 hover:text-red-500 bg-gray-50 hover:bg-red-50 rounded-lg transition-colors"
               >
                 <X className="w-6 h-6" />
               </button>
             </div>
-            
+
             <div className="overflow-y-auto p-6 md:p-8 flex-1">
               <form id="editProductForm" onSubmit={handleEditSubmit} className="space-y-10">
                 {/* 1. Base Info */}
@@ -333,8 +350,8 @@ export default function AdminProductos() {
                               className="w-full px-3 py-2 bg-white border border-gray-200 focus:outline-none focus:border-black text-sm font-bold"
                             />
                           </div>
-                          <button 
-                            type="button" 
+                          <button
+                            type="button"
                             onClick={() => removeVarianteEdit(v.id)}
                             className="bg-red-50 text-red-500 p-2 border border-red-200 rounded hover:bg-red-500 hover:text-white transition-colors h-[38px] w-full md:w-auto flex justify-center items-center"
                           >
@@ -371,7 +388,7 @@ export default function AdminProductos() {
                   {/* Add variant inside edit */}
                   <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end p-4 border-2 border-dashed border-gray-200 rounded-lg bg-gray-50/50">
                     <div className="md:col-span-12 mb-2">
-                       <p className="text-xs font-bold uppercase tracking-widest text-black">Añadir Otra Variante</p>
+                      <p className="text-xs font-bold uppercase tracking-widest text-black">Añadir Otra Variante</p>
                     </div>
                     <div className="md:col-span-6">
                       <input
@@ -403,7 +420,7 @@ export default function AdminProductos() {
                       />
                     </div>
                     <div className="md:col-span-2">
-                      <button 
+                      <button
                         type="button"
                         onClick={handleAddNewVarianteEdit}
                         className="w-full bg-black text-white py-2 border border-black hover:bg-white hover:text-black font-bold uppercase text-[10px] tracking-widest flex justify-center items-center gap-1 h-[38px] transition-colors"
@@ -417,7 +434,7 @@ export default function AdminProductos() {
                 {/* 3. Media & Description */}
                 <div>
                   <h3 className="text-sm font-black uppercase text-gray-400 tracking-widest border-b border-gray-100 pb-2 mb-4">3. Contenido Visual y Descripción</h3>
-                  
+
                   <div className="space-y-6">
                     <div className="flex flex-col md:flex-row items-center justify-start gap-6 border border-gray-200 p-4 rounded-lg bg-gray-50">
                       {previewUrl ? (
@@ -429,7 +446,7 @@ export default function AdminProductos() {
                           Sin Foto
                         </div>
                       )}
-                      
+
                       <div className="flex-1 w-full">
                         <label className="flex flex-col items-center justify-center w-full h-24 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-white hover:bg-gray-100 transition-colors">
                           <div className="flex flex-col items-center justify-center py-4">
@@ -456,7 +473,7 @@ export default function AdminProductos() {
 
               </form>
             </div>
-            
+
             <div className="p-4 md:p-6 border-t border-gray-100 flex flex-col sm:flex-row justify-end gap-3 bg-gray-50 rounded-b-xl shrink-0">
               <button
                 type="button"

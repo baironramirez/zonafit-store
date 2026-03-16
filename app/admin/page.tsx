@@ -27,8 +27,8 @@ export default function AdminPage() {
               Panel Administrativo de ZonaFit.
             </p>
           </div>
-          
-          <button 
+
+          <button
             onClick={handleLogout}
             className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 hover:bg-gray-100 text-gray-700 hover:text-red-600 rounded-lg text-sm font-bold uppercase tracking-wider transition-colors"
           >
@@ -38,7 +38,7 @@ export default function AdminPage() {
       </div>
 
       <div className="max-w-7xl mx-auto px-6">
-        
+
         {/* Quick Stats Minimalist */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
           {[
@@ -67,7 +67,7 @@ export default function AdminPage() {
         {/* Acciones Principales */}
         <h2 className="text-sm font-bold uppercase tracking-widest text-gray-400 mb-4 px-2">Gestión de Tienda</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          
+
           {/* Tarjeta de Gestión de Productos */}
           <Link href="/admin/productos" className="group bg-white border border-gray-200 rounded-2xl p-6 hover:border-black hover:shadow-lg transition-all">
             <div className="w-12 h-12 bg-gray-50 rounded-xl border border-gray-100 flex items-center justify-center mb-6 group-hover:bg-black group-hover:border-black transition-colors">
@@ -86,14 +86,14 @@ export default function AdminPage() {
             <p className="text-sm text-gray-500 font-medium">Sube fotografías, configura el precio y lanza un nuevo producto al mercado.</p>
           </Link>
 
-          {/* Tarjeta Ajustes (Mockup) */}
-          <div className="group bg-gray-50 border border-gray-200 rounded-2xl p-6 opacity-70 cursor-not-allowed">
-            <div className="w-12 h-12 bg-gray-100 rounded-xl border border-gray-200 flex items-center justify-center mb-6">
-              <Settings className="w-6 h-6 text-gray-400" />
+          {/* Tarjeta Ajustes */}
+          <Link href="/admin/ajustes" className="group bg-white border border-gray-200 rounded-2xl p-6 hover:border-blue-500 hover:shadow-lg hover:shadow-blue-500/10 transition-all">
+            <div className="w-12 h-12 bg-gray-50 rounded-xl border border-gray-100 flex items-center justify-center mb-6 group-hover:bg-blue-500 group-hover:border-blue-500 transition-colors">
+              <Settings className="w-6 h-6 text-black group-hover:text-white transition-colors" />
             </div>
-            <h3 className="text-lg font-bold text-gray-600 uppercase tracking-wide mb-2">Configuración</h3>
-            <p className="text-sm text-gray-500 font-medium">Ajustes visuales, métodos de pago y variables globales (Próximamente).</p>
-          </div>
+            <h3 className="text-lg font-bold text-black uppercase tracking-wide mb-2">Configuración</h3>
+            <p className="text-sm text-gray-500 font-medium">Ajustes visuales, imágenes de banners y variables globales de la tienda.</p>
+          </Link>
 
         </div>
       </div>

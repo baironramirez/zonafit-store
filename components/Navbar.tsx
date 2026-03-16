@@ -5,18 +5,37 @@ import Image from "next/image";
 import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
 import { motion, useScroll, useMotionValueEvent } from "framer-motion";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ShoppingCart, Package, User, Search, Heart } from "lucide-react";
+import { db } from "@/lib/firebase";
+import { doc, getDoc } from "firebase/firestore";
 
 export default function Navbar() {
   const { cart } = useCart();
   const { currentUser, userProfile, loading, logout } = useAuth();
   const { scrollY } = useScroll();
   const [isScrolled, setIsScrolled] = useState(false);
+  const [promoActive, setPromoActive] = useState(false);
+  const [promoText, setPromoText] = useState("");
 
   useMotionValueEvent(scrollY, "change", (latest) => {
     setIsScrolled(latest > 20);
   });
+
+  // Fetch Promo Settings
+  useEffect(() => {
+    getDoc(doc(db, "settings", "home"))
+      .then((docSnap) => {
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          if (data.promoActive) {
+            setPromoActive(true);
+            setPromoText(data.promoText || "");
+          }
+        }
+      })
+      .catch((err) => console.error("Error fetching promo settings:", err));
+  }, []);
 
   const totalItems = cart.reduce((acc, item) => acc + item.cantidad, 0);
 
@@ -25,13 +44,22 @@ export default function Navbar() {
       initial={{ y: -100 }}
       animate={{ y: 0 }}
       transition={{ duration: 0.5 }}
-      className={`fixed top-0 left-0 right-0 z-50 w-full px-6 flex items-center transition-all duration-300 ${isScrolled
-        ? "bg-white/95 backdrop-blur-md border-b border-gray-200 py-3"
-        : "bg-transparent py-5"
+      className={`fixed top-0 left-0 right-0 z-50 w-full transition-all duration-300 ${isScrolled
+        ? "bg-white/95 backdrop-blur-md shadow-sm"
+        : "bg-transparent"
         }`}
     >
-      {/* 3-Column Grid for Gymshark Minimalist Layout */}
-      <div className="w-full max-w-[1400px] mx-auto grid grid-cols-3 items-center">
+      {/* Promo Bar (Top) */}
+      {promoActive && (
+        <div className="w-full bg-black text-white text-center py-2 px-4">
+          <p className="text-[11px] md:text-xs font-bold uppercase tracking-widest">{promoText}</p>
+        </div>
+      )}
+
+      {/* Main Nav content */}
+      <div className={`px-6 flex items-center transition-all duration-300 ${isScrolled ? "py-3 border-b border-gray-200" : "py-5"}`}>
+        {/* 3-Column Grid for Gymshark Minimalist Layout */}
+        <div className="w-full max-w-[1400px] mx-auto grid grid-cols-3 items-center">
 
         {/* LEFT COLUMN: Main Navigation Links */}
         <div className="flex items-center justify-start gap-4 md:gap-8">
@@ -93,18 +121,18 @@ export default function Navbar() {
                   <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">Sesión Activa</p>
                   <p className="text-xs font-bold text-black truncate">{userProfile?.email || currentUser.email}</p>
                 </div>
-                
+
                 {userProfile?.rol === "admin" && (
                   <Link href="/admin" className="px-4 py-2 text-xs font-bold uppercase tracking-widest text-black hover:bg-gray-50 transition-colors">
                     Panel Admin
                   </Link>
                 )}
-                
+
                 <Link href="/pedidos" className="px-4 py-2 text-xs font-bold uppercase tracking-widest text-black hover:bg-gray-50 transition-colors">
                   Mis Pedidos
                 </Link>
-                
-                <button 
+
+                <button
                   onClick={() => logout()}
                   className="px-4 py-2 text-xs font-bold uppercase tracking-widest text-red-600 hover:bg-red-50 text-left transition-colors mt-1 border-t border-gray-100"
                 >
@@ -134,6 +162,7 @@ export default function Navbar() {
           </Link>
         </div>
 
+        </div>
       </div>
     </motion.nav>
   );

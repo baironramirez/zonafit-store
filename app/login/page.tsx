@@ -41,21 +41,15 @@ export default function LoginPage() {
 
   return (
     <main className="min-h-screen bg-white text-black flex flex-col items-center justify-center p-6 selection:bg-black selection:text-white relative">
-      
-      {/* Back Button */}
-      <div className="absolute top-10 flex w-full max-w-md px-4">
-        <Link href="/" className="flex items-center gap-2 text-sm font-bold uppercase tracking-wider hover:text-gray-500 transition-colors">
-          <ArrowLeft className="w-5 h-5" /> Volver a la tienda
-        </Link>
-      </div>
 
-      <motion.div 
+
+      <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
         className="w-full max-w-md"
       >
-        
+
         {/* Header Text */}
         <div className="text-center mb-10">
           <h1 className="text-4xl md:text-5xl font-black uppercase tracking-tighter text-black mb-3 leading-none truncate">
@@ -69,7 +63,7 @@ export default function LoginPage() {
         {/* Login Box */}
         <div className="bg-white border-2 border-gray-100 rounded-3xl p-8 shadow-2xl shadow-gray-200/50">
           <form onSubmit={handleLogin} className="space-y-6">
-            
+
             {/* Email Field */}
             <div className="space-y-2">
               <label className="text-xs font-black text-black uppercase tracking-widest pl-1">

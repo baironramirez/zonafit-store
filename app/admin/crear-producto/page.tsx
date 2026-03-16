@@ -7,6 +7,7 @@ import { ArrowLeft, UploadCloud, Plus, X } from "lucide-react";
 import Link from "next/link";
 import { Variante } from "@/components/ProductCard";
 
+
 export default function CrearProducto() {
   const [nombre, setNombre] = useState("");
   // Default base price and stock
@@ -20,7 +21,7 @@ export default function CrearProducto() {
 
   // Variantes State
   const [variantes, setVariantes] = useState<Variante[]>([]);
-  
+
   // Temporary state for the new variant form
   const [newVarNombre, setNewVarNombre] = useState("");
   const [newVarPrecio, setNewVarPrecio] = useState(0);
@@ -122,15 +123,15 @@ export default function CrearProducto() {
   return (
     <main className="min-h-screen bg-gray-50 text-black selection:bg-black selection:text-white py-12 px-6 pt-24">
       <div className="max-w-4xl mx-auto">
-        
-        <Link 
-          href="/admin" 
+
+        <Link
+          href="/admin"
           className="inline-flex items-center gap-2 text-sm font-bold uppercase tracking-widest text-gray-400 hover:text-black mb-8 transition-colors group"
         >
           <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-1" />
           Volver al Panel
         </Link>
-        
+
         <h1 className="text-4xl font-black uppercase tracking-tight text-black mb-8">
           Añadir Nuevo <span className="text-orange-500">Producto</span>
         </h1>
@@ -140,7 +141,7 @@ export default function CrearProducto() {
             {/* 1. Información Básica */}
             <div className="space-y-6">
               <h2 className="text-xl font-black uppercase tracking-tight border-b border-gray-100 pb-2">1. Info General</h2>
-              
+
               <div>
                 <label className="block text-sm font-bold uppercase tracking-widest text-gray-500 mb-3">
                   Nombre del producto *
@@ -175,7 +176,7 @@ export default function CrearProducto() {
                 <h2 className="text-xl font-black uppercase tracking-tight">2. Base (Sin Variantes)</h2>
                 <span className="text-xs text-gray-400 font-medium uppercase tracking-widest">Aplica si el producto es Único</span>
               </div>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <div>
                   <label className="block text-sm font-bold uppercase tracking-widest text-gray-500 mb-3">
@@ -225,8 +226,8 @@ export default function CrearProducto() {
                         <p className="font-bold text-black uppercase tracking-wider text-sm">{v.nombre}</p>
                         <p className="text-xs text-gray-500 font-medium mt-1">Precio: ${v.precio.toLocaleString("es-AR")} | Stock: {v.stock}</p>
                       </div>
-                      <button 
-                        type="button" 
+                      <button
+                        type="button"
                         onClick={() => removeVariante(v.id)}
                         className="p-2 text-red-500 hover:bg-red-50 rounded transition-colors"
                       >
@@ -271,7 +272,7 @@ export default function CrearProducto() {
                   />
                 </div>
                 <div className="md:col-span-2">
-                  <button 
+                  <button
                     type="button"
                     onClick={handleAddVariante}
                     className="w-full bg-black text-white py-3 font-bold uppercase tracking-widest hover:bg-orange-500 transition-colors flex items-center justify-center gap-1 text-xs h-[46px]"
@@ -285,12 +286,12 @@ export default function CrearProducto() {
             {/* 4. Medios y Descripción */}
             <div className="space-y-6">
               <h2 className="text-xl font-black uppercase tracking-tight border-b border-gray-100 pb-2">4. Medios Visuales</h2>
-              
+
               <div>
                 <label className="block text-sm font-bold uppercase tracking-widest text-gray-500 mb-4">
                   Fotografía Oficial
                 </label>
-                
+
                 <div className="flex flex-col md:flex-row items-start gap-6">
                   <div className="flex-1 w-full">
                     <div className="flex items-center justify-center w-full">
@@ -300,9 +301,9 @@ export default function CrearProducto() {
                           <p className="mb-2 text-sm text-gray-600 font-bold uppercase tracking-wide">Subir Archivo Gráfico</p>
                           <p className="text-xs text-gray-400 font-medium">PNG ó JPG (hasta 5MB)</p>
                         </div>
-                        <input 
-                          type="file" 
-                          className="hidden" 
+                        <input
+                          type="file"
+                          className="hidden"
                           accept="image/*"
                           onChange={handleImageChange}
                         />
@@ -346,7 +347,7 @@ export default function CrearProducto() {
                 {isLoading ? "PROCESANDO CAMBIOS..." : "PUBLICAR EN CATÁLOGO"}
               </button>
             </div>
-            
+
           </form>
         </div>
       </div>

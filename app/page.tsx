@@ -5,10 +5,20 @@ import { ArrowRight, ArrowLeft, Heart, ShoppingBag } from "lucide-react";
 import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
 import ProductCard, { ProductoData } from "@/components/ProductCard";
+import { db } from "@/lib/firebase";
+import { doc, getDoc } from "firebase/firestore";
 
 export default function Home() {
   const [productos, setProductos] = useState<ProductoData[]>([]);
   const [loading, setLoading] = useState(true);
+  
+  // Hero Banner State
+  const [heroBanner, setHeroBanner] = useState<string>("https://www.gymshark.com/_next/image?url=https%3A%2F%2Fimages.ctfassets.net%2Fwl6q2in9o7k3%2F2b4sfrCyzG6lmenlupFXZ4%2Fca35509d35cf667640aa970fa08ca570%2FHeadless_Desktop_-_25825472.jpeg&w=3840&q=85");
+  const [heroTitle, setHeroTitle] = useState<string>("OVERCOME\nEVERYTHING.");
+  const [heroSubtitle, setHeroSubtitle] = useState<string>("RENDIMIENTO ÉLITE");
+  const [heroDesc, setHeroDesc] = useState<string>("Suplementos diseñados para los que no se rinden. Rompe tus límites hoy.");
+  const [heroBtn1, setHeroBtn1] = useState<string>("Comprar Novedades");
+  const [heroBtn2, setHeroBtn2] = useState<string>("Ver Catálogo");
 
   // Fetch real products from Firebase
   useEffect(() => {
@@ -28,6 +38,21 @@ export default function Home() {
         console.error("Error fetching products:", err);
         setLoading(false);
       });
+
+    // Fetch Banner and Settings
+    getDoc(doc(db, "settings", "home"))
+      .then((docSnap) => {
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          if (data.heroBannerUrl) setHeroBanner(data.heroBannerUrl);
+          if (data.heroTitle) setHeroTitle(data.heroTitle);
+          if (data.heroSubtitle) setHeroSubtitle(data.heroSubtitle);
+          if (data.heroDesc) setHeroDesc(data.heroDesc);
+          if (data.heroBtn1) setHeroBtn1(data.heroBtn1);
+          if (data.heroBtn2) setHeroBtn2(data.heroBtn2);
+        }
+      })
+      .catch((err) => console.error("Error fetching banner settings:", err));
   }, []);
 
   return (
@@ -39,7 +64,7 @@ export default function Home() {
         {/* Background Image */}
         <div className="absolute inset-0 z-0">
           <img
-            src="https://www.gymshark.com/_next/image?url=https%3A%2F%2Fimages.ctfassets.net%2Fwl6q2in9o7k3%2F2b4sfrCyzG6lmenlupFXZ4%2Fca35509d35cf667640aa970fa08ca570%2FHeadless_Desktop_-_25825472.jpeg&w=3840&q=85"
+            src={heroBanner}
             alt="Atletas entrenando duro"
             className="w-full h-full object-cover object-center"
           />
@@ -56,32 +81,36 @@ export default function Home() {
             transition={{ duration: 0.8, delay: 0.2 }}
             className="max-w-3xl"
           >
-            <h1 className="text-[2.8rem] md:text-[4.8rem] lg:text-[6rem] font-black leading-[0.85] tracking-tighter uppercase text-white mb-2 italic">
-              OVERCOME<br />EVERYTHING.
+            <h1 className="text-[2.8rem] md:text-[4.8rem] lg:text-[6rem] font-black leading-[0.85] tracking-tighter uppercase text-white mb-2 italic whitespace-pre-line">
+              {heroTitle}
             </h1>
 
             <p className="text-base md:text-xl text-white font-bold uppercase tracking-wide mb-2 mt-4">
-              RENDIMIENTO ÉLITE
+              {heroSubtitle}
             </p>
 
             <p className="text-xs md:text-base text-gray-200 mb-8 max-w-xl font-medium">
-              Suplementos diseñados para los que no se rinden. Rompe tus límites hoy.
+              {heroDesc}
             </p>
 
             <div className="flex gap-6 items-center">
-              <Link
-                href="/productos"
-                className="text-white font-bold uppercase tracking-widest text-sm pb-1 border-b-2 border-transparent hover:border-white transition-all"
-              >
-                Comprar Novedades
-              </Link>
+              {heroBtn1 && (
+                <Link
+                  href="/productos"
+                  className="text-white font-bold uppercase tracking-widest text-sm pb-1 border-b-2 border-transparent hover:border-white transition-all"
+                >
+                  {heroBtn1}
+                </Link>
+              )}
 
-              <Link
-                href="/productos"
-                className="text-white font-bold uppercase tracking-widest text-sm pb-1 border-b-2 border-transparent hover:border-white transition-all"
-              >
-                Ver Catálogo
-              </Link>
+              {heroBtn2 && (
+                <Link
+                  href="/productos"
+                  className="text-white font-bold uppercase tracking-widest text-sm pb-1 border-b-2 border-transparent hover:border-white transition-all"
+                >
+                  {heroBtn2}
+                </Link>
+              )}
             </div>
           </motion.div>
         </div>
