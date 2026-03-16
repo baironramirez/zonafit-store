@@ -6,7 +6,7 @@ import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
 import ProductCard, { ProductoData } from "@/components/ProductCard";
 import { db } from "@/lib/firebase";
-import { doc, getDoc, collection, getDocs, query, where, documentId } from "firebase/firestore";
+import { doc, getDoc, collection, getDocs } from "firebase/firestore";
 
 export default function Home() {
   const [productos, setProductos] = useState<ProductoData[]>([]);
@@ -54,12 +54,15 @@ export default function Home() {
 
         // Fetch Products based on featured IDs or completely
         if (pIds.length > 0) {
-          // Firebase 'in' query has a limit of 10, which is fine here since max is 4
-          const q = query(collection(db, "productos"), where(documentId(), "in", pIds));
-          const querySnapshot = await getDocs(q);
+          // Use Promise.all to fetch individually to bypass any 'in' query limitations or indexing issues
+          const productPromises = pIds.map(id => getDoc(doc(db, "productos", id)));
+          const docSnaps = await Promise.all(productPromises);
           const prods: ProductoData[] = [];
-          querySnapshot.forEach((d) => {
-            prods.push({ id: d.id, ...d.data() } as ProductoData);
+          
+          docSnaps.forEach((d) => {
+            if (d.exists()) {
+              prods.push({ id: d.id, ...d.data() } as ProductoData);
+            }
           });
           setProductos(prods);
           setLoading(false);

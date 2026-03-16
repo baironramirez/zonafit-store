@@ -4,19 +4,25 @@ import Link from "next/link";
 import Image from "next/image";
 import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
+import { useFavorites } from "@/context/FavoritesContext";
 import { motion, useScroll, useMotionValueEvent } from "framer-motion";
 import { useState, useEffect } from "react";
-import { ShoppingCart, Package, User, Search, Heart } from "lucide-react";
+import { ShoppingCart, User, Search, Heart, X } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { db } from "@/lib/firebase";
 import { doc, getDoc } from "firebase/firestore";
 
 export default function Navbar() {
   const { cart } = useCart();
   const { currentUser, userProfile, loading, logout } = useAuth();
+  const { favorites } = useFavorites();
+  const router = useRouter();
   const { scrollY } = useScroll();
   const [isScrolled, setIsScrolled] = useState(false);
   const [promoActive, setPromoActive] = useState(false);
   const [promoText, setPromoText] = useState("");
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
 
   useMotionValueEvent(scrollY, "change", (latest) => {
     setIsScrolled(latest > 20);
@@ -38,6 +44,16 @@ export default function Navbar() {
   }, []);
 
   const totalItems = cart.reduce((acc, item) => acc + item.cantidad, 0);
+  const totalFavorites = favorites.length;
+
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      router.push(`/productos?q=${encodeURIComponent(searchQuery.trim())}`);
+      setIsSearchOpen(false);
+      setSearchQuery("");
+    }
+  };
 
   return (
     <motion.nav
@@ -101,13 +117,37 @@ export default function Navbar() {
 
         {/* RIGHT COLUMN: Utility Icons */}
         <div className="flex justify-end gap-3 md:gap-5 items-center">
-          <button className="text-black hover:text-gray-500 transition-colors hidden sm:block">
-            <Search className="w-5 h-5 stroke-[1.5]" />
-          </button>
+          <div className="relative flex items-center">
+            {isSearchOpen ? (
+              <form onSubmit={handleSearchSubmit} className="absolute right-0 top-1/2 -translate-y-1/2 flex items-center bg-white border border-gray-200 rounded-full px-3 py-1.5 shadow-lg w-48 sm:w-64 z-50 animate-in fade-in slide-in-from-right-4 duration-300">
+                <Search className="w-4 h-4 text-gray-400 mr-2" />
+                <input 
+                  type="text" 
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Buscar..." 
+                  className="bg-transparent border-none outline-none text-xs w-full text-black font-medium"
+                  autoFocus
+                />
+                <button type="button" onClick={() => setIsSearchOpen(false)} className="ml-2 text-gray-400 hover:text-black">
+                  <X className="w-4 h-4" />
+                </button>
+              </form>
+            ) : (
+              <button onClick={() => setIsSearchOpen(true)} className="text-black hover:text-gray-500 transition-colors hidden sm:block p-1">
+                <Search className="w-5 h-5 stroke-[1.5]" />
+              </button>
+            )}
+          </div>
 
-          <button className="text-black hover:text-gray-500 transition-colors hidden sm:block">
+          <Link href="/favoritos" className="relative text-black hover:text-gray-500 transition-colors hidden sm:block p-1">
             <Heart className="w-5 h-5 stroke-[1.5]" />
-          </button>
+            {totalFavorites > 0 && (
+              <span className="absolute -top-1 -right-2 bg-orange-500 text-white text-[10px] font-bold w-4 h-4 flex items-center justify-center rounded-full leading-none shadow-sm">
+                {totalFavorites}
+              </span>
+            )}
+          </Link>
 
           {/* Dinámica de Usuario basado en Firebase Auth */}
           {loading ? (

@@ -1,13 +1,23 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import ProductCard, { ProductoData } from "@/components/ProductCard";
 import { motion } from "framer-motion";
+import { useSearchParams } from "next/navigation";
 
-export default function ProductosPage() {
+function ProductosContent() {
+  const searchParams = useSearchParams();
+  const initialQuery = searchParams.get("q") || "";
+  
   const [productos, setProductos] = useState<ProductoData[]>([]);
   const [loading, setLoading] = useState(true);
   const [filtroCategoria, setFiltroCategoria] = useState<string>("Todos");
+  const [searchQuery, setSearchQuery] = useState(initialQuery);
+
+  useEffect(() => {
+    // If URL query changes, update local state
+    setSearchQuery(searchParams.get("q") || "");
+  }, [searchParams]);
 
   useEffect(() => {
     fetch("/api/productos")
@@ -28,9 +38,17 @@ export default function ProductosPage() {
 
   const categorias = ["Todos", "Proteínas", "Pre-Entrenos", "Creatina", "Vitaminas"];
 
-  const productosFiltrados = filtroCategoria === "Todos" 
-    ? productos 
-    : productos.filter(p => p.categoria.toLowerCase().includes(filtroCategoria.toLowerCase()));
+  let productosFiltrados = productos;
+  
+  if (searchQuery) {
+    productosFiltrados = productos.filter(p => 
+      p.nombre.toLowerCase().includes(searchQuery.toLowerCase()) || 
+      p.categoria.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      p.descripcion.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  } else if (filtroCategoria !== "Todos") {
+    productosFiltrados = productos.filter(p => p.categoria.toLowerCase().includes(filtroCategoria.toLowerCase()));
+  }
 
   // Animaciones Framer Motion
   const containerVariants = {
@@ -104,8 +122,21 @@ export default function ProductosPage() {
           <div className="flex-1">
             <div className="flex justify-between items-center mb-8 pb-4 border-b border-gray-100">
               <p className="text-gray-500 font-medium">
-                Mostrando <span className="text-black font-bold">{productosFiltrados.length}</span> suplementos
+                {searchQuery ? (
+                  <>Resultados para <span className="text-black font-bold">"{searchQuery}"</span> ({productosFiltrados.length})</>
+                ) : (
+                  <>Mostrando <span className="text-black font-bold">{productosFiltrados.length}</span> suplementos</>
+                )}
               </p>
+              
+              {searchQuery && (
+                <button 
+                  onClick={() => setSearchQuery("")}
+                  className="text-xs font-bold uppercase tracking-widest text-gray-400 hover:text-black transition-colors"
+                >
+                  Limpiar Búsqueda
+                </button>
+              )}
             </div>
 
             {productosFiltrados.length === 0 ? (
@@ -150,5 +181,20 @@ export default function ProductosPage() {
         </div>
       </section>
     </main>
+  );
+}
+
+export default function ProductosPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-white text-black flex justify-center items-center pt-24">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-gray-200 border-t-orange-500 rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="font-medium text-gray-500 uppercase tracking-widest text-sm">Cargando Catálogo...</p>
+        </div>
+      </div>
+    }>
+      <ProductosContent />
+    </Suspense>
   );
 }

@@ -1,7 +1,8 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useCart } from "@/context/CartContext";
-import { Plus } from "lucide-react";
+import { useFavorites } from "@/context/FavoritesContext";
+import { Plus, Heart } from "lucide-react";
 import { useState } from "react";
 
 export interface Variante {
@@ -25,6 +26,7 @@ export interface ProductoData {
 
 export default function ProductCard({ producto }: { producto: ProductoData }) {
   const { addToCart } = useCart();
+  const { isFavorite, addToFavorites, removeFromFavorites } = useFavorites();
   const [isHovered, setIsHovered] = useState(false);
 
   // Use fallback values if producto properties are missing
@@ -46,6 +48,16 @@ export default function ProductCard({ producto }: { producto: ProductoData }) {
     }
   };
 
+  const handleToggleFavorite = (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (!producto) return;
+    if (isFavorite(producto.id)) {
+      removeFromFavorites(producto.id);
+    } else {
+      addToFavorites(producto);
+    }
+  };
+
   return (
     <Link 
       href={`/productos/${producto?.id}`}
@@ -60,6 +72,15 @@ export default function ProductCard({ producto }: { producto: ProductoData }) {
           alt={nombre}
           className="w-full h-full object-contain filter contrast-125 mix-blend-multiply group-hover:scale-110 transition-transform duration-500 ease-out"
         />
+        {/* Heart Icon for Favorites */}
+        <button
+          onClick={handleToggleFavorite}
+          className="absolute top-4 right-4 z-10 p-2 rounded-full bg-white/80 backdrop-blur-sm border border-gray-100 shadow-sm hover:scale-110 transition-transform"
+        >
+          <Heart 
+            className={`w-5 h-5 transition-colors ${isFavorite(producto?.id) ? 'fill-orange-500 text-orange-500' : 'text-gray-400 hover:text-orange-500'}`} 
+          />
+        </button>
         
         {/* Quick Add Button overlay */}
         <div className={`absolute bottom-4 left-0 right-0 px-4 transition-all duration-300 ${isHovered ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
