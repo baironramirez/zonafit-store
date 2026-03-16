@@ -1,8 +1,9 @@
 "use client";
 
-import { storage } from "@/lib/firebase";
+import { db, storage } from "@/lib/firebase";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import { useState } from "react";
+import { doc, getDoc } from "firebase/firestore";
+import { useState, useEffect } from "react";
 import { ArrowLeft, UploadCloud, Plus, X } from "lucide-react";
 import Link from "next/link";
 import { Variante } from "@/components/ProductCard";
@@ -19,8 +20,30 @@ export default function CrearProducto() {
   const [isLoading, setIsLoading] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
+  const [loadingConfig, setLoadingConfig] = useState(true);
+
   // Variantes State
   const [variantes, setVariantes] = useState<Variante[]>([]);
+  const [categorias, setCategorias] = useState<string[]>([]);
+  
+  useEffect(() => {
+    async function loadConfig() {
+      try {
+        const docRef = doc(db, "settings", "home");
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists() && docSnap.data().categorias) {
+          setCategorias(docSnap.data().categorias);
+        } else {
+          setCategorias(["Proteínas", "Pre-Entrenos", "Creatina", "Vitaminas"]);
+        }
+      } catch (e) {
+        setCategorias(["Proteínas", "Pre-Entrenos", "Creatina", "Vitaminas"]);
+      } finally {
+        setLoadingConfig(false);
+      }
+    }
+    loadConfig();
+  }, []);
 
   // Temporary state for the new variant form
   const [newVarNombre, setNewVarNombre] = useState("");
@@ -158,15 +181,22 @@ export default function CrearProducto() {
 
               <div>
                 <label className="block text-sm font-bold uppercase tracking-widest text-gray-500 mb-3">
-                  Categoría
+                  Categoría *
                 </label>
-                <input
-                  type="text"
-                  placeholder="Ej: Proteínas, Pre-Entrenos, Indumentaria"
+                <select
                   value={categoria}
                   onChange={(e) => setCategoria(e.target.value)}
-                  className="w-full px-4 py-4 bg-gray-50 border border-gray-200 focus:bg-white focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent transition-all placeholder-gray-400 text-black font-medium"
-                />
+                  className="w-full px-4 py-4 bg-gray-50 border border-gray-200 focus:bg-white focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent transition-all text-black font-medium"
+                  required
+                  disabled={loadingConfig}
+                >
+                  <option value="" disabled>
+                    {loadingConfig ? "Cargando categorías..." : "Selecciona una categoría"}
+                  </option>
+                  {categorias.map((cat, idx) => (
+                    <option key={idx} value={cat}>{cat}</option>
+                  ))}
+                </select>
               </div>
             </div>
 

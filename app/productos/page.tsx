@@ -4,6 +4,8 @@ import { useEffect, useState, Suspense } from "react";
 import ProductCard, { ProductoData } from "@/components/ProductCard";
 import { motion } from "framer-motion";
 import { useSearchParams } from "next/navigation";
+import { db } from "@/lib/firebase";
+import { doc, getDoc } from "firebase/firestore";
 
 function ProductosContent() {
   const searchParams = useSearchParams();
@@ -14,10 +16,30 @@ function ProductosContent() {
   const [filtroCategoria, setFiltroCategoria] = useState<string>("Todos");
   const [searchQuery, setSearchQuery] = useState(initialQuery);
 
+  const [categorias, setCategorias] = useState<string[]>(["Todos"]);
+
   useEffect(() => {
     // If URL query changes, update local state
     setSearchQuery(searchParams.get("q") || "");
   }, [searchParams]);
+
+  // Fetch configs (Categories)
+  useEffect(() => {
+    async function loadConfig() {
+      try {
+        const docRef = doc(db, "settings", "home");
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists() && docSnap.data().categorias) {
+          setCategorias(["Todos", ...docSnap.data().categorias]);
+        } else {
+          setCategorias(["Todos", "Proteínas", "Pre-Entrenos", "Creatina", "Vitaminas"]);
+        }
+      } catch (e) {
+        setCategorias(["Todos", "Proteínas", "Pre-Entrenos", "Creatina", "Vitaminas"]);
+      }
+    }
+    loadConfig();
+  }, []);
 
   useEffect(() => {
     fetch("/api/productos")
@@ -35,8 +57,6 @@ function ProductosContent() {
         setLoading(false);
       });
   }, []);
-
-  const categorias = ["Todos", "Proteínas", "Pre-Entrenos", "Creatina", "Vitaminas"];
 
   let productosFiltrados = productos;
   

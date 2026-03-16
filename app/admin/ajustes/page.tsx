@@ -30,9 +30,11 @@ export default function AjustesPage() {
   // Barra Promocional
   const [promoActive, setPromoActive] = useState<boolean>(false);
   const [promoText, setPromoText] = useState<string>("🚚 Envío GRATIS en pedidos superiores a $150.000 COP");
-  // Productos Destacados
+  // Productos Destacados y Categorías
   const [productos, setProductos] = useState<ProductoData[]>([]);
   const [featuredProductIds, setFeaturedProductIds] = useState<string[]>([]);
+  const [categorias, setCategorias] = useState<string[]>([]);
+  const [newCategory, setNewCategory] = useState<string>("");
 
   useEffect(() => {
     async function fetchSettings() {
@@ -62,6 +64,13 @@ export default function AjustesPage() {
           if (data.featuredProductIds && Array.isArray(data.featuredProductIds)) {
             setFeaturedProductIds(data.featuredProductIds);
           }
+          if (data.categorias && Array.isArray(data.categorias)) {
+            setCategorias(data.categorias);
+          } else {
+            setCategorias(["Proteínas", "Pre-Entrenos", "Creatina", "Vitaminas"]);
+          }
+        } else {
+          setCategorias(["Proteínas", "Pre-Entrenos", "Creatina", "Vitaminas"]);
         }
 
         // Fetch gallery from storage
@@ -113,6 +122,20 @@ export default function AjustesPage() {
     });
   };
 
+  const handleAddCategory = () => {
+    if (!newCategory.trim()) return;
+    if (categorias.includes(newCategory.trim())) {
+      alert("La categoría ya existe.");
+      return;
+    }
+    setCategorias([...categorias, newCategory.trim()]);
+    setNewCategory("");
+  };
+
+  const removeCategory = (cat: string) => {
+    setCategorias(categorias.filter((c) => c !== cat));
+  };
+
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
@@ -153,7 +176,8 @@ export default function AjustesPage() {
         heroBtn2,
         promoActive,
         promoText,
-        featuredProductIds
+        featuredProductIds,
+        categorias
       }, { merge: true });
       alert("¡Ajustes guardados correctamente!");
     } catch (error) {
@@ -469,6 +493,53 @@ export default function AjustesPage() {
                     </div>
                   );
                 })}
+              </div>
+            </div>
+
+            {/* SECCIÓN CATEGORÍAS DE PRODUCTOS */}
+            <div className="p-6 md:p-8 bg-white border-t border-gray-200">
+              <div className="flex items-center gap-3 mb-6 pb-6 border-b border-gray-100">
+                <div className="p-3 bg-purple-50 text-purple-600 rounded-xl">
+                  {/* Reuse Type icon as a fallback visual */}
+                  <Type className="w-6 h-6" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold uppercase tracking-wide">Categorías de la Tienda</h2>
+                  <p className="text-sm text-gray-500">Administra las colecciones donde agruparás tus productos al crearlos.</p>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap gap-3 mb-6">
+                {categorias.map((cat, idx) => (
+                  <div key={idx} className="flex items-center gap-2 bg-gray-100 px-4 py-2 rounded-full border border-gray-200">
+                    <span className="text-sm font-bold uppercase tracking-wider text-black">{cat}</span>
+                    <button 
+                      onClick={() => removeCategory(cat)}
+                      className="text-gray-400 hover:text-red-500 transition-colors bg-white rounded-full p-0.5"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                      </svg>
+                    </button>
+                  </div>
+                ))}
+              </div>
+
+              <div className="flex items-center gap-4 max-w-sm">
+                <input 
+                  type="text" 
+                  value={newCategory}
+                  onChange={(e) => setNewCategory(e.target.value)}
+                  placeholder="Nueva categoría..."
+                  className="flex-1 px-4 py-3 bg-white border border-gray-300 rounded-lg text-sm font-medium focus:border-black focus:ring-1 focus:ring-black outline-none"
+                  onKeyDown={(e) => e.key === 'Enter' && handleAddCategory()}
+                />
+                <button 
+                  onClick={handleAddCategory}
+                  className="bg-black text-white px-6 py-3 rounded-lg font-bold uppercase tracking-widest text-xs hover:bg-gray-800 transition-colors whitespace-nowrap"
+                >
+                  Agregar
+                </button>
               </div>
             </div>
             
