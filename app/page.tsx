@@ -6,54 +6,96 @@ import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
 import ProductCard, { ProductoData } from "@/components/ProductCard";
 import { db } from "@/lib/firebase";
-import { doc, getDoc } from "firebase/firestore";
+import { doc, getDoc, collection, getDocs, query, where, documentId } from "firebase/firestore";
 
 export default function Home() {
   const [productos, setProductos] = useState<ProductoData[]>([]);
   const [loading, setLoading] = useState(true);
-  
+
   // Hero Banner State
-  const [heroBanner, setHeroBanner] = useState<string>("https://www.gymshark.com/_next/image?url=https%3A%2F%2Fimages.ctfassets.net%2Fwl6q2in9o7k3%2F2b4sfrCyzG6lmenlupFXZ4%2Fca35509d35cf667640aa970fa08ca570%2FHeadless_Desktop_-_25825472.jpeg&w=3840&q=85");
+  const [heroBanners, setHeroBanners] = useState<string[]>([]);
+  const [currentBannerIndex, setCurrentBannerIndex] = useState(0);
+  const [autoRotateBanner, setAutoRotateBanner] = useState(false);
+  const [bannerInterval, setBannerInterval] = useState(5);
   const [heroTitle, setHeroTitle] = useState<string>("OVERCOME\nEVERYTHING.");
   const [heroSubtitle, setHeroSubtitle] = useState<string>("RENDIMIENTO ÉLITE");
   const [heroDesc, setHeroDesc] = useState<string>("Suplementos diseñados para los que no se rinden. Rompe tus límites hoy.");
   const [heroBtn1, setHeroBtn1] = useState<string>("Comprar Novedades");
   const [heroBtn2, setHeroBtn2] = useState<string>("Ver Catálogo");
 
-  // Fetch real products from Firebase
+  // Fetch Settings (Banners and Features) and then Products
   useEffect(() => {
-    fetch("/api/productos")
-      .then((res) => res.json())
-      .then((data) => {
-        let fetchedProducts = [];
-        if (Array.isArray(data)) {
-          fetchedProducts = data;
-        } else if (data.productos) {
-          fetchedProducts = data.productos;
-        }
-        setProductos(fetchedProducts.slice(0, 4));
-        setLoading(false);
-      })
-      .catch((err) => {
-        console.error("Error fetching products:", err);
-        setLoading(false);
-      });
-
-    // Fetch Banner and Settings
-    getDoc(doc(db, "settings", "home"))
-      .then((docSnap) => {
+    async function loadHomeData() {
+      try {
+        const docSnap = await getDoc(doc(db, "settings", "home"));
+        let pIds: string[] = [];
+        
         if (docSnap.exists()) {
           const data = docSnap.data();
-          if (data.heroBannerUrl) setHeroBanner(data.heroBannerUrl);
+          
+          if (data.heroBannerUrls && Array.isArray(data.heroBannerUrls)) {
+            setHeroBanners(data.heroBannerUrls);
+          } else if (data.heroBannerUrl) {
+            setHeroBanners([data.heroBannerUrl]); // Legacy fallback
+          }
+          
           if (data.heroTitle) setHeroTitle(data.heroTitle);
           if (data.heroSubtitle) setHeroSubtitle(data.heroSubtitle);
           if (data.heroDesc) setHeroDesc(data.heroDesc);
           if (data.heroBtn1) setHeroBtn1(data.heroBtn1);
           if (data.heroBtn2) setHeroBtn2(data.heroBtn2);
+          
+          if (data.autoRotateBanner !== undefined) setAutoRotateBanner(data.autoRotateBanner);
+          if (data.bannerInterval !== undefined) setBannerInterval(data.bannerInterval);
+          if (data.featuredProductIds && Array.isArray(data.featuredProductIds) && data.featuredProductIds.length > 0) {
+            pIds = data.featuredProductIds;
+          }
         }
-      })
-      .catch((err) => console.error("Error fetching banner settings:", err));
+
+        // Fetch Products based on featured IDs or completely
+        if (pIds.length > 0) {
+          // Firebase 'in' query has a limit of 10, which is fine here since max is 4
+          const q = query(collection(db, "productos"), where(documentId(), "in", pIds));
+          const querySnapshot = await getDocs(q);
+          const prods: ProductoData[] = [];
+          querySnapshot.forEach((d) => {
+            prods.push({ id: d.id, ...d.data() } as ProductoData);
+          });
+          setProductos(prods);
+          setLoading(false);
+        } else {
+          // Fallback to fetch latest 4 products via existing API
+          const res = await fetch("/api/productos");
+          const data = await res.json();
+          let fetchedProducts = [];
+          if (Array.isArray(data)) {
+            fetchedProducts = data;
+          } else if (data.productos) {
+            fetchedProducts = data.productos;
+          }
+          setProductos(fetchedProducts.slice(0, 4));
+          setLoading(false);
+        }
+
+      } catch (err) {
+        console.error("Error loading home data:", err);
+        setLoading(false);
+      }
+    }
+
+    loadHomeData();
   }, []);
+
+  // Effect for Auto-Carousel
+  useEffect(() => {
+    if (!autoRotateBanner || heroBanners.length <= 1) return;
+
+    const intervalId = setInterval(() => {
+      setCurrentBannerIndex((prevIndex) => (prevIndex + 1) % heroBanners.length);
+    }, bannerInterval * 1000);
+
+    return () => clearInterval(intervalId);
+  }, [autoRotateBanner, heroBanners.length, bannerInterval]);
 
   return (
     <main className="pt-22 min-h-screen bg-white text-black selection:bg-black selection:text-white">
@@ -61,13 +103,27 @@ export default function Home() {
       {/* 1. MASSIVE HERO BANNER */}
       <section className="relative h-[70vh] w-full flex items-end pb-16 lg:pb-24 overflow-hidden">
 
-        {/* Background Image */}
-        <div className="absolute inset-0 z-0">
-          <img
-            src={heroBanner}
-            alt="Atletas entrenando duro"
-            className="w-full h-full object-cover object-center"
-          />
+        {/* Background Images Carousel */}
+        <div className="absolute inset-0 z-0 bg-black">
+          {heroBanners.map((bannerUrl, index) => (
+            <motion.img
+              key={bannerUrl}
+              src={bannerUrl}
+              alt={`Banner ${index + 1}`}
+              className="absolute w-full h-full object-cover object-center"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: index === currentBannerIndex ? 1 : 0 }}
+              transition={{ duration: 1 }}
+            />
+          ))}
+          {/* Default fallback if array is empty */}
+          {heroBanners.length === 0 && (
+             <img
+               src="https://www.gymshark.com/_next/image?url=https%3A%2F%2Fimages.ctfassets.net%2Fwl6q2in9o7k3%2F2b4sfrCyzG6lmenlupFXZ4%2Fca35509d35cf667640aa970fa08ca570%2FHeadless_Desktop_-_25825472.jpeg&w=3840&q=85"
+               alt="Banner principal"
+               className="absolute w-full h-full object-cover object-center"
+             />
+          )}
 
           {/* Dark overlay to improve contrast with navbar */}
           <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-black/30" />

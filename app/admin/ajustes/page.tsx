@@ -2,19 +2,23 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { doc, getDoc, setDoc } from "firebase/firestore";
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { doc, getDoc, setDoc, collection, getDocs, orderBy, query } from "firebase/firestore";
+import { ref, uploadBytes, getDownloadURL, listAll } from "firebase/storage";
 import { db, storage } from "@/lib/firebase";
 import { Image as ImageIcon, Save, ArrowLeft, Loader2, UploadCloud, Type, Megaphone } from "lucide-react";
 import Link from "next/link";
+import { ProductoData } from "@/components/ProductCard";
 
 export default function AjustesPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [currentBanner, setCurrentBanner] = useState<string>("");
+  const [currentBanners, setCurrentBanners] = useState<string[]>([]);
+  const [gallery, setGallery] = useState<string[]>([]);
   const [bannerFile, setBannerFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string>("");
+  const [autoRotateBanner, setAutoRotateBanner] = useState<boolean>(true);
+  const [bannerInterval, setBannerInterval] = useState<number>(5);
 
   // Nuevos estados para textos dinámicos
   const [heroTitle, setHeroTitle] = useState<string>("OVERCOME\nEVERYTHING.");
@@ -26,6 +30,9 @@ export default function AjustesPage() {
   // Barra Promocional
   const [promoActive, setPromoActive] = useState<boolean>(false);
   const [promoText, setPromoText] = useState<string>("🚚 Envío GRATIS en pedidos superiores a $150.000 COP");
+  // Productos Destacados
+  const [productos, setProductos] = useState<ProductoData[]>([]);
+  const [featuredProductIds, setFeaturedProductIds] = useState<string[]>([]);
 
   useEffect(() => {
     async function fetchSettings() {
@@ -34,8 +41,12 @@ export default function AjustesPage() {
         const docSnap = await getDoc(docRef);
         if (docSnap.exists()) {
           const data = docSnap.data();
-          if (data.heroBannerUrl) {
-            setCurrentBanner(data.heroBannerUrl);
+          if (data.heroBannerUrls && Array.isArray(data.heroBannerUrls)) {
+            setCurrentBanners(data.heroBannerUrls);
+            if (data.heroBannerUrls.length > 0) setPreviewUrl(data.heroBannerUrls[0]);
+          } else if (data.heroBannerUrl) {
+            // Legacy support
+            setCurrentBanners([data.heroBannerUrl]);
             setPreviewUrl(data.heroBannerUrl);
           }
           if (data.heroTitle) setHeroTitle(data.heroTitle);
@@ -44,53 +55,106 @@ export default function AjustesPage() {
           if (data.heroBtn1) setHeroBtn1(data.heroBtn1);
           if (data.heroBtn2) setHeroBtn2(data.heroBtn2);
           
+          if (data.autoRotateBanner !== undefined) setAutoRotateBanner(data.autoRotateBanner);
+          if (data.bannerInterval !== undefined) setBannerInterval(data.bannerInterval);
           if (data.promoActive !== undefined) setPromoActive(data.promoActive);
           if (data.promoText) setPromoText(data.promoText);
+          if (data.featuredProductIds && Array.isArray(data.featuredProductIds)) {
+            setFeaturedProductIds(data.featuredProductIds);
+          }
         }
+
+        // Fetch gallery from storage
+        const listRef = ref(storage, "banners");
+        const res = await listAll(listRef);
+        const urls = await Promise.all(res.items.map((itemRef) => getDownloadURL(itemRef)));
+        setGallery(urls);
       } catch (error) {
         console.error("Error fetching settings:", error);
       } finally {
         setLoading(false);
       }
     }
+    
+    async function fetchProductos() {
+      try {
+        const q = query(collection(db, "productos"), orderBy("fechaCreacion", "desc"));
+        const querySnapshot = await getDocs(q);
+        const prods: ProductoData[] = [];
+        querySnapshot.forEach((doc) => {
+          prods.push({ id: doc.id, ...doc.data() } as ProductoData);
+        });
+        setProductos(prods);
+      } catch (error) {
+        console.error("Error fetching productos:", error);
+      }
+    }
+
     fetchSettings();
+    fetchProductos();
   }, []);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const toggleBannerSelection = (url: string) => {
+    setCurrentBanners((prev) => 
+      prev.includes(url) ? prev.filter(u => u !== url) : [...prev, url]
+    );
+  };
+
+  const toggleProductSelection = (id: string) => {
+    setFeaturedProductIds((prev) => {
+      if (prev.includes(id)) {
+        return prev.filter(pId => pId !== id);
+      }
+      if (prev.length >= 4) {
+        alert("Solo puedes seleccionar un máximo de 4 productos destacados.");
+        return prev;
+      }
+      return [...prev, id];
+    });
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
       setBannerFile(file);
       setPreviewUrl(URL.createObjectURL(file));
+      // Auto-upload the file to gallery to improve UX
+      setSaving(true);
+      try {
+        const fileRef = ref(storage, `banners/heroBanner_${Date.now()}`);
+        await uploadBytes(fileRef, file);
+        const url = await getDownloadURL(fileRef);
+        setGallery(prev => [url, ...prev]);
+        setCurrentBanners(prev => [...prev, url]);
+        setPreviewUrl(url);
+        setBannerFile(null);
+      } catch (error) {
+        console.error("Error uploading banner:", error);
+        alert("Error al subir la imagen.");
+      } finally {
+        setSaving(false);
+      }
     }
   };
 
   const handleSave = async () => {
     setSaving(true);
     try {
-      let finalUrl = currentBanner;
-
-      // Upload new image if selected
-      if (bannerFile) {
-        const fileRef = ref(storage, `banners/heroBanner_${Date.now()}`);
-        await uploadBytes(fileRef, bannerFile);
-        finalUrl = await getDownloadURL(fileRef);
-      }
-
       // Save to Firestore
       const docRef = doc(db, "settings", "home");
       await setDoc(docRef, { 
-        heroBannerUrl: finalUrl,
+        heroBannerUrls: currentBanners,
+        autoRotateBanner,
+        bannerInterval,
         heroTitle,
         heroSubtitle,
         heroDesc,
         heroBtn1,
         heroBtn2,
         promoActive,
-        promoText
+        promoText,
+        featuredProductIds
       }, { merge: true });
-
-      setCurrentBanner(finalUrl);
-      setBannerFile(null);
       alert("¡Ajustes guardados correctamente!");
     } catch (error) {
       console.error("Error saving settings:", error);
@@ -156,45 +220,91 @@ export default function AjustesPage() {
               </div>
 
               <div className="space-y-6">
-                {/* Image Preview */}
-                <div className="w-full bg-gray-100 rounded-xl border-2 border-dashed border-gray-300 relative overflow-hidden group h-[300px] md:h-[400px] flex flex-col items-center justify-center">
-                  {previewUrl ? (
-                    <>
-                      <img
-                        src={previewUrl}
-                        alt="Banner Preview"
-                        className="w-full h-full object-cover"
+                
+                {/* Auto Rotate Controls */}
+                <div className="flex flex-col md:flex-row gap-6 p-4 bg-gray-50 border border-gray-200 rounded-xl">
+                  <div className="flex items-center gap-4">
+                    <div 
+                      onClick={() => setAutoRotateBanner(!autoRotateBanner)}
+                      className={`relative inline-block w-12 h-6 rounded-full cursor-pointer transition-colors ${autoRotateBanner ? 'bg-blue-500' : 'bg-gray-200'}`}
+                    >
+                      <div className={`absolute top-[2px] left-[2px] bg-white border-gray-300 border rounded-full h-5 w-5 transition-transform ${autoRotateBanner ? 'translate-x-full border-white' : ''}`}></div>
+                    </div>
+                    <div>
+                      <label onClick={() => setAutoRotateBanner(!autoRotateBanner)} className="text-sm font-bold uppercase tracking-widest text-black cursor-pointer select-none block">
+                        Rotación Automática
+                      </label>
+                      <span className="text-xs text-gray-500">Alternar imágenes seleccionadas</span>
+                    </div>
+                  </div>
+
+                  {autoRotateBanner && (
+                    <div className="flex items-center gap-3 md:ml-auto">
+                      <label className="text-xs font-bold uppercase tracking-widest text-gray-500">Cada</label>
+                      <input 
+                        type="number" 
+                        value={bannerInterval} 
+                        onChange={(e) => setBannerInterval(Number(e.target.value))}
+                        className="w-20 px-3 py-2 border border-gray-300 rounded-lg text-center font-bold focus:border-black focus:ring-1 focus:ring-black outline-none"
+                        min="2"
+                        max="60"
                       />
-                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-sm">
-                        <label className="cursor-pointer bg-white text-black px-6 py-3 rounded-lg font-bold uppercase tracking-wide hover:scale-105 transition-transform flex items-center gap-2">
-                          <UploadCloud className="w-5 h-5" />
-                          Cambiar Imagen
-                          <input
-                            type="file"
-                            accept="image/*"
-                            className="hidden"
-                            onChange={handleFileChange}
-                          />
-                        </label>
-                      </div>
-                    </>
-                  ) : (
-                    <label className="cursor-pointer flex flex-col items-center gap-4 p-8 text-gray-500 hover:text-black transition-colors w-full h-full justify-center">
-                      <div className="p-4 bg-white rounded-full shadow-sm">
-                        <UploadCloud className="w-8 h-8" />
-                      </div>
-                      <div className="text-center">
-                        <p className="font-bold uppercase tracking-wide mb-1">Subir Imagen</p>
-                        <p className="text-sm">PNG, JPG o WEBP (Recomendado: 1920x1080px)</p>
-                      </div>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        className="hidden"
-                        onChange={handleFileChange}
-                      />
-                    </label>
+                      <label className="text-xs font-bold uppercase tracking-widest text-gray-500">Segundos</label>
+                    </div>
                   )}
+                </div>
+
+                {/* Upload New Banner Button */}
+                <div className="flex justify-start">
+                  <label className="cursor-pointer bg-white border border-gray-300 text-black px-6 py-3 rounded-lg font-bold uppercase tracking-wide hover:bg-gray-50 transition-colors flex items-center gap-2 text-sm shadow-sm">
+                    {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <UploadCloud className="w-5 h-5" />}
+                    Subir Nueva Imagen
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={handleFileChange}
+                      disabled={saving}
+                    />
+                  </label>
+                </div>
+
+                {/* Gallery Selection */}
+                <div>
+                  <h3 className="text-sm font-bold uppercase tracking-widest text-gray-400 mb-4">Galería de Imágenes</h3>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    {gallery.map((url, i) => {
+                      const isSelected = currentBanners.includes(url);
+                      return (
+                        <div 
+                          key={i} 
+                          onClick={() => toggleBannerSelection(url)}
+                          className={`relative aspect-video rounded-xl overflow-hidden cursor-pointer border-2 transition-all ${
+                            isSelected ? 'border-blue-500 ring-2 ring-blue-500/50 shadow-md' : 'border-transparent hover:border-gray-300 hover:shadow-sm'
+                          }`}
+                        >
+                          <img src={url} alt={`Banner ${i}`} className="w-full h-full object-cover" />
+                          <div className={`absolute inset-0 transition-colors ${isSelected ? 'bg-blue-500/10' : 'bg-black/20 hover:bg-black/10'}`} />
+                          
+                          {/* Selected Check Indicator */}
+                          {isSelected && (
+                            <div className="absolute top-2 right-2 bg-blue-500 text-white w-6 h-6 rounded-full flex items-center justify-center shadow-lg">
+                              <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
+                                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                              </svg>
+                            </div>
+                          )}
+                          
+                          {/* Order Number if Auto-Rotate is active and selected */}
+                          {isSelected && autoRotateBanner && (
+                            <div className="absolute bottom-2 left-2 bg-black/80 backdrop-blur-sm text-white text-[10px] font-bold uppercase px-2 py-1 rounded-md">
+                              Marco {currentBanners.indexOf(url) + 1}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
 
                 {/* Info Note */}
@@ -204,7 +314,7 @@ export default function AjustesPage() {
                     <h4 className="font-bold text-orange-800 text-sm mb-1 uppercase tracking-wider">Consejo Pro</h4>
                     <p className="text-sm text-orange-700/80">
                       Usa imágenes horizontales de alta calidad con colores oscuros o saturados, 
-                      ya que los textos blancos se superpondrán sobre esta imagen.
+                      ya que los textos blancos se superpondrán sobre estas imágenes. Puedes seleccionar varias para que roten solas.
                     </p>
                   </div>
                 </div>
@@ -292,17 +402,13 @@ export default function AjustesPage() {
 
               <div className="space-y-6">
                 <div className="flex items-center gap-4">
-                  <div className="relative inline-block w-12 h-6 rounded-full cursor-pointer">
-                    <input
-                      type="checkbox"
-                      id="promoActive"
-                      className="sr-only peer"
-                      checked={promoActive}
-                      onChange={(e) => setPromoActive(e.target.checked)}
-                    />
-                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-orange-500"></div>
+                  <div 
+                    onClick={() => setPromoActive(!promoActive)}
+                    className={`relative inline-block w-12 h-6 rounded-full cursor-pointer transition-colors ${promoActive ? 'bg-orange-500' : 'bg-gray-200'}`}
+                  >
+                    <div className={`absolute top-[2px] left-[2px] bg-white border-gray-300 border rounded-full h-5 w-5 transition-transform ${promoActive ? 'translate-x-full border-white' : ''}`}></div>
                   </div>
-                  <label htmlFor="promoActive" className="text-sm font-bold uppercase tracking-widest text-black cursor-pointer">
+                  <label onClick={() => setPromoActive(!promoActive)} className="text-sm font-bold uppercase tracking-widest text-black cursor-pointer select-none">
                     {promoActive ? "Activada" : "Desactivada"}
                   </label>
                 </div>
@@ -321,6 +427,51 @@ export default function AjustesPage() {
                 )}
               </div>
             </div>
+
+            {/* SECCIÓN PRODUCTOS DESTACADOS */}
+            <div className="p-6 md:p-8 bg-gray-50 border-t border-gray-200">
+              <div className="flex items-center gap-3 mb-6 pb-6 border-b border-gray-200">
+                <div className="p-3 bg-black text-white rounded-xl">
+                  {/* Reuse Package icon or similar, since we didn't import Package we'll use ImageIcon as a fallback visual or Import Package later */}
+                  <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
+                  </svg>
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold uppercase tracking-wide">Productos Destacados</h2>
+                  <p className="text-sm text-gray-500">Selecciona hasta 4 productos para mostrar en la pestaña "Novedades Élite". Seleccionados: {featuredProductIds.length}/4</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-h-[400px] overflow-y-auto p-2">
+                {productos.map((producto) => {
+                  const isSelected = featuredProductIds.includes(producto.id);
+                  return (
+                    <div 
+                      key={producto.id}
+                      onClick={() => toggleProductSelection(producto.id)}
+                      className={`relative bg-white rounded-xl border-2 p-3 cursor-pointer transition-all ${
+                        isSelected ? 'border-blue-500 shadow-md' : 'border-gray-200 hover:border-gray-300'
+                      }`}
+                    >
+                      <div className="aspect-square bg-gray-100 rounded-lg overflow-hidden mb-3">
+                        <img src={producto.imagen || '/images/b1.jpg'} alt={producto.nombre} className="w-full h-full object-cover" />
+                      </div>
+                      <p className="text-xs font-bold uppercase truncate">{producto.nombre}</p>
+                      
+                      {isSelected && (
+                        <div className="absolute top-2 right-2 bg-blue-500 text-white w-6 h-6 rounded-full flex items-center justify-center shadow-lg">
+                          <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
+                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                          </svg>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+            
           </div>
         )}
       </div>
