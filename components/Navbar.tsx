@@ -23,6 +23,7 @@ export default function Navbar() {
   const [promoText, setPromoText] = useState("");
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
 
   useMotionValueEvent(scrollY, "change", (latest) => {
     setIsScrolled(latest > 20);
@@ -137,27 +138,42 @@ export default function Navbar() {
             {loading ? (
               <div className="w-5 h-5 border-2 border-gray-200 border-t-black rounded-full animate-spin"></div>
             ) : currentUser ? (
-              <div className="relative group cursor-pointer flex items-center">
-                <User className="w-5 h-5 stroke-[1.5] text-black" />
+              <div 
+                className="relative flex items-center"
+                onMouseEnter={() => setIsUserMenuOpen(true)}
+                onMouseLeave={() => setIsUserMenuOpen(false)}
+              >
+                <button 
+                  onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
+                  className="text-black hover:text-gray-500 transition-colors p-1"
+                >
+                  <User className="w-5 h-5 stroke-[1.5]" />
+                </button>
+                
                 {/* Dropdown flotante Gymshark Style */}
-                <div className="absolute right-0 top-full mt-2 w-48 bg-white border border-gray-100 shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 rounded-xl overflow-hidden flex flex-col pt-2 pb-2">
+                <div className={`absolute right-0 top-full mt-2 w-48 bg-white border border-gray-100 shadow-2xl transition-all duration-200 rounded-xl overflow-hidden flex flex-col pt-2 pb-2 z-[60] ${
+                  isUserMenuOpen ? "opacity-100 visible translate-y-0" : "opacity-0 invisible -translate-y-2"
+                }`}>
                   <div className="px-4 py-3 border-b border-gray-100 mb-1">
                     <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">Sesión Activa</p>
                     <p className="text-xs font-bold text-black truncate">{userProfile?.email || currentUser.email}</p>
                   </div>
 
                   {userProfile?.rol === "admin" && (
-                    <Link href="/admin" className="px-4 py-2 text-xs font-bold uppercase tracking-widest text-black hover:bg-gray-50 transition-colors">
+                    <Link href="/admin" onClick={() => setIsUserMenuOpen(false)} className="px-4 py-2 text-xs font-bold uppercase tracking-widest text-black hover:bg-gray-50 transition-colors">
                       Panel Admin
                     </Link>
                   )}
 
-                  <Link href="/pedidos" className="px-4 py-2 text-xs font-bold uppercase tracking-widest text-black hover:bg-gray-50 transition-colors">
+                  <Link href="/pedidos" onClick={() => setIsUserMenuOpen(false)} className="px-4 py-2 text-xs font-bold uppercase tracking-widest text-black hover:bg-gray-50 transition-colors">
                     Mis Pedidos
                   </Link>
 
                   <button
-                    onClick={() => logout()}
+                    onClick={() => {
+                      logout();
+                      setIsUserMenuOpen(false);
+                    }}
                     className="px-4 py-2 text-xs font-bold uppercase tracking-widest text-red-600 hover:bg-red-50 text-left transition-colors mt-1 border-t border-gray-100"
                   >
                     Cerrar Sesión

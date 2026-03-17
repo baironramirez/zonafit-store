@@ -39,7 +39,7 @@ export default function AdminProductos() {
         const data = docSnap.data();
         if (data.categorias) setCategorias(data.categorias);
         else setCategorias(["Proteínas", "Pre-Entrenos", "Creatina", "Vitaminas"]);
-        
+
         if (data.marcas) setMarcas(data.marcas);
         else setMarcas(["Optimum Nutrition", "Dymatize", "MuscleTech", "BSN", "Cellucor"]);
       } else {
@@ -231,7 +231,7 @@ export default function AdminProductos() {
                     Categoría: {product.categoria}
                   </p>
                 )}
-                
+
                 {product.marca && (
                   <p className="text-xs text-blue-600 font-bold mb-2 uppercase tracking-tight">
                     Marca: {product.marca}
@@ -281,8 +281,8 @@ export default function AdminProductos() {
                     <button
                       onClick={() => toggleProduct(product.id, product.activo)}
                       className={`flex-1 flex justify-center items-center py-2 rounded-md font-bold uppercase tracking-wider text-xs transition-colors duration-200 ${product.activo
-                          ? "bg-red-50 text-red-600 hover:bg-red-100"
-                          : "bg-green-50 text-green-600 hover:bg-green-100"
+                        ? "bg-red-50 text-red-600 hover:bg-red-100"
+                        : "bg-green-50 text-green-600 hover:bg-green-100"
                         }`}
                     >
                       {product.activo ? "Ocultar" : "Mostrar"}
@@ -322,10 +322,17 @@ export default function AdminProductos() {
               <form id="editProductForm" onSubmit={handleEditSubmit} className="space-y-10">
                 {/* 1. Base Info */}
                 <div>
-                  <h3 className="text-sm font-black uppercase text-gray-400 tracking-widest border-b border-gray-100 pb-2 mb-4">1. Datos Generales</h3>
+                  <h3 className="text-sm font-black uppercase text-gray-400 tracking-widest border-b border-gray-100 pb-2 mb-4">
+                    1. Datos Generales
+                  </h3>
+
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+
+                    {/* NOMBRE */}
                     <div>
-                      <label className="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-2">Nombre</label>
+                      <label className="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-2">
+                        Nombre
+                      </label>
                       <input
                         type="text"
                         name="nombre"
@@ -335,39 +342,87 @@ export default function AdminProductos() {
                         required
                       />
                     </div>
+
+                    {/* CATEGORÍA */}
                     <div>
-                      <label className="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-2">Categoría</label>
-                      <select
-                        name="categoria"
-                        value={editingProduct.categoria || ""}
-                        onChange={handleInputChange}
-                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 text-black font-medium focus:outline-none focus:ring-2 focus:ring-black focus:bg-white transition-all rounded-lg"
-                        disabled={loadingConfig}
-                      >
-                        <option value="" disabled>{loadingConfig ? "Cargando..." : "Seleccionar Categoría"}</option>
-                        {categorias.map((cat, idx) => (
-                          <option key={idx} value={cat}>{cat}</option>
-                        ))}
-                      </select>
+                      <label className="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-2">
+                        Categoría
+                      </label>
+
+                      <div className="relative">
+                        <select
+                          name="categoria"
+                          value={editingProduct.categoria || ""}
+                          onChange={handleInputChange}
+                          disabled={loadingConfig}
+                          className="appearance-none w-full px-4 py-3 bg-gray-50 border border-gray-200 text-black font-medium focus:outline-none focus:ring-2 focus:ring-black focus:bg-white transition-all rounded-lg pr-10"
+                        >
+                          <option value="" disabled>
+                            {loadingConfig ? "Cargando..." : "Seleccionar Categoría"}
+                          </option>
+                          {categorias.map((cat, idx) => (
+                            <option key={idx} value={cat}>
+                              {cat}
+                            </option>
+                          ))}
+                        </select>
+
+                        {/* Flecha */}
+                        <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none">
+                          <svg
+                            className="w-4 h-4 text-gray-400"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth={2}
+                            viewBox="0 0 24 24"
+                          >
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                          </svg>
+                        </div>
+                      </div>
                     </div>
+
+                    {/* MARCA */}
                     <div>
-                      <label className="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-2">Marca</label>
-                      <select
-                        name="marca"
-                        value={editingProduct.marca || ""}
-                        onChange={handleInputChange}
-                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 text-black font-medium focus:outline-none focus:ring-2 focus:ring-black focus:bg-white transition-all rounded-lg"
-                        disabled={loadingConfig}
-                      >
-                        <option value="" disabled>{loadingConfig ? "Cargando..." : "Seleccionar Marca"}</option>
-                        {marcas.map((m, idx) => (
-                          <option key={idx} value={m}>{m}</option>
-                        ))}
-                      </select>
+                      <label className="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-2">
+                        Marca
+                      </label>
+
+                      <div className="relative">
+                        <select
+                          name="marca"
+                          value={editingProduct.marca || ""}
+                          onChange={handleInputChange}
+                          disabled={loadingConfig}
+                          className="appearance-none w-full px-4 py-3 bg-gray-50 border border-gray-200 text-black font-medium focus:outline-none focus:ring-2 focus:ring-black focus:bg-white transition-all rounded-lg pr-10"
+                        >
+                          <option value="" disabled>
+                            {loadingConfig ? "Cargando..." : "Seleccionar Marca"}
+                          </option>
+                          {marcas.map((m, idx) => (
+                            <option key={idx} value={m}>
+                              {m}
+                            </option>
+                          ))}
+                        </select>
+
+                        {/* Flecha */}
+                        <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none">
+                          <svg
+                            className="w-4 h-4 text-gray-400"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth={2}
+                            viewBox="0 0 24 24"
+                          >
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                          </svg>
+                        </div>
+                      </div>
                     </div>
+
                   </div>
                 </div>
-
                 {/* 2. Variantes & Precios */}
                 <div>
                   <div className="flex justify-between items-end border-b border-gray-100 pb-2 mb-4">
