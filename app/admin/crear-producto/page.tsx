@@ -90,6 +90,12 @@ export default function CrearProducto() {
       return;
     }
 
+    // Validar que se haya seleccionado una categoría
+    if (!categoria.trim()) {
+      alert("Debes seleccionar una categoría para el producto.");
+      return;
+    }
+
     setIsLoading(true);
 
     try {

@@ -63,11 +63,11 @@ function ProductosContent() {
   if (searchQuery) {
     productosFiltrados = productos.filter(p => 
       p.nombre.toLowerCase().includes(searchQuery.toLowerCase()) || 
-      p.categoria.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      p.descripcion.toLowerCase().includes(searchQuery.toLowerCase())
+      (p.categoria || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (p.descripcion || "").toLowerCase().includes(searchQuery.toLowerCase())
     );
   } else if (filtroCategoria !== "Todos") {
-    productosFiltrados = productos.filter(p => p.categoria.toLowerCase().includes(filtroCategoria.toLowerCase()));
+    productosFiltrados = productos.filter(p => (p.categoria || "").toLowerCase().includes(filtroCategoria.toLowerCase()));
   }
 
   // Animaciones Framer Motion
