@@ -97,8 +97,7 @@ export default function AjustesPage() {
 
     async function fetchProductos() {
       try {
-        const q = query(collection(db, "productos"), orderBy("fechaCreacion", "desc"));
-        const querySnapshot = await getDocs(q);
+        const querySnapshot = await getDocs(collection(db, "productos"));
         const prods: ProductoData[] = [];
         querySnapshot.forEach((doc) => {
           prods.push({ id: doc.id, ...doc.data() } as ProductoData);

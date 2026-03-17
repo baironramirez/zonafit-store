@@ -12,6 +12,12 @@ export default function CarritoPage() {
   const [dbProductos, setDbProductos] = useState<any[]>([]);
   const [userEmail, setUserEmail] = useState("");
 
+  // API Colombia States
+  const [departments, setDepartments] = useState<any[]>([]);
+  const [cities, setCities] = useState<any[]>([]);
+  const [selectedDeptId, setSelectedDeptId] = useState<string>("");
+  const [selectedCityName, setSelectedCityName] = useState<string>("");
+
   useEffect(() => {
     // Verificamos si hay usuario activo para pre-cargar correo
     const auth = getAuth();
@@ -38,6 +44,33 @@ export default function CarritoPage() {
       })
       .catch((err) => console.error("Error fetching db products:", err));
   }, []);
+
+  // Fetch Departments from API Colombia
+  useEffect(() => {
+    fetch("https://api-colombia.com/api/v1/Department")
+      .then(res => res.json())
+      .then(data => {
+        // Sort alphabetically
+        const sorted = data.sort((a: any, b: any) => a.name.localeCompare(b.name));
+        setDepartments(sorted);
+      })
+      .catch(err => console.error("Error fetching departments:", err));
+  }, []);
+
+  // Fetch Cities when Department changes
+  useEffect(() => {
+    if (selectedDeptId) {
+      fetch(`https://api-colombia.com/api/v1/Department/${selectedDeptId}/cities`)
+        .then(res => res.json())
+        .then(data => {
+            const sorted = data.sort((a: any, b: any) => a.name.localeCompare(b.name));
+            setCities(sorted);
+        })
+        .catch(err => console.error("Error fetching cities:", err));
+    } else {
+      setCities([]);
+    }
+  }, [selectedDeptId]);
 
   const total = cart.reduce(
     (acc, item) => acc + item.precio * item.cantidad,
@@ -233,10 +266,36 @@ export default function CarritoPage() {
                       className="w-full px-4 py-3 bg-white border border-gray-300 text-black placeholder-gray-400 font-medium text-sm focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent transition-all" />
 
                     <div className="grid grid-cols-2 gap-3">
-                      <input name="ciudad" placeholder="CIUDAD" required minLength={3}
-                        className="w-full px-4 py-3 bg-white border border-gray-300 text-black placeholder-gray-400 font-medium text-sm focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent transition-all" />
-                      <input name="departamento" placeholder="DEPARTAMENTO" required minLength={3}
-                        className="w-full px-4 py-3 bg-white border border-gray-300 text-black placeholder-gray-400 font-medium text-sm focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent transition-all" />
+                      <input type="hidden" name="departamento" value={departments.find(d => d.id.toString() === selectedDeptId)?.name || ""} />
+                      <input type="hidden" name="ciudad" value={selectedCityName} />
+                      
+                      <select 
+                        required
+                        value={selectedDeptId}
+                        onChange={(e) => {
+                          setSelectedDeptId(e.target.value);
+                          setSelectedCityName(""); // Reset city when region changes
+                        }}
+                        className="w-full px-4 py-3 bg-white border border-gray-300 text-black font-medium text-sm focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent transition-all appearance-none"
+                      >
+                        <option value="" disabled>DEPARTAMENTO</option>
+                        {departments.map((d) => (
+                          <option key={d.id} value={d.id}>{d.name}</option>
+                        ))}
+                      </select>
+
+                      <select 
+                        required
+                        value={selectedCityName}
+                        onChange={(e) => setSelectedCityName(e.target.value)}
+                        disabled={!selectedDeptId}
+                        className="w-full px-4 py-3 bg-white border border-gray-300 text-black font-medium text-sm focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent transition-all appearance-none disabled:opacity-50 disabled:bg-gray-100"
+                      >
+                        <option value="" disabled>CIUDAD</option>
+                        {cities.map((c) => (
+                          <option key={c.id} value={c.name}>{c.name}</option>
+                        ))}
+                      </select>
                     </div>
 
                     <input name="codigoPostal" placeholder="CÓDIGO POSTAL" required minLength={4}
