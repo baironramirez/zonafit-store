@@ -94,12 +94,18 @@ export default function AdminProductos() {
         finalImageUrl = await getDownloadURL(imageRef);
       }
 
+      // Sincronizar precio base con el mínimo de variantes si existen
+      let precioFinal = editingProduct.precio;
+      if (editingProduct.variantes && editingProduct.variantes.length > 0) {
+        precioFinal = Math.min(...editingProduct.variantes.map((v: any) => v.precio));
+      }
+
       const res = await fetch("/api/admin/productos/edit", {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ ...editingProduct, imagen: finalImageUrl }),
+        body: JSON.stringify({ ...editingProduct, imagen: finalImageUrl, precio: precioFinal }),
       });
 
       if (res.ok) {

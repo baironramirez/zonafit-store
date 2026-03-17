@@ -106,6 +106,12 @@ export default function CrearProducto() {
 
       // Automatically default main price/stock to zero if variants exist 
       // but if we want to show a 'Starts from' price, we can maintain the base.
+      // Determinar precio base real si hay variantes
+      let precioFinal = precioBase;
+      if (variantes.length > 0) {
+        precioFinal = Math.min(...variantes.map(v => v.precio));
+      }
+
       const res = await fetch("/api/admin/productos", {
         method: "POST",
         headers: {
@@ -113,7 +119,7 @@ export default function CrearProducto() {
         },
         body: JSON.stringify({
           nombre,
-          precio: precioBase,
+          precio: precioFinal,
           stock: stockBase,
           categoria,
           marca,
