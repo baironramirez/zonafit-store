@@ -58,13 +58,15 @@ export default function AjustesPage() {
           if (data.heroDesc) setHeroDesc(data.heroDesc);
           if (data.heroBtn1) setHeroBtn1(data.heroBtn1);
           if (data.heroBtn2) setHeroBtn2(data.heroBtn2);
-          
+
           if (data.autoRotateBanner !== undefined) setAutoRotateBanner(data.autoRotateBanner);
           if (data.bannerInterval !== undefined) setBannerInterval(data.bannerInterval);
           if (data.promoActive !== undefined) setPromoActive(data.promoActive);
           if (data.promoText) setPromoText(data.promoText);
           if (data.featuredProductIds && Array.isArray(data.featuredProductIds)) {
             setFeaturedProductIds(data.featuredProductIds);
+          } else {
+            setFeaturedProductIds([]);
           }
           if (data.categorias && Array.isArray(data.categorias)) {
             setCategorias(data.categorias);
@@ -92,7 +94,7 @@ export default function AjustesPage() {
         setLoading(false);
       }
     }
-    
+
     async function fetchProductos() {
       try {
         const q = query(collection(db, "productos"), orderBy("fechaCreacion", "desc"));
@@ -112,21 +114,22 @@ export default function AjustesPage() {
   }, []);
 
   const toggleBannerSelection = (url: string) => {
-    setCurrentBanners((prev) => 
+    setCurrentBanners((prev) =>
       prev.includes(url) ? prev.filter(u => u !== url) : [...prev, url]
     );
   };
 
   const toggleProductSelection = (id: string) => {
     setFeaturedProductIds((prev) => {
-      if (prev.includes(id)) {
-        return prev.filter(pId => pId !== id);
+      const currentIds = Array.isArray(prev) ? prev : [];
+      if (currentIds.includes(id)) {
+        return currentIds.filter(pId => pId !== id);
       }
-      if (prev.length >= 4) {
+      if (currentIds.length >= 4) {
         alert("Solo puedes seleccionar un máximo de 4 productos destacados.");
-        return prev;
+        return currentIds;
       }
-      return [...prev, id];
+      return [...currentIds, id];
     });
   };
 
@@ -187,7 +190,7 @@ export default function AjustesPage() {
     try {
       // Save to Firestore
       const docRef = doc(db, "settings", "home");
-      await setDoc(docRef, { 
+      await setDoc(docRef, {
         heroBannerUrls: currentBanners,
         autoRotateBanner,
         bannerInterval,
@@ -267,11 +270,11 @@ export default function AjustesPage() {
               </div>
 
               <div className="space-y-6">
-                
+
                 {/* Auto Rotate Controls */}
                 <div className="flex flex-col md:flex-row gap-6 p-4 bg-gray-50 border border-gray-200 rounded-xl">
                   <div className="flex items-center gap-4">
-                    <div 
+                    <div
                       onClick={() => setAutoRotateBanner(!autoRotateBanner)}
                       className={`relative inline-block w-12 h-6 rounded-full cursor-pointer transition-colors ${autoRotateBanner ? 'bg-blue-500' : 'bg-gray-200'}`}
                     >
@@ -288,9 +291,9 @@ export default function AjustesPage() {
                   {autoRotateBanner && (
                     <div className="flex items-center gap-3 md:ml-auto">
                       <label className="text-xs font-bold uppercase tracking-widest text-gray-500">Cada</label>
-                      <input 
-                        type="number" 
-                        value={bannerInterval} 
+                      <input
+                        type="number"
+                        value={bannerInterval}
                         onChange={(e) => setBannerInterval(Number(e.target.value))}
                         className="w-20 px-3 py-2 border border-gray-300 rounded-lg text-center font-bold focus:border-black focus:ring-1 focus:ring-black outline-none"
                         min="2"
@@ -323,16 +326,15 @@ export default function AjustesPage() {
                     {gallery.map((url, i) => {
                       const isSelected = currentBanners.includes(url);
                       return (
-                        <div 
-                          key={i} 
+                        <div
+                          key={i}
                           onClick={() => toggleBannerSelection(url)}
-                          className={`relative aspect-video rounded-xl overflow-hidden cursor-pointer border-2 transition-all ${
-                            isSelected ? 'border-blue-500 ring-2 ring-blue-500/50 shadow-md' : 'border-transparent hover:border-gray-300 hover:shadow-sm'
-                          }`}
+                          className={`relative aspect-video rounded-xl overflow-hidden cursor-pointer border-2 transition-all ${isSelected ? 'border-blue-500 ring-2 ring-blue-500/50 shadow-md' : 'border-transparent hover:border-gray-300 hover:shadow-sm'
+                            }`}
                         >
                           <img src={url} alt={`Banner ${i}`} className="w-full h-full object-cover" />
                           <div className={`absolute inset-0 transition-colors ${isSelected ? 'bg-blue-500/10' : 'bg-black/20 hover:bg-black/10'}`} />
-                          
+
                           {/* Selected Check Indicator */}
                           {isSelected && (
                             <div className="absolute top-2 right-2 bg-blue-500 text-white w-6 h-6 rounded-full flex items-center justify-center shadow-lg">
@@ -341,7 +343,7 @@ export default function AjustesPage() {
                               </svg>
                             </div>
                           )}
-                          
+
                           {/* Order Number if Auto-Rotate is active and selected */}
                           {isSelected && autoRotateBanner && (
                             <div className="absolute bottom-2 left-2 bg-black/80 backdrop-blur-sm text-white text-[10px] font-bold uppercase px-2 py-1 rounded-md">
@@ -360,7 +362,7 @@ export default function AjustesPage() {
                   <div>
                     <h4 className="font-bold text-orange-800 text-sm mb-1 uppercase tracking-wider">Consejo Pro</h4>
                     <p className="text-sm text-orange-700/80">
-                      Usa imágenes horizontales de alta calidad con colores oscuros o saturados, 
+                      Usa imágenes horizontales de alta calidad con colores oscuros o saturados,
                       ya que los textos blancos se superpondrán sobre estas imágenes. Puedes seleccionar varias para que roten solas.
                     </p>
                   </div>
@@ -449,7 +451,7 @@ export default function AjustesPage() {
 
               <div className="space-y-6">
                 <div className="flex items-center gap-4">
-                  <div 
+                  <div
                     onClick={() => setPromoActive(!promoActive)}
                     className={`relative inline-block w-12 h-6 rounded-full cursor-pointer transition-colors ${promoActive ? 'bg-orange-500' : 'bg-gray-200'}`}
                   >
@@ -494,18 +496,17 @@ export default function AjustesPage() {
                 {productos.map((producto) => {
                   const isSelected = featuredProductIds.includes(producto.id);
                   return (
-                    <div 
+                    <div
                       key={producto.id}
                       onClick={() => toggleProductSelection(producto.id)}
-                      className={`relative bg-white rounded-xl border-2 p-3 cursor-pointer transition-all ${
-                        isSelected ? 'border-blue-500 shadow-md' : 'border-gray-200 hover:border-gray-300'
-                      }`}
+                      className={`relative bg-white rounded-xl border-2 p-3 cursor-pointer transition-all ${isSelected ? 'border-blue-500 shadow-md' : 'border-gray-200 hover:border-gray-300'
+                        }`}
                     >
                       <div className="aspect-square bg-gray-100 rounded-lg overflow-hidden mb-3">
                         <img src={producto.imagen || '/images/b1.jpg'} alt={producto.nombre} className="w-full h-full object-cover" />
                       </div>
                       <p className="text-xs font-bold uppercase truncate">{producto.nombre}</p>
-                      
+
                       {isSelected && (
                         <div className="absolute top-2 right-2 bg-blue-500 text-white w-6 h-6 rounded-full flex items-center justify-center shadow-lg">
                           <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
@@ -536,7 +537,7 @@ export default function AjustesPage() {
                 {categorias.map((cat, idx) => (
                   <div key={idx} className="flex items-center gap-2 bg-gray-100 px-4 py-2 rounded-full border border-gray-200">
                     <span className="text-sm font-bold uppercase tracking-wider text-black">{cat}</span>
-                    <button 
+                    <button
                       onClick={() => removeCategory(cat)}
                       className="text-gray-400 hover:text-red-500 transition-colors bg-white rounded-full p-0.5"
                     >
@@ -549,15 +550,15 @@ export default function AjustesPage() {
               </div>
 
               <div className="flex items-center gap-4 max-w-sm">
-                <input 
-                  type="text" 
+                <input
+                  type="text"
                   value={newCategory}
                   onChange={(e) => setNewCategory(e.target.value)}
                   placeholder="Nueva categoría..."
                   className="flex-1 px-4 py-3 bg-white border border-gray-300 rounded-lg text-sm font-medium focus:border-black focus:ring-1 focus:ring-black outline-none"
                   onKeyDown={(e) => e.key === 'Enter' && handleAddCategory()}
                 />
-                <button 
+                <button
                   onClick={handleAddCategory}
                   className="bg-black text-white px-6 py-3 rounded-lg font-bold uppercase tracking-widest text-xs hover:bg-gray-800 transition-colors whitespace-nowrap"
                 >
@@ -571,7 +572,7 @@ export default function AjustesPage() {
               <div className="flex items-center gap-3 mb-6 pb-6 border-b border-gray-100">
                 <div className="p-3 bg-blue-50 text-blue-600 rounded-xl">
                   {/* Using an SVg for brand representation */}
-                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2l8 4-8 4-8-4 8-4z"/><path d="M4 10v6l8 4 8-4v-6"/><path d="M4 14l8 4 8-4"/></svg>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2l8 4-8 4-8-4 8-4z" /><path d="M4 10v6l8 4 8-4v-6" /><path d="M4 14l8 4 8-4" /></svg>
                 </div>
                 <div>
                   <h2 className="text-xl font-bold uppercase tracking-wide">Marcas de la Tienda</h2>
@@ -583,7 +584,7 @@ export default function AjustesPage() {
                 {marcas.map((marca, idx) => (
                   <div key={idx} className="flex items-center gap-2 bg-gray-100 px-4 py-2 rounded-full border border-gray-200">
                     <span className="text-sm font-bold uppercase tracking-wider text-black">{marca}</span>
-                    <button 
+                    <button
                       onClick={() => removeMarca(marca)}
                       className="text-gray-400 hover:text-red-500 transition-colors bg-white rounded-full p-0.5"
                     >
@@ -596,15 +597,15 @@ export default function AjustesPage() {
               </div>
 
               <div className="flex items-center gap-4 max-w-sm">
-                <input 
-                  type="text" 
+                <input
+                  type="text"
                   value={newMarca}
                   onChange={(e) => setNewMarca(e.target.value)}
                   placeholder="Nueva marca..."
                   className="flex-1 px-4 py-3 bg-white border border-gray-300 rounded-lg text-sm font-medium focus:border-black focus:ring-1 focus:ring-black outline-none"
                   onKeyDown={(e) => e.key === 'Enter' && handleAddMarca()}
                 />
-                <button 
+                <button
                   onClick={handleAddMarca}
                   className="bg-black text-white px-6 py-3 rounded-lg font-bold uppercase tracking-widest text-xs hover:bg-gray-800 transition-colors whitespace-nowrap"
                 >
@@ -612,7 +613,7 @@ export default function AjustesPage() {
                 </button>
               </div>
             </div>
-            
+
           </div>
         )}
       </div>

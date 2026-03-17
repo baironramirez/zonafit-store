@@ -119,13 +119,12 @@ export default function Home() {
               transition={{ duration: 1 }}
             />
           ))}
-          {/* Default fallback if array is empty */}
-          {heroBanners.length === 0 && (
-             <img
-               src="https://www.gymshark.com/_next/image?url=https%3A%2F%2Fimages.ctfassets.net%2Fwl6q2in9o7k3%2F2b4sfrCyzG6lmenlupFXZ4%2Fca35509d35cf667640aa970fa08ca570%2FHeadless_Desktop_-_25825472.jpeg&w=3840&q=85"
-               alt="Banner principal"
-               className="absolute w-full h-full object-cover object-center"
-             />
+          {/* Loading Skeleton or Empty state if no banners and finished loading */}
+          {loading && (
+             <div className="absolute w-full h-full bg-gray-900 animate-pulse" />
+          )}
+          {!loading && heroBanners.length === 0 && (
+             <div className="absolute w-full h-full bg-black" />
           )}
 
           {/* Dark overlay to improve contrast with navbar */}

@@ -4,11 +4,27 @@ import { useCart } from "../../context/CartContext";
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Trash2, ShoppingBag, CreditCard, ChevronLeft, Minus, Plus } from "lucide-react";
+import { getAuth } from "firebase/auth";
 
 export default function CarritoPage() {
   const { cart, removeFromCart, updateQuantity } = useCart();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [dbProductos, setDbProductos] = useState<any[]>([]);
+  const [userEmail, setUserEmail] = useState("");
+
+  useEffect(() => {
+    // Verificamos si hay usuario activo para pre-cargar correo
+    const auth = getAuth();
+    if (auth.currentUser?.email) {
+      setUserEmail(auth.currentUser.email);
+    } else {
+      // Intento alternativo de escuchar cambios si la api carga lento
+      const unsubscribe = auth.onAuthStateChanged(user => {
+        if (user?.email) setUserEmail(user.email);
+      });
+      return () => unsubscribe();
+    }
+  }, []);
 
   useEffect(() => {
     fetch("/api/productos")
@@ -200,13 +216,14 @@ export default function CarritoPage() {
 
                   <div className="space-y-3">
                     <input name="correo" type="email" placeholder="CORREO ELECTRÓNICO" required
+                      defaultValue={userEmail}
                       className="w-full px-4 py-3 bg-white border border-gray-300 text-black placeholder-gray-400 font-medium text-sm focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent transition-all" />
 
                     <input name="nombre" placeholder="NOMBRE COMPLETO" required minLength={3}
                       className="w-full px-4 py-3 bg-white border border-gray-300 text-black placeholder-gray-400 font-medium text-sm focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent transition-all" />
 
                     <div className="grid grid-cols-2 gap-3">
-                      <input name="cedula" placeholder="CÉDULA" required pattern="\d+" title="Ingrese solo números"
+                      <input name="cedula" placeholder="CÉDULA" required pattern="\d+" title="Ingrese solo números" autoComplete="off"
                         className="w-full px-4 py-3 bg-white border border-gray-300 text-black placeholder-gray-400 font-medium text-sm focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent transition-all" />
                       <input name="telefono" placeholder="TELÉFONO" required pattern="\d{10}" title="Debe contener exactamente 10 dígitos"
                         className="w-full px-4 py-3 bg-white border border-gray-300 text-black placeholder-gray-400 font-medium text-sm focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent transition-all" />
