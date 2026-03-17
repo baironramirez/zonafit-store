@@ -19,6 +19,7 @@ export default function AjustesPage() {
   const [previewUrl, setPreviewUrl] = useState<string>("");
   const [autoRotateBanner, setAutoRotateBanner] = useState<boolean>(true);
   const [bannerInterval, setBannerInterval] = useState<number>(5);
+  const [hasChanges, setHasChanges] = useState<boolean>(false);
 
   // Nuevos estados para textos dinámicos
   const [heroTitle, setHeroTitle] = useState<string>("OVERCOME\nEVERYTHING.");
@@ -112,13 +113,27 @@ export default function AjustesPage() {
     fetchProductos();
   }, []);
 
+  // Protección contra cambios sin guardar
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (hasChanges) {
+        e.preventDefault();
+        e.returnValue = "";
+      }
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [hasChanges]);
+
   const toggleBannerSelection = (url: string) => {
+    setHasChanges(true);
     setCurrentBanners((prev) =>
       prev.includes(url) ? prev.filter(u => u !== url) : [...prev, url]
     );
   };
 
   const toggleProductSelection = (id: string) => {
+    setHasChanges(true);
     setFeaturedProductIds((prev) => {
       const currentIds = Array.isArray(prev) ? prev : [];
       if (currentIds.includes(id)) {
@@ -138,11 +153,13 @@ export default function AjustesPage() {
       alert("La categoría ya existe.");
       return;
     }
+    setHasChanges(true);
     setCategorias([...categorias, newCategory.trim()]);
     setNewCategory("");
   };
 
   const removeCategory = (cat: string) => {
+    setHasChanges(true);
     setCategorias(categorias.filter((c) => c !== cat));
   };
 
@@ -152,11 +169,13 @@ export default function AjustesPage() {
       alert("La marca ya existe.");
       return;
     }
+    setHasChanges(true);
     setMarcas([...marcas, newMarca.trim()]);
     setNewMarca("");
   };
 
   const removeMarca = (marca: string) => {
+    setHasChanges(true);
     setMarcas(marcas.filter((m) => m !== marca));
   };
 
@@ -205,6 +224,7 @@ export default function AjustesPage() {
         marcas
       }, { merge: true });
       alert("¡Ajustes guardados correctamente!");
+      setHasChanges(false);
     } catch (error) {
       console.error("Error saving settings:", error);
       alert("Error al guardar los ajustes. Intenta de nuevo.");
@@ -274,13 +294,13 @@ export default function AjustesPage() {
                 <div className="flex flex-col md:flex-row gap-6 p-4 bg-gray-50 border border-gray-200 rounded-xl">
                   <div className="flex items-center gap-4">
                     <div
-                      onClick={() => setAutoRotateBanner(!autoRotateBanner)}
+                      onClick={() => { setAutoRotateBanner(!autoRotateBanner); setHasChanges(true); }}
                       className={`relative inline-block w-12 h-6 rounded-full cursor-pointer transition-colors ${autoRotateBanner ? 'bg-blue-500' : 'bg-gray-200'}`}
                     >
                       <div className={`absolute top-[2px] left-[2px] bg-white border-gray-300 border rounded-full h-5 w-5 transition-transform ${autoRotateBanner ? 'translate-x-full border-white' : ''}`}></div>
                     </div>
                     <div>
-                      <label onClick={() => setAutoRotateBanner(!autoRotateBanner)} className="text-sm font-bold uppercase tracking-widest text-black cursor-pointer select-none block">
+                      <label onClick={() => { setAutoRotateBanner(!autoRotateBanner); setHasChanges(true); }} className="text-sm font-bold uppercase tracking-widest text-black cursor-pointer select-none block">
                         Rotación Automática
                       </label>
                       <span className="text-xs text-gray-500">Alternar imágenes seleccionadas</span>
@@ -293,7 +313,7 @@ export default function AjustesPage() {
                       <input
                         type="number"
                         value={bannerInterval}
-                        onChange={(e) => setBannerInterval(Number(e.target.value))}
+                        onChange={(e) => { setBannerInterval(Number(e.target.value)); setHasChanges(true); }}
                         className="w-20 px-3 py-2 border border-gray-300 rounded-lg text-center font-bold focus:border-black focus:ring-1 focus:ring-black outline-none"
                         min="2"
                         max="60"
@@ -387,7 +407,7 @@ export default function AjustesPage() {
                   <label className="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-2">Título Principal</label>
                   <textarea
                     value={heroTitle}
-                    onChange={(e) => setHeroTitle(e.target.value)}
+                    onChange={(e) => { setHeroTitle(e.target.value); setHasChanges(true); }}
                     rows={2}
                     className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:border-black focus:ring-1 focus:ring-black outline-none transition-all resize-none font-bold"
                   />
@@ -399,7 +419,7 @@ export default function AjustesPage() {
                   <input
                     type="text"
                     value={heroSubtitle}
-                    onChange={(e) => setHeroSubtitle(e.target.value)}
+                    onChange={(e) => { setHeroSubtitle(e.target.value); setHasChanges(true); }}
                     className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:border-black focus:ring-1 focus:ring-black outline-none transition-all font-medium"
                   />
                 </div>
@@ -409,7 +429,7 @@ export default function AjustesPage() {
                   <input
                     type="text"
                     value={heroDesc}
-                    onChange={(e) => setHeroDesc(e.target.value)}
+                    onChange={(e) => { setHeroDesc(e.target.value); setHasChanges(true); }}
                     className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:border-black focus:ring-1 focus:ring-black outline-none transition-all font-medium"
                   />
                 </div>
@@ -419,7 +439,7 @@ export default function AjustesPage() {
                   <input
                     type="text"
                     value={heroBtn1}
-                    onChange={(e) => setHeroBtn1(e.target.value)}
+                    onChange={(e) => { setHeroBtn1(e.target.value); setHasChanges(true); }}
                     className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:border-black focus:ring-1 focus:ring-black outline-none transition-all font-medium"
                   />
                 </div>
@@ -429,7 +449,7 @@ export default function AjustesPage() {
                   <input
                     type="text"
                     value={heroBtn2}
-                    onChange={(e) => setHeroBtn2(e.target.value)}
+                    onChange={(e) => { setHeroBtn2(e.target.value); setHasChanges(true); }}
                     className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:border-black focus:ring-1 focus:ring-black outline-none transition-all font-medium"
                   />
                 </div>
@@ -451,12 +471,12 @@ export default function AjustesPage() {
               <div className="space-y-6">
                 <div className="flex items-center gap-4">
                   <div
-                    onClick={() => setPromoActive(!promoActive)}
+                    onClick={() => { setPromoActive(!promoActive); setHasChanges(true); }}
                     className={`relative inline-block w-12 h-6 rounded-full cursor-pointer transition-colors ${promoActive ? 'bg-orange-500' : 'bg-gray-200'}`}
                   >
                     <div className={`absolute top-[2px] left-[2px] bg-white border-gray-300 border rounded-full h-5 w-5 transition-transform ${promoActive ? 'translate-x-full border-white' : ''}`}></div>
                   </div>
-                  <label onClick={() => setPromoActive(!promoActive)} className="text-sm font-bold uppercase tracking-widest text-black cursor-pointer select-none">
+                  <label onClick={() => { setPromoActive(!promoActive); setHasChanges(true); }} className="text-sm font-bold uppercase tracking-widest text-black cursor-pointer select-none">
                     {promoActive ? "Activada" : "Desactivada"}
                   </label>
                 </div>
@@ -467,7 +487,7 @@ export default function AjustesPage() {
                     <input
                       type="text"
                       value={promoText}
-                      onChange={(e) => setPromoText(e.target.value)}
+                      onChange={(e) => { setPromoText(e.target.value); setHasChanges(true); }}
                       placeholder="Ej: 🚚 Envío GRATIS en pedidos superiores a $150.000 COP"
                       className="w-full px-4 py-3 bg-orange-50/30 rounded-lg border border-orange-200 focus:border-orange-500 focus:ring-1 focus:ring-orange-500 outline-none transition-all font-medium text-black"
                     />
@@ -616,6 +636,44 @@ export default function AjustesPage() {
           </div>
         )}
       </div>
+
+      {/* Barra de Guardado Flotante (Sticky Footer) */}
+      {hasChanges && (
+        <div className="fixed bottom-0 left-0 right-0 z-50 animate-in fade-in slide-in-from-bottom-5 duration-300">
+          <div className="max-w-4xl mx-auto px-6 pb-6">
+            <div className="bg-black/90 backdrop-blur-md border border-gray-800 rounded-2xl shadow-2xl p-4 flex items-center justify-between text-white">
+              <div className="flex items-center gap-3">
+                <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></div>
+                <p className="text-xs md:text-sm font-bold uppercase tracking-widest">Tienes cambios sin guardar</p>
+              </div>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => {
+                    if (confirm("¿Estás seguro de que deseas descartar todos los cambios?")) {
+                      window.location.reload();
+                    }
+                  }}
+                  className="px-4 py-2 text-xs font-bold uppercase tracking-widest text-gray-400 hover:text-white transition-colors"
+                >
+                  Descartar
+                </button>
+                <button
+                  onClick={handleSave}
+                  disabled={saving}
+                  className="flex items-center gap-2 px-6 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-black uppercase tracking-widest transition-all hover:scale-105 active:scale-95 shadow-lg shadow-blue-500/20 disabled:opacity-50"
+                >
+                  {saving ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Save className="w-4 h-4" />
+                  )}
+                  {saving ? "Guardando..." : "Guardar Ahora"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }

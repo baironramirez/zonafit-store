@@ -118,21 +118,28 @@ export default function ProductCard({ producto }: { producto: ProductoData }) {
           </div>
         </div>
         
-        <div className="mt-4 flex items-center justify-between">
-          <div className="text-xl font-black text-black">
+        <div className="mt-4 flex items-center justify-between overflow-hidden">
+          <div className="text-black font-black whitespace-nowrap">
             {producto?.variantes && producto.variantes.length > 0 ? (
               (() => {
                 const prices = producto.variantes.map(v => v.precio);
                 const minPrice = Math.min(...prices);
                 const maxPrice = Math.max(...prices);
                 
-                if (minPrice === maxPrice) {
-                  return `$${minPrice.toLocaleString("es-AR")}`;
+                const isRange = minPrice !== maxPrice;
+                const fontSize = isRange ? "text-lg" : "text-xl";
+                
+                if (!isRange) {
+                  return <span className={fontSize}>${minPrice.toLocaleString("es-AR")}</span>;
                 }
-                return `$${minPrice.toLocaleString("es-AR")} - $${maxPrice.toLocaleString("es-AR")}`;
+                return (
+                  <span className={fontSize}>
+                    ${minPrice.toLocaleString("es-AR")} - ${maxPrice.toLocaleString("es-AR")}
+                  </span>
+                );
               })()
             ) : (
-              `$${precio.toLocaleString("es-AR")}`
+              <span className="text-xl">${precio.toLocaleString("es-AR")}</span>
             )}
           </div>
         </div>
