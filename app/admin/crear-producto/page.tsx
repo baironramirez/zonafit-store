@@ -27,7 +27,7 @@ export default function CrearProducto() {
   const [variantes, setVariantes] = useState<Variante[]>([]);
   const [categorias, setCategorias] = useState<string[]>([]);
   const [marcas, setMarcas] = useState<string[]>([]);
-  
+
   useEffect(() => {
     async function loadConfig() {
       try {
@@ -37,7 +37,7 @@ export default function CrearProducto() {
           const data = docSnap.data();
           if (data.categorias) setCategorias(data.categorias);
           else setCategorias(["Proteínas", "Pre-Entrenos", "Creatina", "Vitaminas"]);
-          
+
           if (data.marcas) setMarcas(data.marcas);
           else setMarcas(["Optimum Nutrition", "Dymatize", "MuscleTech", "BSN", "Cellucor"]);
         } else {
@@ -83,6 +83,13 @@ export default function CrearProducto() {
 
   async function handleSubmit(e: any) {
     e.preventDefault();
+
+    // Validar si hay una variante escrita pero no "Añadida"
+    if (newVarNombre.trim()) {
+      alert("Tienes una variante escrita en el gestor pero no has pulsado el botón 'Añadir'. Por favor, añádela o limpia el campo antes de publicar.");
+      return;
+    }
+
     setIsLoading(true);
 
     try {
@@ -174,8 +181,11 @@ export default function CrearProducto() {
           <form onSubmit={handleSubmit} className="p-8 md:p-12 space-y-10">
             {/* 1. Información Básica */}
             <div className="space-y-6">
-              <h2 className="text-xl font-black uppercase tracking-tight border-b border-gray-100 pb-2">1. Info General</h2>
+              <h2 className="text-xl font-black uppercase tracking-tight border-b border-gray-100 pb-2">
+                1. Info General
+              </h2>
 
+              {/* NOMBRE */}
               <div>
                 <label className="block text-sm font-bold uppercase tracking-widest text-gray-500 mb-3">
                   Nombre del producto *
@@ -185,54 +195,93 @@ export default function CrearProducto() {
                   placeholder="Ej: Whey Protein Isolate"
                   value={nombre}
                   onChange={(e) => setNombre(e.target.value)}
-                  className="w-full px-4 py-4 bg-gray-50 border border-gray-200 focus:bg-white focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent transition-all placeholder-gray-400 text-black font-medium"
+                  className="w-full px-4 py-4 bg-gray-50 border border-gray-200 focus:bg-white focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent transition-all placeholder-gray-400 text-black font-medium rounded-lg"
                   required
                 />
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+                {/* CATEGORÍA */}
                 <div>
                   <label className="block text-sm font-bold uppercase tracking-widest text-gray-500 mb-3">
                     Categoría *
                   </label>
-                  <select
-                    value={categoria}
-                    onChange={(e) => setCategoria(e.target.value)}
-                    className="w-full px-4 py-4 bg-gray-50 border border-gray-200 focus:bg-white focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent transition-all text-black font-medium"
-                    required
-                    disabled={loadingConfig}
-                  >
-                    <option value="" disabled>
-                      {loadingConfig ? "Cargando categorías..." : "Selecciona una categoría"}
-                    </option>
-                    {categorias.map((cat, idx) => (
-                      <option key={idx} value={cat}>{cat}</option>
-                    ))}
-                  </select>
+
+                  <div className="relative">
+                    <select
+                      value={categoria}
+                      onChange={(e) => setCategoria(e.target.value)}
+                      disabled={loadingConfig}
+                      required
+                      className="appearance-none w-full px-4 py-4 bg-gray-50 border border-gray-200 focus:bg-white focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent transition-all text-black font-medium rounded-lg pr-10"
+                    >
+                      <option value="" disabled>
+                        {loadingConfig ? "Cargando categorías..." : "Selecciona una categoría"}
+                      </option>
+                      {categorias.map((cat, idx) => (
+                        <option key={idx} value={cat}>
+                          {cat}
+                        </option>
+                      ))}
+                    </select>
+
+                    {/* Flecha */}
+                    <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none">
+                      <svg
+                        className="w-4 h-4 text-gray-400"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth={2}
+                        viewBox="0 0 24 24"
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </div>
+                  </div>
                 </div>
 
+                {/* MARCA */}
                 <div>
                   <label className="block text-sm font-bold uppercase tracking-widest text-gray-500 mb-3">
                     Marca *
                   </label>
-                  <select
-                    value={marca}
-                    onChange={(e) => setMarca(e.target.value)}
-                    className="w-full px-4 py-4 bg-gray-50 border border-gray-200 focus:bg-white focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent transition-all text-black font-medium"
-                    required
-                    disabled={loadingConfig}
-                  >
-                    <option value="" disabled>
-                      {loadingConfig ? "Cargando marcas..." : "Selecciona una marca"}
-                    </option>
-                    {marcas.map((m, idx) => (
-                      <option key={idx} value={m}>{m}</option>
-                    ))}
-                  </select>
+
+                  <div className="relative">
+                    <select
+                      value={marca}
+                      onChange={(e) => setMarca(e.target.value)}
+                      disabled={loadingConfig}
+                      required
+                      className="appearance-none w-full px-4 py-4 bg-gray-50 border border-gray-200 focus:bg-white focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent transition-all text-black font-medium rounded-lg pr-10"
+                    >
+                      <option value="" disabled>
+                        {loadingConfig ? "Cargando marcas..." : "Selecciona una marca"}
+                      </option>
+                      {marcas.map((m, idx) => (
+                        <option key={idx} value={m}>
+                          {m}
+                        </option>
+                      ))}
+                    </select>
+
+                    {/* Flecha */}
+                    <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none">
+                      <svg
+                        className="w-4 h-4 text-gray-400"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth={2}
+                        viewBox="0 0 24 24"
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </div>
+                  </div>
                 </div>
+
               </div>
             </div>
-
             {/* 2. Precio y Stock Base (Útil si NO hay variantes) */}
             <div className="space-y-6">
               <div className="flex justify-between items-end border-b border-gray-100 pb-2">
