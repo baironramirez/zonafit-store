@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { X, Save, Edit2, UploadCloud, Plus, Trash2 } from "lucide-react";
+import { X, Save, Edit2, UploadCloud, Plus, Trash2, Search } from "lucide-react";
 import { storage, db } from "@/lib/firebase";
 import { ref, uploadBytes, getDownloadURL, deleteObject } from "firebase/storage";
 import { doc, getDoc } from "firebase/firestore";
@@ -29,6 +29,18 @@ export default function AdminProductos() {
   const [categorias, setCategorias] = useState<string[]>([]);
   const [marcas, setMarcas] = useState<string[]>([]);
   const [loadingConfig, setLoadingConfig] = useState(true);
+
+  // Filtros
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filterCategoria, setFilterCategoria] = useState("");
+  const [filterMarca, setFilterMarca] = useState("");
+
+  const filteredProducts = products.filter((p) => {
+    const matchesSearch = !searchQuery || p.nombre?.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesCategoria = !filterCategoria || p.categoria === filterCategoria;
+    const matchesMarca = !filterMarca || p.marca === filterMarca;
+    return matchesSearch && matchesCategoria && matchesMarca;
+  });
 
   useEffect(() => {
     fetchProducts();
@@ -261,12 +273,82 @@ export default function AdminProductos() {
           Volver al Panel
         </Link>
 
-        <h1 className="text-3xl font-bold text-gray-900 mb-8">
+        <h1 className="text-3xl font-bold text-gray-900 mb-6">
           Gestión de inventario
         </h1>
 
+        {/* TOOLBAR DE BÚSQUEDA Y FILTROS */}
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 mb-8">
+          <div className="flex flex-col md:flex-row gap-3">
+            {/* Barra de búsqueda */}
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Buscar producto por nombre..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-black focus:bg-white transition-all"
+              />
+            </div>
+
+            {/* Filtro por categoría */}
+            <div className="relative w-full md:w-56">
+              <select
+                value={filterCategoria}
+                onChange={(e) => setFilterCategoria(e.target.value)}
+                className="appearance-none w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-black focus:bg-white transition-all pr-10"
+              >
+                <option value="">Todas las Categorías</option>
+                {categorias.map((cat, idx) => (
+                  <option key={idx} value={cat}>{cat}</option>
+                ))}
+              </select>
+              <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none">
+                <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                </svg>
+              </div>
+            </div>
+
+            {/* Filtro por marca */}
+            <div className="relative w-full md:w-56">
+              <select
+                value={filterMarca}
+                onChange={(e) => setFilterMarca(e.target.value)}
+                className="appearance-none w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-black focus:bg-white transition-all pr-10"
+              >
+                <option value="">Todas las Marcas</option>
+                {marcas.map((m, idx) => (
+                  <option key={idx} value={m}>{m}</option>
+                ))}
+              </select>
+              <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none">
+                <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                </svg>
+              </div>
+            </div>
+          </div>
+
+          {/* Contadores y limpiar filtros */}
+          <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-100">
+            <p className="text-xs text-gray-500 font-medium">
+              Mostrando <span className="font-bold text-black">{filteredProducts.length}</span> de <span className="font-bold text-black">{products.length}</span> productos
+            </p>
+            {(searchQuery || filterCategoria || filterMarca) && (
+              <button
+                onClick={() => { setSearchQuery(""); setFilterCategoria(""); setFilterMarca(""); }}
+                className="text-xs font-bold uppercase tracking-wider text-red-500 hover:text-red-700 transition-colors"
+              >
+                Limpiar Filtros
+              </button>
+            )}
+          </div>
+        </div>
+
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {products.map((product: any) => (
+          {filteredProducts.map((product: any) => (
             <div
               key={product.id}
               className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300 flex flex-col"
@@ -356,10 +438,10 @@ export default function AdminProductos() {
           ))}
         </div>
 
-        {products.length === 0 && (
+        {filteredProducts.length === 0 && (
           <div className="text-center py-12">
             <p className="text-gray-500 text-lg">
-              No hay productos registrados
+              {products.length === 0 ? "No hay productos registrados" : "No se encontraron productos con esos filtros"}
             </p>
           </div>
         )}

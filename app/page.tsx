@@ -64,7 +64,7 @@ export default function Home() {
         // Fetch Products based on featured IDs or completely
         if (pIds.length > 0) {
           // Use Promise.all to fetch individually to bypass any 'in' query limitations or indexing issues
-          const productPromises = pIds.map(id => getDoc(doc(db, "productos", id)));
+          const productPromises = pIds.map(id => getDoc(doc(db, "products", id)));
           const docSnaps = await Promise.all(productPromises);
           const prods: ProductoData[] = [];
           
