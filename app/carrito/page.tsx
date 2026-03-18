@@ -178,7 +178,7 @@ export default function CarritoPage() {
   }
 
   return (
-    <main className="min-h-screen bg-white text-black selection:bg-orange-500 selection:text-white pt-24 pb-12">
+    <main className="min-h-screen bg-white text-black selection:bg-orange-500 selection:text-white pt-24 pb-36 lg:pb-12 relative">
       <div className="max-w-7xl mx-auto px-6">
 
         {/* Breadcrumb / Regresar */}
@@ -246,7 +246,7 @@ export default function CarritoPage() {
                 </div>
 
                 {/* Checkout Form */}
-                <form onSubmit={handleCheckout} className="space-y-4">
+                <form id="checkout-form" onSubmit={handleCheckout} className="space-y-4">
                   <h3 className="text-sm font-bold uppercase tracking-widest text-gray-400 mb-4 pt-4 border-t border-gray-200">
                     Datos de la Orden
                   </h3>
@@ -306,10 +306,11 @@ export default function CarritoPage() {
                       className="w-full px-4 py-3 bg-white border border-gray-300 text-black placeholder-gray-400 font-medium text-sm focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent transition-all" />
                   </div>
 
+                  {/* Submit Button (Hidden on Mobile, replaced by sticky footer) */}
                   <button
                     type="submit"
                     disabled={isSubmitting}
-                    className="w-full mt-8 bg-black hover:bg-orange-500 text-white font-bold uppercase tracking-widest py-4 px-6 transition-colors duration-200 flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed group"
+                    className="hidden lg:flex w-full mt-8 bg-black hover:bg-orange-500 text-white font-bold uppercase tracking-widest py-4 px-6 transition-colors duration-200 items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed group"
                   >
                     {isSubmitting ? (
                       "PROCESANDO..."
@@ -320,7 +321,7 @@ export default function CarritoPage() {
                       </>
                     )}
                   </button>
-                  <p className="text-center text-xs font-bold uppercase tracking-widest text-gray-400 mt-4 flex items-center justify-center gap-2">
+                  <p className="hidden lg:flex text-center text-xs font-bold uppercase tracking-widest text-gray-400 mt-4 items-center justify-center gap-2">
                     <span className="w-2 h-2 rounded-full bg-green-500"></span> Pagos seguros por MercadoPago
                   </p>
                 </form>
@@ -341,69 +342,53 @@ export default function CarritoPage() {
                   return (
                     <div
                       key={item.id}
-                      className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 pb-6 border-b border-gray-100"
+                      className="flex items-start gap-4 py-4 border-b border-gray-100"
                     >
-                      {/* Información del producto */}
-                      <div className="flex-1 flex gap-4 items-center">
-                        {/* Imagen dinámica (desde state o db) */}
+                      {/* Imagen con Badge de Cantidad integrado (estilo Gymshark Summary) */}
+                      <div className="relative w-20 h-24 bg-gray-50 rounded-md border border-gray-100 flex-shrink-0 flex items-center justify-center overflow-hidden">
                         {imageUrl ? (
-                          <div className="w-20 h-24 bg-gray-50 border border-gray-100 flex-shrink-0 flex items-center justify-center overflow-hidden">
-                            <img src={imageUrl} alt={item.nombre} className="w-full h-full object-contain mix-blend-multiply" />
-                          </div>
+                          <img src={imageUrl} alt={item.nombre} className="w-full h-full object-contain mix-blend-multiply" />
                         ) : (
-                          <div className="w-20 h-24 bg-gray-50 border border-gray-200 flex-shrink-0 flex items-center justify-center">
-                            <ShoppingBag className="w-6 h-6 text-gray-300" />
-                          </div>
+                          <ShoppingBag className="w-6 h-6 text-gray-300" />
                         )}
-
-                        <div>
-                          <h3 className="text-lg font-black uppercase tracking-widest text-black mb-1">
-                            {item.nombre}
-                          </h3>
-                          <p className="text-xl font-medium text-gray-900">
-                            ${item.precio.toLocaleString("es-AR")}
-                          </p>
+                        {/* Quantity Badge on top right */}
+                        <div className="absolute top-0 right-0 bg-black text-white text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-bl-md">
+                          {item.cantidad}
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-8 w-full sm:w-auto justify-between sm:justify-end">
-                        {/* Cantidad estricta */}
-                        <div className="flex items-center border border-gray-200">
-                          <button
-                            onClick={() => updateQuantity(item.id, Math.max(1, item.cantidad - 1))}
-                            className="w-10 h-10 flex items-center justify-center bg-gray-50 hover:bg-gray-100 text-black transition-colors"
-                          >
-                            <Minus className="w-4 h-4" />
-                          </button>
-                          <input
-                            type="number"
-                            value={item.cantidad}
-                            min={1}
-                            onChange={(e) => updateQuantity(item.id, Math.max(1, Number(e.target.value)))}
-                            className="w-12 h-10 text-center font-bold text-black border-none focus:ring-0 bg-transparent p-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                          />
-                          <button
-                            onClick={() => updateQuantity(item.id, item.cantidad + 1)}
-                            className="w-10 h-10 flex items-center justify-center bg-gray-50 hover:bg-gray-100 text-black transition-colors"
-                          >
-                            <Plus className="w-4 h-4" />
-                          </button>
+                      {/* Información central y derecha */}
+                      <div className="flex-1 min-w-0 flex flex-row justify-between">
+                        <div className="flex flex-col pr-4">
+                          <h3 className="text-sm font-medium text-black leading-snug">
+                            {item.nombre}
+                          </h3>
+                          <p className="text-xs text-gray-500 mt-0.5">
+                            {dbItem?.categoria || ''}
+                          </p>
+
+                          {/* Controles Ultra Minimalistas */}
+                          <div className="flex items-center gap-3 mt-3">
+                            <div className="flex items-center gap-3 text-xs font-medium text-gray-600">
+                              <button onClick={() => updateQuantity(item.id, Math.max(1, item.cantidad - 1))} className="w-5 h-5 flex justify-center items-center hover:bg-gray-100 rounded text-gray-400 hover:text-black transition-colors">-</button>
+                              <span className="w-2 text-center text-black font-semibold">{item.cantidad}</span>
+                              <button onClick={() => updateQuantity(item.id, item.cantidad + 1)} className="w-5 h-5 flex justify-center items-center hover:bg-gray-100 rounded text-gray-400 hover:text-black transition-colors">+</button>
+                            </div>
+                            <span className="text-gray-200">|</span>
+                            <button
+                              onClick={() => removeFromCart(item.id)}
+                              className="text-[10px] font-bold uppercase tracking-widest text-gray-400 hover:text-red-500 transition-colors"
+                            >
+                              Eliminar
+                            </button>
+                          </div>
                         </div>
 
-                        {/* Subtotal & Eliminar */}
-                        <div className="flex items-center gap-6">
-                          <div className="text-right hidden sm:block">
-                            <p className="text-lg font-black text-black">
-                              ${(item.precio * item.cantidad).toLocaleString("es-AR")}
-                            </p>
-                          </div>
-                          <button
-                            onClick={() => removeFromCart(item.id)}
-                            className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                            title="Eliminar producto"
-                          >
-                            <Trash2 className="w-5 h-5" />
-                          </button>
+                        {/* Precio */}
+                        <div className="text-right flex-shrink-0">
+                          <p className="text-sm font-medium text-black">
+                            ${item.precio.toLocaleString("es-AR")}
+                          </p>
                         </div>
                       </div>
                     </div>
@@ -415,6 +400,25 @@ export default function CarritoPage() {
           </div>
         )}
       </div>
+
+      {/* Mobile Sticky Checkout Footer */}
+      {cart.length > 0 && (
+        <div className="fixed bottom-0 left-0 right-0 p-4 bg-white border-t border-gray-200 shadow-[0_-10px_20px_rgba(0,0,0,0.05)] z-40 lg:hidden flex flex-col gap-3">
+          <div className="flex justify-between items-center">
+            <span className="font-bold text-gray-500 text-xs uppercase tracking-widest">Total a Pagar</span>
+            <span className="font-black text-xl">${total.toLocaleString("es-AR")}</span>
+          </div>
+          <button
+            type="submit"
+            form="checkout-form"
+            disabled={isSubmitting}
+            className="w-full bg-black hover:bg-orange-500 text-white font-bold uppercase tracking-widest py-4 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isSubmitting ? "PROCESANDO..." : "PAGAR AHORA"}
+          </button>
+        </div>
+      )}
+
     </main>
   );
 }

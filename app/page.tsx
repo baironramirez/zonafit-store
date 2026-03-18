@@ -143,11 +143,11 @@ export default function Home() {
             transition={{ duration: 0.8, delay: 0.2 }}
             className="max-w-3xl"
           >
-            <h1 className="text-[2.8rem] md:text-[4.8rem] lg:text-[6rem] font-black leading-[0.85] tracking-tighter uppercase text-white mb-2 italic whitespace-pre-line">
+            <h1 className="text-[2.5rem] sm:text-[3.5rem] md:text-[4.8rem] lg:text-[6rem] font-black leading-[0.9] sm:leading-[0.85] tracking-tighter uppercase text-white mb-2 italic whitespace-pre-line">
               {heroTitle}
             </h1>
 
-            <p className="text-base md:text-xl text-white font-bold uppercase tracking-wide mb-2 mt-4">
+            <p className="text-sm sm:text-base md:text-xl text-white font-bold uppercase tracking-wide mb-2 mt-4">
               {heroSubtitle}
             </p>
 
@@ -155,11 +155,11 @@ export default function Home() {
               {heroDesc}
             </p>
 
-            <div className="flex gap-6 items-center">
+            <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 items-stretch sm:items-center">
               {heroBtn1 && (
                 <Link
                   href={heroBtn1Cat ? `/productos?cat=${encodeURIComponent(heroBtn1Cat)}` : "/productos"}
-                  className="text-white font-bold uppercase tracking-widest text-sm pb-1 border-b-2 border-transparent hover:border-white transition-all"
+                  className="w-full sm:w-auto text-center px-8 py-4 bg-white text-black font-black uppercase tracking-widest text-sm hover:bg-gray-200 transition-colors"
                 >
                   {heroBtn1}
                 </Link>
@@ -168,7 +168,7 @@ export default function Home() {
               {heroBtn2 && (
                 <Link
                   href={heroBtn2Cat ? `/productos?cat=${encodeURIComponent(heroBtn2Cat)}` : "/productos"}
-                  className="text-white font-bold uppercase tracking-widest text-sm pb-1 border-b-2 border-transparent hover:border-white transition-all"
+                  className="w-full sm:w-auto text-center px-8 py-4 bg-transparent border-2 border-white text-white font-black uppercase tracking-widest text-sm hover:bg-white/10 transition-colors"
                 >
                   {heroBtn2}
                 </Link>

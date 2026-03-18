@@ -97,13 +97,14 @@ export default function ProductCard({ producto }: { producto: ProductoData }) {
           />
         </button>
         
-        {/* Quick Add Button overlay */}
-        <div className={`absolute bottom-4 left-0 right-0 px-4 transition-all duration-300 ${isHovered ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
+        {/* Quick Add Button overlay (Mobile: Always visible Orange FAB, Desktop: Hover only) */}
+        <div className={`absolute bottom-3 right-3 md:bottom-4 md:left-0 md:right-0 md:px-4 transition-all duration-300 md:opacity-0 md:translate-y-4 ${isHovered ? 'md:opacity-100 md:translate-y-0' : ''} opacity-100 translate-y-0 z-20`}>
           <button 
             onClick={handleAddToCart}
-            className="w-full bg-black text-white py-3 rounded-xl font-bold text-sm uppercase tracking-wider flex items-center justify-center gap-2 hover:bg-orange-500 transition-colors shadow-lg"
+            className="w-10 h-10 md:w-full md:h-auto bg-orange-500 md:bg-black text-white md:py-3 rounded-full md:rounded-xl font-bold text-sm uppercase tracking-wider flex items-center justify-center gap-2 hover:bg-orange-600 md:hover:bg-orange-500 transition-colors shadow-lg"
+            aria-label="Agregar al carrito"
           >
-            <Plus className="w-4 h-4" /> Agregar
+            <Plus className="w-5 h-5 md:w-4 md:h-4 stroke-[3] md:stroke-[2]" /> <span className="hidden md:inline">Agregar</span>
           </button>
         </div>
       </div>
@@ -118,18 +119,17 @@ export default function ProductCard({ producto }: { producto: ProductoData }) {
               {marca && (
                 <>
                   <span className="text-gray-300 text-xs">•</span>
-                  <a
-                    href={`/productos?marca=${encodeURIComponent(marca)}`}
+                  <span
                     onClick={(e) => { e.preventDefault(); e.stopPropagation(); window.location.href = `/productos?marca=${encodeURIComponent(marca)}`; }}
                     className="text-[10px] font-black text-gray-400 uppercase tracking-widest bg-gray-100 px-1.5 py-0.5 rounded-sm hover:bg-black hover:text-white transition-colors cursor-pointer"
                   >
                     {marca}
-                  </a>
+                  </span>
                 </>
               )}
             </div>
             
-            <h3 className="font-bold text-black text-lg leading-tight group-hover:text-orange-500 transition-colors line-clamp-2">
+            <h3 className="font-bold text-black text-base md:text-lg leading-tight group-hover:text-orange-500 transition-colors line-clamp-2">
               {nombre}
             </h3>
           </div>
@@ -144,7 +144,7 @@ export default function ProductCard({ producto }: { producto: ProductoData }) {
                 const maxPrice = Math.max(...prices);
                 
                 const isRange = minPrice !== maxPrice;
-                const fontSize = isRange ? "text-lg" : "text-xl";
+                const fontSize = isRange ? "text-base md:text-lg" : "text-lg md:text-xl";
                 
                 if (!isRange) {
                   return <span className={fontSize}>${minPrice.toLocaleString("es-AR")}</span>;
@@ -156,7 +156,7 @@ export default function ProductCard({ producto }: { producto: ProductoData }) {
                 );
               })()
             ) : (
-              <span className="text-xl">${precio.toLocaleString("es-AR")}</span>
+              <span className="text-lg md:text-xl">${precio.toLocaleString("es-AR")}</span>
             )}
           </div>
         </div>

@@ -119,7 +119,8 @@ export default function ProductDetailPage() {
 
           {/* LADO IZQUIERDO: GALERÍA DE IMÁGENES (Gymshark Scroll Style) */}
           <div className="lg:col-span-7 xl:col-span-8">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-1 md:gap-4 lg:grid-cols-2">
+            {/* Contenedor: Flex horizontal en móvil (carrusel), Grid 2-cols en desktop */}
+            <div className="flex overflow-x-auto snap-x snap-mandatory md:grid md:grid-cols-2 gap-1 md:gap-4 lg:grid-cols-2 scrollbar-hide">
               {/* Mostrar imágenes reales del producto, rellenar hasta 4 con la primera */}
               {(() => {
                 const imgs = producto.imagenes && producto.imagenes.length > 0
@@ -131,11 +132,11 @@ export default function ProductDetailPage() {
                   gallery.push(imgs[0]);
                 }
                 return gallery.slice(0, 4).map((imgSrc: string, index: number) => (
-                  <div key={index} className="aspect-[3/4] md:aspect-[4/5] bg-gray-50 relative overflow-hidden flex items-center justify-center">
+                  <div key={index} className="flex-none w-full snap-center md:snap-align-none md:w-auto aspect-[4/5] bg-gray-50 relative overflow-hidden flex items-center justify-center">
                     <img
                       src={imgSrc}
                       alt={`${producto.nombre} view ${index + 1}`}
-                      className="w-full h-full object-contain filter contrast-125 mix-blend-multiply p-8"
+                      className="w-full h-full object-contain filter contrast-125 mix-blend-multiply p-8 pointer-events-none"
                     />
                     {/* Typographic overlay on first image */}
                     {index === 0 && (
@@ -144,6 +145,16 @@ export default function ProductDetailPage() {
                       </div>
                     )}
                   </div>
+                ));
+              })()}
+            </div>
+            {/* Paginador visual solo para móvil */}
+            <div className="flex justify-center gap-2 mt-4 md:hidden">
+              {(() => {
+                const imgsLen = producto.imagenes && producto.imagenes.length > 0 ? Math.min(producto.imagenes.length, 4) : 1;
+                const totalDots = imgsLen < 4 ? 4 : imgsLen; // Because we fill up to 4
+                return Array.from({ length: 4 }).map((_, i) => (
+                  <div key={i} className="w-2 h-2 rounded-full bg-gray-300"></div>
                 ));
               })()}
             </div>
