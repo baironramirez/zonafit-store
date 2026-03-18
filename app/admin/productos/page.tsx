@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { X, Save, Edit2, UploadCloud, Plus, Trash2 } from "lucide-react";
 import { storage, db } from "@/lib/firebase";
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { ref, uploadBytes, getDownloadURL, deleteObject } from "firebase/storage";
 import { doc, getDoc } from "firebase/firestore";
 import { Variante } from "@/components/ProductCard";
 import Link from "next/link";
@@ -14,8 +14,12 @@ export default function AdminProductos() {
   const [isEditing, setIsEditing] = useState(false);
   const [editingProduct, setEditingProduct] = useState<any>(null);
   const [isSaving, setIsSaving] = useState(false);
-  const [imageFile, setImageFile] = useState<File | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+
+  // Multi-image state for edit modal
+  const [existingImageUrls, setExistingImageUrls] = useState<string[]>([]);
+  const [removedImageUrls, setRemovedImageUrls] = useState<string[]>([]);
+  const [newImageFiles, setNewImageFiles] = useState<File[]>([]);
+  const [newImagePreviews, setNewImagePreviews] = useState<string[]>([]);
 
   // Temporary state for adding a new variant in edit mode
   const [newVarNombre, setNewVarNombre] = useState("");
@@ -63,8 +67,14 @@ export default function AdminProductos() {
   function openEditModal(product: any) {
     // Ensure variantes array exists even if old product
     setEditingProduct({ ...product, variantes: product.variantes || [] });
-    setImageFile(null);
-    setPreviewUrl(product.imagen || null);
+    // Cargar imágenes existentes: preferir array `imagenes`, fallback a `imagen` único
+    const imgs = product.imagenes && product.imagenes.length > 0
+      ? [...product.imagenes]
+      : product.imagen ? [product.imagen] : [];
+    setExistingImageUrls(imgs);
+    setRemovedImageUrls([]);
+    setNewImageFiles([]);
+    setNewImagePreviews([]);
     setIsEditing(true);
     setNewVarNombre("");
     setNewVarPrecio(0);
@@ -74,8 +84,10 @@ export default function AdminProductos() {
   function closeEditModal() {
     setIsEditing(false);
     setEditingProduct(null);
-    setImageFile(null);
-    setPreviewUrl(null);
+    setExistingImageUrls([]);
+    setRemovedImageUrls([]);
+    setNewImageFiles([]);
+    setNewImagePreviews([]);
   }
 
   async function handleEditSubmit(e: React.FormEvent) {
@@ -83,16 +95,33 @@ export default function AdminProductos() {
     setIsSaving(true);
 
     try {
-      let finalImageUrl = editingProduct.imagen;
-
-      if (imageFile) {
-        const imageRef = ref(
-          storage,
-          `products/${Date.now()}-${imageFile.name}`,
-        );
-        await uploadBytes(imageRef, imageFile);
-        finalImageUrl = await getDownloadURL(imageRef);
+      // 🗑️ Eliminar imágenes removidas de Firebase Storage
+      for (const url of removedImageUrls) {
+        try {
+          const decodedUrl = decodeURIComponent(url);
+          const pathMatch = decodedUrl.match(/\/o\/(.+?)\?/);
+          if (pathMatch && pathMatch[1]) {
+            const oldRef = ref(storage, pathMatch[1]);
+            await deleteObject(oldRef);
+            console.log("Imagen eliminada:", pathMatch[1]);
+          }
+        } catch (delErr) {
+          console.warn("No se pudo eliminar imagen:", delErr);
+        }
       }
+
+      // 📤 Subir nuevas imágenes
+      const uploadedUrls: string[] = [];
+      for (const file of newImageFiles) {
+        const imageRef = ref(storage, `products/${Date.now()}-${file.name}`);
+        await uploadBytes(imageRef, file);
+        const url = await getDownloadURL(imageRef);
+        uploadedUrls.push(url);
+      }
+
+      // Combinar: existentes (no removidas) + nuevas subidas
+      const finalImagenes = [...existingImageUrls, ...uploadedUrls];
+      const finalImageUrl = finalImagenes[0] || "";
 
       // Sincronizar precio base con el mínimo de variantes si existen
       let precioFinal = editingProduct.precio;
@@ -105,7 +134,12 @@ export default function AdminProductos() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ ...editingProduct, imagen: finalImageUrl, precio: precioFinal }),
+        body: JSON.stringify({
+          ...editingProduct,
+          imagen: finalImageUrl,
+          imagenes: finalImagenes,
+          precio: precioFinal,
+        }),
       });
 
       if (res.ok) {
@@ -143,16 +177,38 @@ export default function AdminProductos() {
   }
 
   function handleImageChange(e: React.ChangeEvent<HTMLInputElement>) {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      setImageFile(file);
+    if (e.target.files && e.target.files.length > 0) {
+      const totalCurrent = existingImageUrls.length + newImageFiles.length;
+      const remaining = 4 - totalCurrent;
+      const filesToAdd = Array.from(e.target.files).slice(0, remaining);
 
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setPreviewUrl(e.target?.result as string);
-      };
-      reader.readAsDataURL(file);
+      if (filesToAdd.length === 0) {
+        alert("Máximo 4 imágenes permitidas.");
+        return;
+      }
+
+      setNewImageFiles((prev) => [...prev, ...filesToAdd]);
+
+      filesToAdd.forEach((file) => {
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+          setNewImagePreviews((prev) => [...prev, ev.target?.result as string]);
+        };
+        reader.readAsDataURL(file);
+      });
     }
+    e.target.value = "";
+  }
+
+  function removeExistingImage(index: number) {
+    const urlToRemove = existingImageUrls[index];
+    setRemovedImageUrls((prev) => [...prev, urlToRemove]);
+    setExistingImageUrls((prev) => prev.filter((_, i) => i !== index));
+  }
+
+  function removeNewImage(index: number) {
+    setNewImageFiles((prev) => prev.filter((_, i) => i !== index));
+    setNewImagePreviews((prev) => prev.filter((_, i) => i !== index));
   }
 
   /* --- VARIANT HANDLERS (EDIT MODAL) --- */
@@ -552,27 +608,56 @@ export default function AdminProductos() {
                   <h3 className="text-sm font-black uppercase text-gray-400 tracking-widest border-b border-gray-100 pb-2 mb-4">3. Contenido Visual y Descripción</h3>
 
                   <div className="space-y-6">
-                    <div className="flex flex-col md:flex-row items-center justify-start gap-6 border border-gray-200 p-4 rounded-lg bg-gray-50">
-                      {previewUrl ? (
-                        <div className="w-32 h-32 relative rounded-lg overflow-hidden border border-gray-300 bg-white flex-shrink-0">
-                          <img src={previewUrl} alt="Preview" className="w-full h-full object-contain p-1" />
+                    <p className="text-xs font-bold uppercase tracking-widest text-gray-500 mb-2">
+                      Imágenes del Producto ({existingImageUrls.length + newImagePreviews.length}/4)
+                    </p>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 border border-gray-200 p-4 rounded-lg bg-gray-50">
+                      {/* Imágenes existentes (ya en Firebase) */}
+                      {existingImageUrls.map((url, idx) => (
+                        <div key={`existing-${idx}`} className="relative aspect-square border border-gray-200 bg-white rounded-lg overflow-hidden group">
+                          <img src={url} alt={`Imagen ${idx + 1}`} className="w-full h-full object-contain p-1" />
+                          <button
+                            type="button"
+                            onClick={() => removeExistingImage(idx)}
+                            className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-md hover:bg-red-600"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                          {idx === 0 && existingImageUrls.length + newImagePreviews.length > 1 && (
+                            <span className="absolute bottom-1 left-1 bg-black text-white text-[8px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded">
+                              Principal
+                            </span>
+                          )}
                         </div>
-                      ) : (
-                        <div className="w-32 h-32 bg-gray-200 rounded-lg flex items-center justify-center text-gray-400">
-                          Sin Foto
-                        </div>
-                      )}
+                      ))}
 
-                      <div className="flex-1 w-full">
-                        <label className="flex flex-col items-center justify-center w-full h-24 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-white hover:bg-gray-100 transition-colors">
-                          <div className="flex flex-col items-center justify-center py-4">
-                            <UploadCloud className="w-6 h-6 text-gray-400 mb-1" />
-                            <p className="text-xs text-gray-500 font-bold uppercase tracking-wider">Cambiar Imagen</p>
-                          </div>
-                          <input type="file" className="hidden" accept="image/*" onChange={handleImageChange} />
+                      {/* Nuevas imágenes (aún no subidas) */}
+                      {newImagePreviews.map((url, idx) => (
+                        <div key={`new-${idx}`} className="relative aspect-square border-2 border-orange-300 bg-white rounded-lg overflow-hidden group">
+                          <img src={url} alt={`Nueva ${idx + 1}`} className="w-full h-full object-contain p-1" />
+                          <button
+                            type="button"
+                            onClick={() => removeNewImage(idx)}
+                            className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-md hover:bg-red-600"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                          <span className="absolute bottom-1 left-1 bg-orange-500 text-white text-[8px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded">
+                            Nueva
+                          </span>
+                        </div>
+                      ))}
+
+                      {/* Botón agregar si hay espacio */}
+                      {(existingImageUrls.length + newImagePreviews.length) < 4 && (
+                        <label className="aspect-square flex flex-col items-center justify-center border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-white hover:bg-gray-100 hover:border-black transition-colors">
+                          <UploadCloud className="w-6 h-6 text-gray-400 mb-1" />
+                          <p className="text-[10px] text-gray-500 font-bold uppercase tracking-wider text-center px-2">Agregar Foto</p>
+                          <input type="file" className="hidden" accept="image/*" multiple onChange={handleImageChange} />
                         </label>
-                      </div>
+                      )}
                     </div>
+                    <p className="text-[10px] text-gray-400 font-medium">La primera imagen será la principal. Borde naranja = pendiente de subir al guardar.</p>
 
                     <div>
                       <textarea

@@ -52,13 +52,16 @@ export async function POST(req: Request) {
         //   email: body.email,
         // },
 
-        back_urls: {
-          success: `${baseUrl}/success`,
-          failure: `${baseUrl}/failure`,
-          pending: `${baseUrl}/pending`,
-        },
-
-        auto_return: "approved",
+        // ⚠️ back_urls y auto_return requieren una URL HTTPS pública.
+        // En localhost MercadoPago las rechaza con "back_url.success must be defined".
+        // Descomenta esto cuando tengas un dominio real (ej: https://tudominio.com).
+        //
+        // back_urls: {
+        //   success: `${baseUrl}/success`,
+        //   failure: `${baseUrl}/failure`,
+        //   pending: `${baseUrl}/pending`,
+        // },
+        // auto_return: "approved",
       },
     });
 

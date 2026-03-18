@@ -27,6 +27,8 @@ export default function AjustesPage() {
   const [heroDesc, setHeroDesc] = useState<string>("Suplementos diseñados para los que no se rinden. Rompe tus límites hoy.");
   const [heroBtn1, setHeroBtn1] = useState<string>("Comprar Novedades");
   const [heroBtn2, setHeroBtn2] = useState<string>("Ver Catálogo");
+  const [heroBtn1Cat, setHeroBtn1Cat] = useState<string>("");
+  const [heroBtn2Cat, setHeroBtn2Cat] = useState<string>("");
 
   // Barra Promocional
   const [promoActive, setPromoActive] = useState<boolean>(false);
@@ -59,6 +61,8 @@ export default function AjustesPage() {
           if (data.heroDesc) setHeroDesc(data.heroDesc);
           if (data.heroBtn1) setHeroBtn1(data.heroBtn1);
           if (data.heroBtn2) setHeroBtn2(data.heroBtn2);
+          if (data.heroBtn1Cat) setHeroBtn1Cat(data.heroBtn1Cat);
+          if (data.heroBtn2Cat) setHeroBtn2Cat(data.heroBtn2Cat);
 
           if (data.autoRotateBanner !== undefined) setAutoRotateBanner(data.autoRotateBanner);
           if (data.bannerInterval !== undefined) setBannerInterval(data.bannerInterval);
@@ -217,6 +221,8 @@ export default function AjustesPage() {
         heroDesc,
         heroBtn1,
         heroBtn2,
+        heroBtn1Cat,
+        heroBtn2Cat,
         promoActive,
         promoText,
         featuredProductIds,
@@ -435,23 +441,47 @@ export default function AjustesPage() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-2">Texto Botón Primario</label>
+                  <label className="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-2">Botón Primario</label>
                   <input
                     type="text"
                     value={heroBtn1}
                     onChange={(e) => { setHeroBtn1(e.target.value); setHasChanges(true); }}
-                    className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:border-black focus:ring-1 focus:ring-black outline-none transition-all font-medium"
+                    className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:border-black focus:ring-1 focus:ring-black outline-none transition-all font-medium mb-3"
+                    placeholder="Texto del botón"
                   />
+                  <label className="block text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-1">Categoría destino</label>
+                  <select
+                    value={heroBtn1Cat}
+                    onChange={(e) => { setHeroBtn1Cat(e.target.value); setHasChanges(true); }}
+                    className="w-full px-4 py-2.5 rounded-lg border border-gray-200 bg-gray-50 focus:border-black focus:ring-1 focus:ring-black outline-none transition-all font-medium text-sm"
+                  >
+                    <option value="">Todas (sin filtro)</option>
+                    {categorias.map((cat, idx) => (
+                      <option key={idx} value={cat}>{cat}</option>
+                    ))}
+                  </select>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-2">Texto Botón Secundario</label>
+                  <label className="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-2">Botón Secundario</label>
                   <input
                     type="text"
                     value={heroBtn2}
                     onChange={(e) => { setHeroBtn2(e.target.value); setHasChanges(true); }}
-                    className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:border-black focus:ring-1 focus:ring-black outline-none transition-all font-medium"
+                    className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:border-black focus:ring-1 focus:ring-black outline-none transition-all font-medium mb-3"
+                    placeholder="Texto del botón"
                   />
+                  <label className="block text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-1">Categoría destino</label>
+                  <select
+                    value={heroBtn2Cat}
+                    onChange={(e) => { setHeroBtn2Cat(e.target.value); setHasChanges(true); }}
+                    className="w-full px-4 py-2.5 rounded-lg border border-gray-200 bg-gray-50 focus:border-black focus:ring-1 focus:ring-black outline-none transition-all font-medium text-sm"
+                  >
+                    <option value="">Todas (sin filtro)</option>
+                    {categorias.map((cat, idx) => (
+                      <option key={idx} value={cat}>{cat}</option>
+                    ))}
+                  </select>
                 </div>
               </div>
             </div>

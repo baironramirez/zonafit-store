@@ -20,6 +20,7 @@ export interface ProductoData {
   categoria: string;
   marca?: string;
   imagen: string;
+  imagenes?: string[];
   descripcion: string;
   activo: boolean;
   variantes?: Variante[];
@@ -40,10 +41,22 @@ export default function ProductCard({ producto }: { producto: ProductoData }) {
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault(); // Prevent link navigation
     if (producto) {
+      // Si el producto tiene variantes, usar la primera variante (precio base puede ser 0)
+      const hasVariants = producto.variantes && producto.variantes.length > 0;
+      const firstVariant = hasVariants ? producto.variantes![0] : null;
+
+      const finalPrice = firstVariant ? firstVariant.precio : producto.precio;
+      const finalName = firstVariant
+        ? `${producto.nombre} - ${firstVariant.nombre}`
+        : producto.nombre;
+      const finalId = firstVariant
+        ? `${producto.id}-${firstVariant.id}`
+        : producto.id;
+
       addToCart({
-        id: producto.id,
-        nombre: producto.nombre,
-        precio: producto.precio,
+        id: finalId,
+        nombre: finalName,
+        precio: finalPrice,
         imagen: producto.imagen,
         cantidad: 1
       } as any);
@@ -105,9 +118,13 @@ export default function ProductCard({ producto }: { producto: ProductoData }) {
               {marca && (
                 <>
                   <span className="text-gray-300 text-xs">•</span>
-                  <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest bg-gray-100 px-1.5 py-0.5 rounded-sm">
+                  <a
+                    href={`/productos?marca=${encodeURIComponent(marca)}`}
+                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); window.location.href = `/productos?marca=${encodeURIComponent(marca)}`; }}
+                    className="text-[10px] font-black text-gray-400 uppercase tracking-widest bg-gray-100 px-1.5 py-0.5 rounded-sm hover:bg-black hover:text-white transition-colors cursor-pointer"
+                  >
                     {marca}
-                  </p>
+                  </a>
                 </>
               )}
             </div>

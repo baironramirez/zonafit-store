@@ -171,8 +171,16 @@ export default function PedidosPage() {
                   <div className="space-y-4 mb-6">
                     {order.items.map((item, idx) => (
                       <div key={idx} className="flex items-center gap-4">
-                        <div className="w-16 h-16 bg-gray-50 border border-gray-100 flex items-center justify-center flex-shrink-0">
-                          <ShoppingBag className="w-5 h-5 text-gray-300" />
+                        <div className="w-16 h-16 bg-gray-50 border border-gray-100 flex items-center justify-center flex-shrink-0 rounded-lg overflow-hidden">
+                          {item.imagen ? (
+                            <img
+                              src={item.imagen}
+                              alt={item.nombre}
+                              className="w-full h-full object-contain p-1"
+                            />
+                          ) : (
+                            <ShoppingBag className="w-5 h-5 text-gray-300" />
+                          )}
                         </div>
                         <div className="flex-1">
                           <p className="font-bold uppercase tracking-wider text-sm text-black">

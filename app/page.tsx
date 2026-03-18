@@ -22,6 +22,8 @@ export default function Home() {
   const [heroDesc, setHeroDesc] = useState<string>("Suplementos diseñados para los que no se rinden. Rompe tus límites hoy.");
   const [heroBtn1, setHeroBtn1] = useState<string>("Comprar Novedades");
   const [heroBtn2, setHeroBtn2] = useState<string>("Ver Catálogo");
+  const [heroBtn1Cat, setHeroBtn1Cat] = useState<string>("");
+  const [heroBtn2Cat, setHeroBtn2Cat] = useState<string>("");
 
   // Fetch Settings (Banners and Features) and then Products
   useEffect(() => {
@@ -44,6 +46,8 @@ export default function Home() {
           if (data.heroDesc) setHeroDesc(data.heroDesc);
           if (data.heroBtn1) setHeroBtn1(data.heroBtn1);
           if (data.heroBtn2) setHeroBtn2(data.heroBtn2);
+          if (data.heroBtn1Cat) setHeroBtn1Cat(data.heroBtn1Cat);
+          if (data.heroBtn2Cat) setHeroBtn2Cat(data.heroBtn2Cat);
           
           if (data.autoRotateBanner !== undefined) setAutoRotateBanner(data.autoRotateBanner);
           if (data.bannerInterval !== undefined) setBannerInterval(data.bannerInterval);
@@ -154,7 +158,7 @@ export default function Home() {
             <div className="flex gap-6 items-center">
               {heroBtn1 && (
                 <Link
-                  href="/productos"
+                  href={heroBtn1Cat ? `/productos?cat=${encodeURIComponent(heroBtn1Cat)}` : "/productos"}
                   className="text-white font-bold uppercase tracking-widest text-sm pb-1 border-b-2 border-transparent hover:border-white transition-all"
                 >
                   {heroBtn1}
@@ -163,7 +167,7 @@ export default function Home() {
 
               {heroBtn2 && (
                 <Link
-                  href="/productos"
+                  href={heroBtn2Cat ? `/productos?cat=${encodeURIComponent(heroBtn2Cat)}` : "/productos"}
                   className="text-white font-bold uppercase tracking-widest text-sm pb-1 border-b-2 border-transparent hover:border-white transition-all"
                 >
                   {heroBtn2}

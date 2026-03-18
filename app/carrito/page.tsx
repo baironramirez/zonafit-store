@@ -63,8 +63,8 @@ export default function CarritoPage() {
       fetch(`https://api-colombia.com/api/v1/Department/${selectedDeptId}/cities`)
         .then(res => res.json())
         .then(data => {
-            const sorted = data.sort((a: any, b: any) => a.name.localeCompare(b.name));
-            setCities(sorted);
+          const sorted = data.sort((a: any, b: any) => a.name.localeCompare(b.name));
+          setCities(sorted);
         })
         .catch(err => console.error("Error fetching cities:", err));
     } else {
@@ -99,6 +99,7 @@ export default function CarritoPage() {
       nombre: item.nombre,
       precio: item.precio,
       cantidad: item.cantidad,
+      imagen: item.imagen || "",
     }));
 
     const total = cart.reduce(
@@ -107,7 +108,7 @@ export default function CarritoPage() {
     );
 
     try {
-      // 1️⃣ crear pedido
+      // 1️⃣ Crear pedido en Firestore
       const orderRes = await fetch("/api/orders", {
         method: "POST",
         headers: {
@@ -120,9 +121,17 @@ export default function CarritoPage() {
         }),
       });
 
+      if (!orderRes.ok) {
+        const errText = await orderRes.text();
+        console.error("Error creando pedido:", orderRes.status, errText);
+        alert("Error al crear el pedido. Intenta de nuevo.");
+        setIsSubmitting(false);
+        return;
+      }
+
       const orderData = await orderRes.json();
 
-      // 2️⃣ crear pago
+      // 2️⃣ Crear preferencia de pago en MercadoPago
       const mpRes = await fetch("/api/create-payment", {
         method: "POST",
         headers: {
@@ -136,39 +145,34 @@ export default function CarritoPage() {
             unit_price: Number(item.precio),
           })),
           orderId: orderData.orderId,
-          email: orderData.email
-        }),
+        })
       });
 
-
-      // 2️⃣ Manejo de error del backend
+      // 3️⃣ Manejo de error del backend
       if (!mpRes.ok) {
         const errorText = await mpRes.text();
         console.error("Error creating payment:", mpRes.status, errorText);
-
         alert(
           `Error (${mpRes.status}): ${errorText || "Error al crear preferencia de pago"}`
         );
-
         setIsSubmitting(false);
         return;
       }
-      const mpData = await mpRes.json();
 
+      const mpData = await mpRes.json();
       console.log("Preferencia creada:", mpData);
 
-      // 4️⃣ Redirigir a checkout de MercadoPago
+      // 4️⃣ Redirigir a checkout de MercadoPago (usa init_point que devuelve la API)
       if (mpData.init_point) {
         window.location.href = mpData.init_point;
       } else {
-        alert("No se pudo iniciar el pago");
+        alert("No se pudo iniciar el pago. Intenta de nuevo.");
         setIsSubmitting(false);
       }
 
-
-      window.location.href = `https://www.mercadopago.com/checkout/v1/redirect?pref_id=${mpData.id}`;
     } catch (error) {
-      alert("Error al procesar el pago");
+      console.error("Error en checkout:", error);
+      alert("Error al procesar el pago. Verifica tu conexión e intenta de nuevo.");
       setIsSubmitting(false);
     }
   }
@@ -268,8 +272,8 @@ export default function CarritoPage() {
                     <div className="grid grid-cols-2 gap-3">
                       <input type="hidden" name="departamento" value={departments.find(d => d.id.toString() === selectedDeptId)?.name || ""} />
                       <input type="hidden" name="ciudad" value={selectedCityName} />
-                      
-                      <select 
+
+                      <select
                         required
                         value={selectedDeptId}
                         onChange={(e) => {
@@ -284,7 +288,7 @@ export default function CarritoPage() {
                         ))}
                       </select>
 
-                      <select 
+                      <select
                         required
                         value={selectedCityName}
                         onChange={(e) => setSelectedCityName(e.target.value)}

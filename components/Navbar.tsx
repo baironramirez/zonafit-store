@@ -24,6 +24,10 @@ export default function Navbar() {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const [isCatOpen, setIsCatOpen] = useState(false);
+  const [isMarcaOpen, setIsMarcaOpen] = useState(false);
+  const [categorias, setCategorias] = useState<string[]>([]);
+  const [marcas, setMarcas] = useState<string[]>([]);
 
   useMotionValueEvent(scrollY, "change", (latest) => {
     setIsScrolled(latest > 20);
@@ -38,6 +42,12 @@ export default function Navbar() {
           if (data.promoActive) {
             setPromoActive(true);
             setPromoText(data.promoText || "");
+          }
+          if (data.categorias && Array.isArray(data.categorias)) {
+            setCategorias(data.categorias);
+          }
+          if (data.marcas && Array.isArray(data.marcas)) {
+            setMarcas(data.marcas);
           }
         }
       })
@@ -80,19 +90,74 @@ export default function Navbar() {
 
           {/* LEFT COLUMN: Main Navigation Links */}
           <div className="flex items-center justify-start gap-4 md:gap-8">
-            <Link
-              href="/productos"
-              className="text-[13px] font-bold text-black hover:text-gray-500 transition-colors uppercase tracking-widest"
+            {/* Dropdown Categorías */}
+            <div
+              className="relative"
+              onMouseEnter={() => setIsCatOpen(true)}
+              onMouseLeave={() => setIsCatOpen(false)}
             >
-              Categorias
-            </Link>
+              <Link
+                href="/productos"
+                className="text-[13px] font-bold text-black hover:text-gray-500 transition-colors uppercase tracking-widest"
+              >
+                Categorias
+              </Link>
+              <div className={`absolute left-0 top-full pt-2 z-[60] transition-all duration-200 ${isCatOpen ? 'opacity-100 visible translate-y-0' : 'opacity-0 invisible -translate-y-2'}`}>
+                <div className="bg-white border border-gray-100 shadow-2xl rounded-xl overflow-hidden min-w-[200px] py-2">
+                  <Link
+                    href="/productos"
+                    onClick={() => setIsCatOpen(false)}
+                    className="block px-5 py-2.5 text-xs font-bold uppercase tracking-widest text-black hover:bg-gray-50 transition-colors"
+                  >
+                    Ver Todo
+                  </Link>
+                  {categorias.map((cat, idx) => (
+                    <Link
+                      key={idx}
+                      href={`/productos?cat=${encodeURIComponent(cat)}`}
+                      onClick={() => setIsCatOpen(false)}
+                      className="block px-5 py-2.5 text-xs font-bold uppercase tracking-widest text-gray-600 hover:bg-gray-50 hover:text-black transition-colors"
+                    >
+                      {cat}
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            </div>
 
-            <Link
-              href="/marcas"
-              className="text-[13px] font-bold text-black hover:text-gray-500 transition-colors uppercase tracking-widest"
+            {/* Dropdown Marcas */}
+            <div
+              className="relative"
+              onMouseEnter={() => setIsMarcaOpen(true)}
+              onMouseLeave={() => setIsMarcaOpen(false)}
             >
-              Marcas
-            </Link>
+              <span
+                className="text-[13px] font-bold text-black hover:text-gray-500 transition-colors uppercase tracking-widest cursor-pointer"
+              >
+                Marcas
+              </span>
+              <div className={`absolute left-0 top-full pt-2 z-[60] transition-all duration-200 ${isMarcaOpen ? 'opacity-100 visible translate-y-0' : 'opacity-0 invisible -translate-y-2'}`}>
+                <div className="bg-white border border-gray-100 shadow-2xl rounded-xl overflow-hidden min-w-[220px] py-2 max-h-[400px] overflow-y-auto">
+                  <Link
+                    href="/productos"
+                    onClick={() => setIsMarcaOpen(false)}
+                    className="block px-5 py-2.5 text-xs font-bold uppercase tracking-widest text-black hover:bg-gray-50 transition-colors"
+                  >
+                    Todas las Marcas
+                  </Link>
+                  {marcas.map((m, idx) => (
+                    <Link
+                      key={idx}
+                      href={`/productos?marca=${encodeURIComponent(m)}`}
+                      onClick={() => setIsMarcaOpen(false)}
+                      className="block px-5 py-2.5 text-xs font-bold uppercase tracking-widest text-gray-600 hover:bg-gray-50 hover:text-black transition-colors"
+                    >
+                      {m}
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            </div>
           </div>
 
           {/* CENTER COLUMN: Absolute Center Logo */}
@@ -120,12 +185,12 @@ export default function Navbar() {
           {/* RIGHT COLUMN: Utility Icons */}
           <div className="flex justify-end gap-3 md:gap-5 items-center">
             <div className="relative flex items-center">
-            <button onClick={() => setIsSearchOpen(true)} className="text-black hover:text-gray-500 transition-colors hidden sm:block p-1">
-              <Search className="w-5 h-5 stroke-[1.5]" />
-            </button>
-          </div>
+              <button onClick={() => setIsSearchOpen(true)} className="text-black hover:text-gray-500 transition-colors hidden sm:block p-1">
+                <Search className="w-5 h-5 stroke-[1.5]" />
+              </button>
+            </div>
 
-          <Link href="/favoritos" className="relative text-black hover:text-gray-500 transition-colors hidden sm:block p-1">
+            <Link href="/favoritos" className="relative text-black hover:text-gray-500 transition-colors hidden sm:block p-1">
               <Heart className="w-5 h-5 stroke-[1.5]" />
               {totalFavorites > 0 && (
                 <span className="absolute -top-1 -right-2 bg-orange-500 text-white text-[10px] font-bold w-4 h-4 flex items-center justify-center rounded-full leading-none shadow-sm">
@@ -138,22 +203,21 @@ export default function Navbar() {
             {loading ? (
               <div className="w-5 h-5 border-2 border-gray-200 border-t-black rounded-full animate-spin"></div>
             ) : currentUser ? (
-              <div 
+              <div
                 className="relative flex items-center"
                 onMouseEnter={() => setIsUserMenuOpen(true)}
                 onMouseLeave={() => setIsUserMenuOpen(false)}
               >
-                <button 
+                <button
                   onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
                   className="text-black hover:text-gray-500 transition-colors p-1"
                 >
                   <User className="w-5 h-5 stroke-[1.5]" />
                 </button>
-                
+
                 {/* Dropdown flotante Gymshark Style */}
-                <div className={`absolute right-0 top-full mt-2 w-48 bg-white border border-gray-100 shadow-2xl transition-all duration-200 rounded-xl overflow-hidden flex flex-col pt-2 pb-2 z-[60] ${
-                  isUserMenuOpen ? "opacity-100 visible translate-y-0" : "opacity-0 invisible -translate-y-2"
-                }`}>
+                <div className={`absolute right-0 top-full mt-2 w-48 bg-white border border-gray-100 shadow-2xl transition-all duration-200 rounded-xl overflow-hidden flex flex-col pt-2 pb-2 z-[60] ${isUserMenuOpen ? "opacity-100 visible translate-y-0" : "opacity-0 invisible -translate-y-2"
+                  }`}>
                   <div className="px-4 py-3 border-b border-gray-100 mb-1">
                     <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">Sesión Activa</p>
                     <p className="text-xs font-bold text-black truncate">{userProfile?.email || currentUser.email}</p>
@@ -212,7 +276,7 @@ export default function Navbar() {
             <div className="p-6 md:p-8">
               <div className="flex justify-between items-center mb-6">
                 <h2 className="text-2xl font-black text-black">Búsqueda</h2>
-                <button 
+                <button
                   onClick={() => setIsSearchOpen(false)}
                   className="p-2 bg-gray-50 hover:bg-gray-100 rounded-full transition-colors text-black"
                 >
@@ -233,7 +297,7 @@ export default function Navbar() {
                   autoFocus
                 />
               </form>
-              
+
               <div className="mt-6 text-sm font-bold text-gray-400 px-2 cursor-default">
                 Presiona <span className="text-black border-b border-gray-300 pb-0.5">Enter</span> para buscar
               </div>

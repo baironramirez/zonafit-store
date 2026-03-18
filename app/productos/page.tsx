@@ -10,10 +10,13 @@ import { doc, getDoc } from "firebase/firestore";
 function ProductosContent() {
   const searchParams = useSearchParams();
   const initialQuery = searchParams.get("q") || "";
+  const initialCat = searchParams.get("cat") || "Todos";
+  const initialMarca = searchParams.get("marca") || "";
   
   const [productos, setProductos] = useState<ProductoData[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filtroCategoria, setFiltroCategoria] = useState<string>("Todos");
+  const [filtroCategoria, setFiltroCategoria] = useState<string>(initialCat);
+  const [filtroMarca, setFiltroMarca] = useState<string>(initialMarca);
   const [searchQuery, setSearchQuery] = useState(initialQuery);
 
   const [categorias, setCategorias] = useState<string[]>(["Todos"]);
@@ -21,6 +24,16 @@ function ProductosContent() {
   useEffect(() => {
     // If URL query changes, update local state
     setSearchQuery(searchParams.get("q") || "");
+    const catParam = searchParams.get("cat");
+    if (catParam) {
+      setFiltroCategoria(catParam);
+      setFiltroMarca("");
+    }
+    const marcaParam = searchParams.get("marca");
+    if (marcaParam) {
+      setFiltroMarca(marcaParam);
+      setFiltroCategoria("Todos");
+    }
   }, [searchParams]);
 
   // Fetch configs (Categories)
@@ -66,6 +79,8 @@ function ProductosContent() {
       (p.categoria || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
       (p.descripcion || "").toLowerCase().includes(searchQuery.toLowerCase())
     );
+  } else if (filtroMarca) {
+    productosFiltrados = productos.filter(p => (p.marca || "").toLowerCase() === filtroMarca.toLowerCase());
   } else if (filtroCategoria !== "Todos") {
     productosFiltrados = productos.filter(p => (p.categoria || "").toLowerCase().includes(filtroCategoria.toLowerCase()));
   }
@@ -155,6 +170,15 @@ function ProductosContent() {
                   className="text-xs font-bold uppercase tracking-widest text-gray-400 hover:text-black transition-colors"
                 >
                   Limpiar Búsqueda
+                </button>
+              )}
+
+              {filtroMarca && (
+                <button 
+                  onClick={() => setFiltroMarca("")}
+                  className="text-xs font-bold uppercase tracking-widest bg-black text-white px-3 py-1 rounded-full hover:bg-gray-700 transition-colors"
+                >
+                  Marca: {filtroMarca} ×
                 </button>
               )}
             </div>

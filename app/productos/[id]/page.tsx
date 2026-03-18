@@ -120,22 +120,32 @@ export default function ProductDetailPage() {
           {/* LADO IZQUIERDO: GALERÍA DE IMÁGENES (Gymshark Scroll Style) */}
           <div className="lg:col-span-7 xl:col-span-8">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-1 md:gap-4 lg:grid-cols-2">
-              {/* Multiplying the same image to simulate the Gymshark gallery feel */}
-              {[1, 2, 3, 4].map((index) => (
-                <div key={index} className="aspect-[3/4] md:aspect-[4/5] bg-gray-50 relative overflow-hidden flex items-center justify-center">
-                  <img
-                    src={defaultImage}
-                    alt={`${producto.nombre} view ${index}`}
-                    className="w-full h-full object-contain filter contrast-125 mix-blend-multiply p-8"
-                  />
-                  {/* Faux text overlay on image 1 for that sick Gymshark typographic vibe */}
-                  {index === 1 && (
-                    <div className="absolute top-6 left-6 text-black font-black uppercase tracking-tighter leading-none text-2xl opacity-20 pointer-events-none">
-                      PREMIUM<br />QUALITY<br />FORMULA
-                    </div>
-                  )}
-                </div>
-              ))}
+              {/* Mostrar imágenes reales del producto, rellenar hasta 4 con la primera */}
+              {(() => {
+                const imgs = producto.imagenes && producto.imagenes.length > 0
+                  ? producto.imagenes
+                  : [defaultImage];
+                // Rellenar hasta 4 slots repitiendo la primera imagen
+                const gallery = [...imgs];
+                while (gallery.length < 4) {
+                  gallery.push(imgs[0]);
+                }
+                return gallery.slice(0, 4).map((imgSrc: string, index: number) => (
+                  <div key={index} className="aspect-[3/4] md:aspect-[4/5] bg-gray-50 relative overflow-hidden flex items-center justify-center">
+                    <img
+                      src={imgSrc}
+                      alt={`${producto.nombre} view ${index + 1}`}
+                      className="w-full h-full object-contain filter contrast-125 mix-blend-multiply p-8"
+                    />
+                    {/* Typographic overlay on first image */}
+                    {index === 0 && (
+                      <div className="absolute top-6 left-6 text-black font-black uppercase tracking-tighter leading-none text-2xl opacity-20 pointer-events-none">
+                        PREMIUM<br />QUALITY<br />FORMULA
+                      </div>
+                    )}
+                  </div>
+                ));
+              })()}
             </div>
           </div>
 

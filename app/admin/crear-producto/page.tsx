@@ -1,7 +1,7 @@
 "use client";
 
 import { db, storage } from "@/lib/firebase";
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { ref, uploadBytes, getDownloadURL, deleteObject } from "firebase/storage";
 import { doc, getDoc } from "firebase/firestore";
 import { useState, useEffect } from "react";
 import { ArrowLeft, UploadCloud, Plus, X } from "lucide-react";
@@ -17,9 +17,9 @@ export default function CrearProducto() {
   const [categoria, setCategoria] = useState("");
   const [marca, setMarca] = useState("");
   const [descripcion, setDescripcion] = useState("");
-  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imageFiles, setImageFiles] = useState<File[]>([]);
+  const [previewUrls, setPreviewUrls] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   const [loadingConfig, setLoadingConfig] = useState(true);
 
@@ -99,16 +99,15 @@ export default function CrearProducto() {
     setIsLoading(true);
 
     try {
-      let imageUrl = "";
-
-      if (imageFile) {
-        const imageRef = ref(
-          storage,
-          `products/${Date.now()}-${imageFile.name}`,
-        );
-        await uploadBytes(imageRef, imageFile);
-        imageUrl = await getDownloadURL(imageRef);
+      // Subir todas las imágenes seleccionadas
+      const uploadedUrls: string[] = [];
+      for (const file of imageFiles) {
+        const imageRef = ref(storage, `products/${Date.now()}-${file.name}`);
+        await uploadBytes(imageRef, file);
+        const url = await getDownloadURL(imageRef);
+        uploadedUrls.push(url);
       }
+      const imageUrl = uploadedUrls[0] || "";
 
       // Automatically default main price/stock to zero if variants exist 
       // but if we want to show a 'Starts from' price, we can maintain the base.
@@ -131,6 +130,7 @@ export default function CrearProducto() {
           marca,
           descripcion,
           imagen: imageUrl,
+          imagenes: uploadedUrls,
           activo: true,
           variantes: variantes.length > 0 ? variantes : []
         }),
@@ -146,8 +146,8 @@ export default function CrearProducto() {
         setMarca("");
         setDescripcion("");
         setVariantes([]);
-        setImageFile(null);
-        setPreviewUrl(null);
+        setImageFiles([]);
+        setPreviewUrls([]);
       } else {
         alert("Error al crear el producto");
       }
@@ -160,17 +160,34 @@ export default function CrearProducto() {
   }
 
   function handleImageChange(e: React.ChangeEvent<HTMLInputElement>) {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      setImageFile(file);
+    if (e.target.files && e.target.files.length > 0) {
+      const newFiles = Array.from(e.target.files);
+      const remaining = 4 - imageFiles.length;
+      const filesToAdd = newFiles.slice(0, remaining);
 
-      // Crear preview
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setPreviewUrl(e.target?.result as string);
-      };
-      reader.readAsDataURL(file);
+      if (filesToAdd.length === 0) {
+        alert("Máximo 4 imágenes permitidas.");
+        return;
+      }
+
+      setImageFiles((prev) => [...prev, ...filesToAdd]);
+
+      // Crear previews
+      filesToAdd.forEach((file) => {
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+          setPreviewUrls((prev) => [...prev, ev.target?.result as string]);
+        };
+        reader.readAsDataURL(file);
+      });
     }
+    // Reset input para poder seleccionar el mismo archivo de nuevo
+    e.target.value = "";
+  }
+
+  function removeImage(index: number) {
+    setImageFiles((prev) => prev.filter((_, i) => i !== index));
+    setPreviewUrls((prev) => prev.filter((_, i) => i !== index));
   }
 
   return (
@@ -413,38 +430,45 @@ export default function CrearProducto() {
 
               <div>
                 <label className="block text-sm font-bold uppercase tracking-widest text-gray-500 mb-4">
-                  Fotografía Oficial
+                  Fotografías del Producto ({previewUrls.length}/4)
                 </label>
 
-                <div className="flex flex-col md:flex-row items-start gap-6">
-                  <div className="flex-1 w-full">
-                    <div className="flex items-center justify-center w-full">
-                      <label className="flex flex-col items-center justify-center w-full h-40 border-2 border-gray-200 border-dashed cursor-pointer bg-gray-50 hover:bg-gray-100 hover:border-black transition-colors">
-                        <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                          <UploadCloud className="w-10 h-10 text-gray-400 mb-3" />
-                          <p className="mb-2 text-sm text-gray-600 font-bold uppercase tracking-wide">Subir Archivo Gráfico</p>
-                          <p className="text-xs text-gray-400 font-medium">PNG ó JPG (hasta 5MB)</p>
-                        </div>
-                        <input
-                          type="file"
-                          className="hidden"
-                          accept="image/*"
-                          onChange={handleImageChange}
-                        />
-                      </label>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                  {/* Previews de imágenes seleccionadas */}
+                  {previewUrls.map((url, idx) => (
+                    <div key={idx} className="relative aspect-square border border-gray-200 bg-white rounded-lg overflow-hidden group">
+                      <img src={url} alt={`Preview ${idx + 1}`} className="w-full h-full object-contain p-2 mix-blend-multiply" />
+                      <button
+                        type="button"
+                        onClick={() => removeImage(idx)}
+                        className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-md hover:bg-red-600"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                      {idx === 0 && (
+                        <span className="absolute bottom-2 left-2 bg-black text-white text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded">
+                          Principal
+                        </span>
+                      )}
                     </div>
-                  </div>
+                  ))}
 
-                  {previewUrl && (
-                    <div className="w-full md:w-40 h-40 relative overflow-hidden border border-gray-200 bg-white flex-shrink-0 flex items-center justify-center rounded-lg shadow-sm">
-                      <img
-                        src={previewUrl}
-                        alt="Preview"
-                        className="w-full h-full object-contain p-2 mix-blend-multiply"
+                  {/* Botón para agregar más */}
+                  {previewUrls.length < 4 && (
+                    <label className="aspect-square flex flex-col items-center justify-center border-2 border-gray-200 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 hover:border-black transition-colors">
+                      <UploadCloud className="w-8 h-8 text-gray-400 mb-2" />
+                      <p className="text-[10px] text-gray-500 font-bold uppercase tracking-wider text-center px-2">Agregar Foto</p>
+                      <input
+                        type="file"
+                        className="hidden"
+                        accept="image/*"
+                        multiple
+                        onChange={handleImageChange}
                       />
-                    </div>
+                    </label>
                   )}
                 </div>
+                <p className="text-xs text-gray-400 font-medium">La primera imagen será la foto principal. Máximo 4 imágenes (PNG o JPG).</p>
               </div>
 
               <div className="pt-6">
