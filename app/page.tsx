@@ -14,6 +14,7 @@ export default function Home() {
 
   // Hero Banner State
   const [heroBanners, setHeroBanners] = useState<string[]>([]);
+  const [heroMobileBanners, setHeroMobileBanners] = useState<string[]>([]);
   const [currentBannerIndex, setCurrentBannerIndex] = useState(0);
   const [autoRotateBanner, setAutoRotateBanner] = useState(false);
   const [bannerInterval, setBannerInterval] = useState(5);
@@ -39,6 +40,10 @@ export default function Home() {
             setHeroBanners(data.heroBannerUrls);
           } else if (data.heroBannerUrl) {
             setHeroBanners([data.heroBannerUrl]); // Legacy fallback
+          }
+
+          if (data.heroMobileBannersUrls && Array.isArray(data.heroMobileBannersUrls)) {
+            setHeroMobileBanners(data.heroMobileBannersUrls);
           }
           
           if (data.heroTitle) setHeroTitle(data.heroTitle);
@@ -95,14 +100,16 @@ export default function Home() {
 
   // Effect for Auto-Carousel
   useEffect(() => {
-    if (!autoRotateBanner || heroBanners.length <= 1) return;
+    // Determine max length to rotate through
+    const maxLen = Math.max(heroBanners.length, heroMobileBanners.length);
+    if (!autoRotateBanner || maxLen <= 1) return;
 
     const intervalId = setInterval(() => {
-      setCurrentBannerIndex((prevIndex) => (prevIndex + 1) % heroBanners.length);
+      setCurrentBannerIndex((prevIndex) => prevIndex + 1);
     }, bannerInterval * 1000);
 
     return () => clearInterval(intervalId);
-  }, [autoRotateBanner, heroBanners.length, bannerInterval]);
+  }, [autoRotateBanner, heroBanners.length, heroMobileBanners.length, bannerInterval]);
 
   return (
     <main className="pt-22 min-h-screen bg-white text-black selection:bg-black selection:text-white">
@@ -110,19 +117,22 @@ export default function Home() {
       {/* 1. MASSIVE HERO BANNER */}
       <section className="relative h-[70vh] w-full flex items-end pb-16 lg:pb-24 overflow-hidden">
 
-        {/* Background Images Carousel */}
-        <div className="absolute inset-0 z-0 bg-black">
-          {heroBanners.map((bannerUrl, index) => (
-            <motion.img
-              key={bannerUrl}
-              src={bannerUrl}
-              alt={`Banner ${index + 1}`}
-              className="absolute w-full h-full object-cover object-center"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: index === currentBannerIndex ? 1 : 0 }}
-              transition={{ duration: 1 }}
-            />
-          ))}
+        {/* Background Images Carousel - Desktop */}
+        <div className="absolute inset-0 z-0 bg-black hidden md:block">
+          {heroBanners.map((bannerUrl, index) => {
+            const isActive = heroBanners.length > 0 ? index === (currentBannerIndex % heroBanners.length) : false;
+            return (
+              <motion.img
+                key={bannerUrl}
+                src={bannerUrl}
+                alt={`Banner Desktop ${index + 1}`}
+                className="absolute w-full h-full object-cover object-center"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: isActive ? 1 : 0 }}
+                transition={{ duration: 1 }}
+              />
+            );
+          })}
           {/* Loading Skeleton or Empty state if no banners and finished loading */}
           {loading && (
              <div className="absolute w-full h-full bg-gray-900 animate-pulse" />
@@ -130,11 +140,35 @@ export default function Home() {
           {!loading && heroBanners.length === 0 && (
              <div className="absolute w-full h-full bg-black" />
           )}
-
-          {/* Dark overlay to improve contrast with navbar */}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-black/30" />
         </div>
 
+        {/* Background Images Carousel - Mobile */}
+        <div className="absolute inset-0 z-0 bg-black md:hidden">
+          {(heroMobileBanners.length > 0 ? heroMobileBanners : heroBanners).map((bannerUrl, index) => {
+            const activeArray = heroMobileBanners.length > 0 ? heroMobileBanners : heroBanners;
+            const isActive = activeArray.length > 0 ? index === (currentBannerIndex % activeArray.length) : false;
+            return (
+              <motion.img
+                key={`mob-${bannerUrl}`}
+                src={bannerUrl}
+                alt={`Banner Mobile ${index + 1}`}
+                className="absolute w-full h-full object-cover object-center"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: isActive ? 1 : 0 }}
+                transition={{ duration: 1 }}
+              />
+            );
+          })}
+          {loading && (
+             <div className="absolute w-full h-full bg-gray-900 animate-pulse" />
+          )}
+          {!loading && heroBanners.length === 0 && heroMobileBanners.length === 0 && (
+             <div className="absolute w-full h-full bg-black" />
+          )}
+        </div>
+
+          {/* Dark overlay to improve contrast with navbar */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-black/30 pointer-events-none" />
         {/* Content */}
         <div className="relative z-10 px-6 max-w-[1400px] w-full mx-auto">
           <motion.div

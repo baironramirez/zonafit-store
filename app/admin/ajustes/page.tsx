@@ -3,9 +3,9 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { doc, getDoc, setDoc, collection, getDocs, orderBy, query } from "firebase/firestore";
-import { ref, uploadBytes, getDownloadURL, listAll } from "firebase/storage";
+import { ref, uploadBytes, getDownloadURL, listAll, deleteObject } from "firebase/storage";
 import { db, storage } from "@/lib/firebase";
-import { Image as ImageIcon, Save, ArrowLeft, Loader2, UploadCloud, Type, Megaphone } from "lucide-react";
+import { Image as ImageIcon, Save, ArrowLeft, Loader2, UploadCloud, Type, Megaphone, Trash2, ChevronLeft, ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { ProductoData } from "@/components/ProductCard";
 
@@ -14,6 +14,7 @@ export default function AjustesPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [currentBanners, setCurrentBanners] = useState<string[]>([]);
+  const [currentMobileBanners, setCurrentMobileBanners] = useState<string[]>([]);
   const [gallery, setGallery] = useState<string[]>([]);
   const [bannerFile, setBannerFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string>("");
@@ -55,6 +56,9 @@ export default function AjustesPage() {
             // Legacy support
             setCurrentBanners([data.heroBannerUrl]);
             setPreviewUrl(data.heroBannerUrl);
+          }
+          if (data.heroMobileBannersUrls && Array.isArray(data.heroMobileBannersUrls)) {
+            setCurrentMobileBanners(data.heroMobileBannersUrls);
           }
           if (data.heroTitle) setHeroTitle(data.heroTitle);
           if (data.heroSubtitle) setHeroSubtitle(data.heroSubtitle);
@@ -136,6 +140,49 @@ export default function AjustesPage() {
     );
   };
 
+  const toggleMobileBannerSelection = (url: string) => {
+    setHasChanges(true);
+    setCurrentMobileBanners((prev) =>
+      prev.includes(url) ? prev.filter(u => u !== url) : [...prev, url]
+    );
+  };
+
+  const handleDeleteImage = async (url: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!window.confirm("¿Seguro que deseas eliminar esta imagen de forma permanente?")) return;
+    setSaving(true);
+    try {
+      const imageRef = ref(storage, url);
+      await deleteObject(imageRef);
+      setGallery(prev => prev.filter(u => u !== url));
+      setCurrentBanners(prev => prev.filter(u => u !== url));
+      setCurrentMobileBanners(prev => prev.filter(u => u !== url));
+      setHasChanges(true);
+    } catch (error) {
+      console.error("Error al eliminar la imagen:", error);
+      alert("Error al eliminar la imagen. Puede que ya se haya borrado.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const moveBanner = (url: string, direction: 'left' | 'right', isMobile: boolean) => {
+    setHasChanges(true);
+    const setState = isMobile ? setCurrentMobileBanners : setCurrentBanners;
+    setState(prev => {
+      const arr = [...prev];
+      const index = arr.indexOf(url);
+      if (index === -1) return prev;
+      
+      const newIndex = direction === 'left' ? index - 1 : index + 1;
+      if (newIndex < 0 || newIndex >= arr.length) return prev;
+      
+      // Swap elements
+      [arr[index], arr[newIndex]] = [arr[newIndex], arr[index]];
+      return arr;
+    });
+  };
+
   const toggleProductSelection = (id: string) => {
     setHasChanges(true);
     setFeaturedProductIds((prev) => {
@@ -214,6 +261,7 @@ export default function AjustesPage() {
       const docRef = doc(db, "settings", "home");
       await setDoc(docRef, {
         heroBannerUrls: currentBanners,
+        heroMobileBannersUrls: currentMobileBanners,
         autoRotateBanner,
         bannerInterval,
         heroTitle,
@@ -344,21 +392,30 @@ export default function AjustesPage() {
                   </label>
                 </div>
 
-                {/* Gallery Selection */}
+                {/* Gallery Selection Desktop */}
                 <div>
-                  <h3 className="text-sm font-bold uppercase tracking-widest text-gray-400 mb-4">Galería de Imágenes</h3>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <h3 className="text-sm font-bold uppercase tracking-widest text-gray-400 mb-4">Galería de Imágenes (Desktop)</h3>
+                  <div className="flex gap-4 overflow-x-auto pb-4 snap-x pr-8">
                     {gallery.map((url, i) => {
                       const isSelected = currentBanners.includes(url);
                       return (
                         <div
                           key={i}
                           onClick={() => toggleBannerSelection(url)}
-                          className={`relative aspect-video rounded-xl overflow-hidden cursor-pointer border-2 transition-all ${isSelected ? 'border-blue-500 ring-2 ring-blue-500/50 shadow-md' : 'border-transparent hover:border-gray-300 hover:shadow-sm'
+                          className={`group relative w-[260px] md:w-[300px] shrink-0 snap-start aspect-video rounded-xl overflow-hidden cursor-pointer border-2 transition-all ${isSelected ? 'border-blue-500 ring-2 ring-blue-500/50 shadow-md' : 'border-transparent hover:border-gray-300 hover:shadow-sm'
                             }`}
                         >
                           <img src={url} alt={`Banner ${i}`} className="w-full h-full object-cover" />
-                          <div className={`absolute inset-0 transition-colors ${isSelected ? 'bg-blue-500/10' : 'bg-black/20 hover:bg-black/10'}`} />
+                          <div className={`absolute inset-0 transition-colors ${isSelected ? 'bg-blue-500/10' : 'bg-black/20 group-hover:bg-black/10'}`} />
+
+                          {/* Delete Button */}
+                          <button
+                            onClick={(e) => handleDeleteImage(url, e)}
+                            className="absolute top-2 left-2 p-2 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors z-10 shadow-md opacity-0 group-hover:opacity-100"
+                            title="Eliminar permanente"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
 
                           {/* Selected Check Indicator */}
                           {isSelected && (
@@ -371,7 +428,7 @@ export default function AjustesPage() {
 
                           {/* Order Number if Auto-Rotate is active and selected */}
                           {isSelected && autoRotateBanner && (
-                            <div className="absolute bottom-2 left-2 bg-black/80 backdrop-blur-sm text-white text-[10px] font-bold uppercase px-2 py-1 rounded-md">
+                            <div className="absolute bottom-2 left-2 bg-black/80 backdrop-blur-sm text-white text-[10px] font-bold uppercase px-2 py-1 rounded-md pointer-events-none">
                               Marco {currentBanners.indexOf(url) + 1}
                             </div>
                           )}
@@ -379,6 +436,99 @@ export default function AjustesPage() {
                       );
                     })}
                   </div>
+
+                  {/* Desktop Banners Ordering */}
+                  {currentBanners.length > 0 && (
+                    <div className="mt-4 p-4 bg-blue-50/50 border border-blue-100 rounded-xl">
+                      <h4 className="text-xs font-bold uppercase tracking-widest text-blue-800 mb-3">Orden de Visualización</h4>
+                      <div className="flex gap-4 overflow-x-auto pb-2 snap-x">
+                        {currentBanners.map((url, i) => (
+                           <div key={url} className="relative w-32 md:w-40 shrink-0 snap-start aspect-video rounded-lg overflow-hidden border border-blue-200 shadow-sm">
+                             <img src={url} className="w-full h-full object-cover" />
+                             <div className="absolute inset-0 bg-black/40 flex items-center justify-between px-2">
+                               <button onClick={(e) => { e.stopPropagation(); moveBanner(url, 'left', false); }} className="p-1 bg-white/20 hover:bg-white/40 backdrop-blur-sm text-white rounded transition-colors disabled:opacity-30 disabled:cursor-not-allowed" disabled={i === 0}>
+                                 <ChevronLeft className="w-5 h-5" />
+                               </button>
+                               <span className="text-white text-xs font-bold drop-shadow-md">{i + 1}</span>
+                               <button onClick={(e) => { e.stopPropagation(); moveBanner(url, 'right', false); }} className="p-1 bg-white/20 hover:bg-white/40 backdrop-blur-sm text-white rounded transition-colors disabled:opacity-30 disabled:cursor-not-allowed" disabled={i === currentBanners.length - 1}>
+                                 <ChevronRight className="w-5 h-5" />
+                               </button>
+                             </div>
+                           </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Gallery Selection Mobile */}
+                <div className="mt-8 pt-8 border-t border-gray-100">
+                  <h3 className="text-sm font-bold uppercase tracking-widest text-gray-400 mb-2">Galería de Imágenes (Móvil)</h3>
+                  <p className="text-xs text-gray-500 mb-4">Selecciona las imágenes que se mostrarán en la versión de teléfono (Recomendado formato vertical 9:16).</p>
+                  <div className="flex gap-4 overflow-x-auto pb-4 snap-x pr-8">
+                    {gallery.map((url, i) => {
+                      const isSelected = currentMobileBanners.includes(url);
+                      return (
+                        <div
+                          key={`mob-${i}`}
+                          onClick={() => toggleMobileBannerSelection(url)}
+                          className={`group relative w-[140px] md:w-[160px] shrink-0 snap-start aspect-[3/4] rounded-xl overflow-hidden cursor-pointer border-2 transition-all ${isSelected ? 'border-orange-500 ring-2 ring-orange-500/50 shadow-md' : 'border-transparent hover:border-gray-300 hover:shadow-sm'
+                            }`}
+                        >
+                          <img src={url} alt={`Banner Mobile ${i}`} className="w-full h-full object-cover" />
+                          <div className={`absolute inset-0 transition-colors ${isSelected ? 'bg-orange-500/10' : 'bg-black/20 group-hover:bg-black/10'}`} />
+
+                          {/* Delete Button */}
+                          <button
+                            onClick={(e) => handleDeleteImage(url, e)}
+                            className="absolute top-2 left-2 p-2 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors z-10 shadow-md opacity-0 group-hover:opacity-100"
+                            title="Eliminar permanente"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+
+                          {/* Selected Check Indicator */}
+                          {isSelected && (
+                            <div className="absolute top-2 right-2 bg-orange-500 text-white w-6 h-6 rounded-full flex items-center justify-center shadow-lg">
+                              <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
+                                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                              </svg>
+                            </div>
+                          )}
+
+                          {/* Order Number if Auto-Rotate is active and selected */}
+                          {isSelected && autoRotateBanner && (
+                            <div className="absolute bottom-2 left-2 bg-black/80 backdrop-blur-sm text-white text-[10px] font-bold uppercase px-2 py-1 rounded-md pointer-events-none">
+                              Marco {currentMobileBanners.indexOf(url) + 1}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Mobile Banners Ordering */}
+                  {currentMobileBanners.length > 0 && (
+                    <div className="mt-4 p-4 bg-orange-50/50 border border-orange-100 rounded-xl">
+                      <h4 className="text-xs font-bold uppercase tracking-widest text-orange-800 mb-3">Orden de Visualización Móvil</h4>
+                      <div className="flex gap-4 overflow-x-auto pb-2 snap-x">
+                        {currentMobileBanners.map((url, i) => (
+                           <div key={`ord-${url}`} className="relative w-24 md:w-28 shrink-0 snap-start aspect-[3/4] rounded-lg overflow-hidden border border-orange-200 shadow-sm">
+                             <img src={url} className="w-full h-full object-cover" />
+                             <div className="absolute inset-x-0 bottom-0 py-2 bg-gradient-to-t from-black/80 to-transparent flex items-end justify-between px-2 h-1/2">
+                               <button onClick={(e) => { e.stopPropagation(); moveBanner(url, 'left', true); }} className="p-1.5 bg-white/20 hover:bg-white/40 backdrop-blur-sm text-white rounded transition-colors disabled:opacity-30 disabled:cursor-not-allowed" disabled={i === 0}>
+                                 <ChevronLeft className="w-4 h-4" />
+                               </button>
+                               <span className="text-white text-xs font-bold drop-shadow-md mb-1">{i + 1}</span>
+                               <button onClick={(e) => { e.stopPropagation(); moveBanner(url, 'right', true); }} className="p-1.5 bg-white/20 hover:bg-white/40 backdrop-blur-sm text-white rounded transition-colors disabled:opacity-30 disabled:cursor-not-allowed" disabled={i === currentMobileBanners.length - 1}>
+                                 <ChevronRight className="w-4 h-4" />
+                               </button>
+                             </div>
+                           </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Info Note */}
