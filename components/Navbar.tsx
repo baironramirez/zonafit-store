@@ -27,6 +27,7 @@ export default function Navbar() {
   const [isCatOpen, setIsCatOpen] = useState(false);
   const [isMarcaOpen, setIsMarcaOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [mobileTab, setMobileTab] = useState<"categorias" | "marcas">("categorias");
   const [categorias, setCategorias] = useState<string[]>([]);
   const [marcas, setMarcas] = useState<string[]>([]);
 
@@ -80,15 +81,16 @@ export default function Navbar() {
   }, [isSearchOpen, isMobileMenuOpen]);
 
   return (
-    <motion.nav
-      initial={{ y: -100 }}
-      animate={{ y: 0 }}
-      transition={{ duration: 0.5 }}
-      className={`fixed top-0 left-0 right-0 z-50 w-full transition-all duration-300 ${isScrolled
-        ? "bg-white/95 backdrop-blur-md shadow-sm"
-        : "bg-transparent"
-        }`}
-    >
+    <>
+      <motion.nav
+        initial={{ y: -100 }}
+        animate={{ y: 0 }}
+        transition={{ duration: 0.5 }}
+        className={`fixed top-0 left-0 right-0 z-50 w-full transition-all duration-300 ${isScrolled
+          ? "bg-white/95 backdrop-blur-md shadow-sm"
+          : "bg-white md:bg-transparent"
+          }`}
+      >
       {/* Promo Bar (Top) */}
       {promoActive && (
         <div className="w-full bg-black text-white text-center py-2 px-4">
@@ -224,8 +226,8 @@ export default function Navbar() {
               )}
             </Link>
 
-            {/* User Icon Mobile (Hidden on sm, shown in drawer instead) */}
-            <div className="hidden sm:block">
+            {/* User Icon Always Visible */}
+            <div className="block">
               {loading ? (
                 <div className="w-5 h-5 border-2 border-gray-200 border-t-black rounded-full animate-spin"></div>
               ) : currentUser ? (
@@ -296,6 +298,7 @@ export default function Navbar() {
 
         </div>
       </div>
+    </motion.nav>
 
       {/* Full-Screen Search Modal */}
       {isSearchOpen && (
@@ -345,119 +348,98 @@ export default function Navbar() {
           {/* Main Drawer Panel */}
           <div className="absolute top-0 left-0 bottom-0 w-[85vw] max-w-sm bg-white shadow-2xl animate-in slide-in-from-left duration-300 flex flex-col h-full overflow-hidden">
             {/* Drawer Header */}
-            <div className="px-6 py-5 flex justify-between items-center border-b border-gray-100">
-              <Link href="/" className="flex items-center gap-2" onClick={() => setIsMobileMenuOpen(false)}>
-                <div className="relative w-8 h-8">
-                  <Image src="/images/logo-icon.png" alt="ZonaFit Icon" fill className="object-contain" />
-                </div>
-                <div className="relative h-6 w-24">
-                  <Image src="/images/logo-text.png" alt="ZonaFit Text" fill className="object-contain" />
-                </div>
-              </Link>
+            <div className="px-6 py-5 flex justify-between items-center bg-white">
               <button 
                 onClick={() => setIsMobileMenuOpen(false)}
-                className="p-2 bg-gray-50 hover:bg-gray-100 rounded-full transition-colors"
+                className="p-1 -ml-1 text-black hover:text-gray-500 transition-colors"
+                aria-label="Cerrar Menú"
               >
-                <X className="w-5 h-5 text-black" />
+                <X className="w-6 h-6 stroke-[1.5]" />
+              </button>
+              
+              <Link 
+                href="/favoritos" 
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="relative p-1 -mr-1 text-black hover:text-gray-500 transition-colors"
+              >
+                <Heart className="w-6 h-6 stroke-[1.5]" />
+                {totalFavorites > 0 && (
+                  <span className="absolute top-0 -right-1 bg-black text-white text-[10px] font-bold w-4 h-4 flex items-center justify-center rounded-full leading-none">
+                    {totalFavorites}
+                  </span>
+                )}
+              </Link>
+            </div>
+
+            {/* Tabs */}
+            <div className="flex px-6 border-b border-gray-200">
+              <button
+                onClick={() => setMobileTab("categorias")}
+                className={`py-3 mr-6 text-[13px] font-bold uppercase tracking-widest relative transition-colors ${mobileTab === 'categorias' ? 'text-black' : 'text-gray-400'}`}
+              >
+                Categorías
+                {mobileTab === 'categorias' && (
+                  <motion.div layoutId="mobileTabIndicator" className="absolute bottom-0 left-0 right-0 h-0.5 bg-black" />
+                )}
+              </button>
+              <button
+                onClick={() => setMobileTab("marcas")}
+                className={`py-3 mr-6 text-[13px] font-bold uppercase tracking-widest relative transition-colors ${mobileTab === 'marcas' ? 'text-black' : 'text-gray-400'}`}
+              >
+                Marcas
+                {mobileTab === 'marcas' && (
+                  <motion.div layoutId="mobileTabIndicator" className="absolute bottom-0 left-0 right-0 h-0.5 bg-black" />
+                )}
               </button>
             </div>
 
             {/* Drawer Content */}
-            <div className="flex-1 overflow-y-auto px-6 py-6 scrollbar-hide">
-              {/* Categorías */}
-              <div className="mb-8">
-                <h3 className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-4 px-2">Categorías</h3>
-                <div className="flex flex-col space-y-2">
+            <div className="flex-1 overflow-y-auto px-6 py-8 scrollbar-hide">
+              {mobileTab === 'categorias' ? (
+                <div className="flex flex-col space-y-6">
                   <Link
                     href="/productos"
                     onClick={() => setIsMobileMenuOpen(false)}
-                    className="px-4 py-3 rounded-xl bg-gray-50 text-sm font-bold uppercase tracking-wider text-black flex justify-between items-center"
+                    className="text-base md:text-lg font-bold text-black flex justify-between items-center group"
                   >
-                    Todos los productos <ChevronRight className="w-4 h-4 text-gray-400" />
+                    Productos Destacados <ChevronRight className="w-5 h-5 text-black group-hover:translate-x-1 transition-transform" />
                   </Link>
                   {categorias.map((cat, idx) => (
                     <Link
                       key={idx}
                       href={`/productos?cat=${encodeURIComponent(cat)}`}
                       onClick={() => setIsMobileMenuOpen(false)}
-                      className="px-4 py-3 rounded-xl hover:bg-gray-50 text-sm font-bold uppercase tracking-wider text-black flex justify-between items-center transition-colors"
+                      className="text-base md:text-lg text-black font-medium flex justify-between items-center group"
                     >
-                      {cat} <ChevronRight className="w-4 h-4 text-gray-300" />
+                      {cat} <ChevronRight className="w-5 h-5 text-gray-300 group-hover:text-black group-hover:translate-x-1 transition-all" />
                     </Link>
                   ))}
                 </div>
-              </div>
-
-              {/* Marcas */}
-              <div className="mb-8">
-                <h3 className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-4 px-2">Marcas</h3>
-                <div className="flex flex-col space-y-2">
+              ) : (
+                <div className="flex flex-col space-y-6">
+                  <Link
+                    href="/productos"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="text-base md:text-lg font-bold text-black flex justify-between items-center group"
+                  >
+                    Todas las Marcas <ChevronRight className="w-5 h-5 text-black group-hover:translate-x-1 transition-transform" />
+                  </Link>
                   {marcas.map((marca, idx) => (
                     <Link
                       key={idx}
                       href={`/productos?marca=${encodeURIComponent(marca)}`}
                       onClick={() => setIsMobileMenuOpen(false)}
-                      className="px-4 py-3 rounded-xl hover:bg-gray-50 text-sm font-bold uppercase tracking-wider text-black flex justify-between items-center transition-colors"
+                      className="text-base md:text-lg text-black font-medium flex justify-between items-center group"
                     >
-                      {marca} <ChevronRight className="w-4 h-4 text-gray-300" />
+                      {marca} <ChevronRight className="w-5 h-5 text-gray-300 group-hover:text-black group-hover:translate-x-1 transition-all" />
                     </Link>
                   ))}
                 </div>
-              </div>
-            </div>
-
-            {/* Drawer Footer (User & Faves) */}
-            <div className="border-t border-gray-100 p-6 bg-gray-50 flex flex-col gap-4">
-              <Link 
-                href="/favoritos" 
-                onClick={() => setIsMobileMenuOpen(false)}
-                className="flex items-center gap-3 w-full bg-white p-4 rounded-xl shadow-sm border border-gray-100 font-bold uppercase tracking-widest text-xs"
-              >
-                <div className="relative">
-                  <Heart className="w-5 h-5 stroke-[2] text-black" />
-                  {totalFavorites > 0 && (
-                    <span className="absolute -top-1 -right-2 bg-orange-500 text-white text-[10px] font-bold w-4 h-4 flex items-center justify-center rounded-full leading-none">
-                      {totalFavorites}
-                    </span>
-                  )}
-                </div>
-                Favoritos
-              </Link>
-              
-              {currentUser ? (
-                <div className="flex flex-col bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-                  <div className="px-4 py-3 bg-gray-900 text-white">
-                    <p className="text-[10px] uppercase tracking-widest text-gray-400 mb-1">Mi Cuenta</p>
-                    <p className="text-sm font-bold truncate">{userProfile?.email || currentUser.email}</p>
-                  </div>
-                  {userProfile?.rol === "admin" && (
-                    <Link href="/admin" onClick={() => setIsMobileMenuOpen(false)} className="px-4 py-3 text-xs font-bold uppercase tracking-widest border-b border-gray-100">
-                      Panel Admin
-                    </Link>
-                  )}
-                  <Link href="/pedidos" onClick={() => setIsMobileMenuOpen(false)} className="px-4 py-3 text-xs font-bold uppercase tracking-widest border-b border-gray-100">
-                    Mis Pedidos
-                  </Link>
-                  <button 
-                    onClick={() => { logout(); setIsMobileMenuOpen(false); }}
-                    className="px-4 py-3 text-xs font-bold uppercase tracking-widest text-red-600 text-left"
-                  >
-                    Cerrar Sesión
-                  </button>
-                </div>
-              ) : (
-                <Link 
-                  href="/login" 
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className="flex items-center justify-center gap-2 w-full bg-black text-white p-4 rounded-xl font-bold uppercase tracking-widest text-xs hover:bg-gray-800 transition-colors"
-                >
-                  <User className="w-4 h-4" /> Iniciar Sesión / Registro
-                </Link>
               )}
             </div>
           </div>
         </div>
       )}
-    </motion.nav>
+    </>
   );
 }
