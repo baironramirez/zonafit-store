@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useCart } from "@/context/CartContext";
+import { useFavorites } from "@/context/FavoritesContext";
 import { ProductoData, Variante } from "@/components/ProductCard";
 import { ArrowLeft, Check, Heart, Share, Star } from "lucide-react";
 import Link from "next/link";
@@ -12,6 +13,7 @@ export default function ProductDetailPage() {
   const { id } = useParams();
   const router = useRouter();
   const { addToCart } = useCart();
+  const { addToFavorites, removeFromFavorites, isFavorite } = useFavorites();
 
   const [producto, setProducto] = useState<ProductoData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -69,6 +71,15 @@ export default function ProductDetailPage() {
 
       setIsAdded(true);
       setTimeout(() => setIsAdded(false), 2000);
+    }
+  };
+
+  const handleToggleFavorite = () => {
+    if (!producto) return;
+    if (isFavorite(producto.id)) {
+      removeFromFavorites(producto.id);
+    } else {
+      addToFavorites(producto);
     }
   };
 
@@ -193,8 +204,8 @@ export default function ProductDetailPage() {
                         key={variante.id}
                         onClick={() => setSelectedVariant(variante)}
                         className={`py-4 px-2 text-xs md:text-sm font-bold uppercase tracking-widest border transition-all ${selectedVariant?.id === variante.id
-                            ? "bg-black text-white border-black"
-                            : "bg-white text-black border-gray-300 hover:border-black"
+                          ? "bg-black text-white border-black"
+                          : "bg-white text-black border-gray-300 hover:border-black"
                           }`}
                       >
                         {variante.nombre}
@@ -220,8 +231,15 @@ export default function ProductDetailPage() {
                   )}
                 </button>
 
-                <button className="w-full py-4 flex items-center justify-center gap-2 font-bold uppercase tracking-widest text-sm border border-black hover:bg-gray-50 transition-colors">
-                  <Heart className="w-4 h-4" /> Agregar a Lista de Deseos
+                <button
+                  onClick={handleToggleFavorite}
+                  className={`w-full py-4 flex items-center justify-center gap-2 font-bold uppercase tracking-widest text-sm border transition-colors ${producto && isFavorite(producto.id)
+                    ? 'border-orange-400 bg-orange-50 text-orange-500 hover:bg-orange-100'
+                    : 'border-black hover:bg-gray-50 text-black'
+                    }`}
+                >
+                  <Heart className={`w-4 h-4 transition-all ${producto && isFavorite(producto.id) ? 'fill-orange-500 text-orange-500' : ''}`} />
+                  {producto && isFavorite(producto.id) ? 'En Lista de Deseos' : 'Agregar a Lista de Deseos'}
                 </button>
               </div>
 
