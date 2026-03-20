@@ -1,6 +1,8 @@
 "use client";
 
 import { createContext, useContext, useState, useEffect } from "react";
+import { db } from "@/lib/firebase";
+import { collection, query, where, getDocs, limit } from "firebase/firestore";
 import { CartItem } from "../types/cart";
 
 export interface Discount {
@@ -18,14 +20,8 @@ type CartContextType = {
   openCart: () => void;
   closeCart: () => void;
   discount: Discount | null;
-  applyDiscount: (code: string) => { success: boolean; message: string };
+  applyDiscount: (code: string) => Promise<{ success: boolean; message: string }>;
   removeDiscount: () => void;
-};
-
-const VALID_CODES: Record<string, number> = {
-  "ZONAFIT10": 10,
-  "GYMSHARK20": 20,
-  "VERANO15": 15,
 };
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -82,13 +78,29 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     setIsCartOpen(false);
   }
 
-  function applyDiscount(code: string) {
+  async function applyDiscount(code: string): Promise<{ success: boolean; message: string }> {
     const upperCode = code.toUpperCase().trim();
-    if (VALID_CODES[upperCode]) {
-      setDiscount({ code: upperCode, percentage: VALID_CODES[upperCode] });
-      return { success: true, message: `Descuento del ${VALID_CODES[upperCode]}% aplicado` };
+    try {
+      const q = query(collection(db, "coupons"), where("codigo", "==", upperCode), limit(1));
+      const querySnapshot = await getDocs(q);
+      
+      if (querySnapshot.empty) {
+        return { success: false, message: "Código de descuento inválido" };
+      }
+      
+      const couponDoc = querySnapshot.docs[0];
+      const couponData = couponDoc.data();
+      
+      if (!couponData.activo) {
+        return { success: false, message: "El cupón se encuentra inactivo" };
+      }
+      
+      setDiscount({ code: upperCode, percentage: couponData.descuento });
+      return { success: true, message: `Descuento del ${couponData.descuento}% aplicado` };
+    } catch (error) {
+      console.error("Error applying discount:", error);
+      return { success: false, message: "Error conectando con el servidor" };
     }
-    return { success: false, message: "Código de descuento inválido" };
   }
 
   function removeDiscount() {

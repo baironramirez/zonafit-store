@@ -10,6 +10,7 @@ export default function CartDrawer() {
   const { cart, isCartOpen, closeCart, updateQuantity, removeFromCart, discount, applyDiscount, removeDiscount } = useCart();
   const [discountInput, setDiscountInput] = useState("");
   const [discountError, setDiscountError] = useState("");
+  const [isVerifying, setIsVerifying] = useState(false);
 
   const totalAmount = cart.reduce(
     (acc, item) => acc + item.precio * item.cantidad,
@@ -169,15 +170,18 @@ export default function CartDrawer() {
                           className="flex-1 px-4 py-3 bg-gray-50 border border-gray-200 text-black placeholder-gray-400 font-bold text-xs uppercase tracking-widest focus:outline-none focus:ring-2 focus:ring-black focus:bg-white transition-all"
                         />
                         <button
-                          onClick={() => {
-                            if (!discountInput.trim()) return;
-                            const res = applyDiscount(discountInput);
+                          onClick={async () => {
+                            if (!discountInput.trim() || isVerifying) return;
+                            setIsVerifying(true);
+                            const res = await applyDiscount(discountInput);
                             if (!res.success) setDiscountError(res.message);
                             else setDiscountInput("");
+                            setIsVerifying(false);
                           }}
-                          className="px-6 bg-gray-200 text-black font-bold uppercase tracking-widest text-xs hover:bg-gray-300 transition-colors"
+                          disabled={isVerifying}
+                          className="px-6 bg-gray-200 text-black font-bold uppercase tracking-widest text-xs hover:bg-gray-300 transition-colors disabled:opacity-50"
                         >
-                          Aplicar
+                          {isVerifying ? "Verificando..." : "Aplicar"}
                         </button>
                       </div>
                       {discountError && <p className="text-red-500 text-xs mt-2 font-bold">{discountError}</p>}

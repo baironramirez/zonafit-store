@@ -66,7 +66,7 @@ export default function AdminPage() {
 
         {/* Acciones Principales */}
         <h2 className="text-sm font-bold uppercase tracking-widest text-gray-400 mb-4 px-2">Gestión de Tienda</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
 
           {/* Tarjeta de Gestión de Productos */}
           <Link href="/admin/productos" className="group bg-white border border-gray-200 rounded-2xl p-6 hover:border-black hover:shadow-lg transition-all">
@@ -93,6 +93,15 @@ export default function AdminPage() {
             </div>
             <h3 className="text-lg font-bold text-black uppercase tracking-wide mb-2">Configuración</h3>
             <p className="text-sm text-gray-500 font-medium">Ajustes visuales, imágenes de banners y variables globales de la tienda.</p>
+          </Link>
+
+          {/* Tarjeta Afiliados */}
+          <Link href="/admin/cupones" className="group bg-white border border-gray-200 rounded-2xl p-6 hover:border-green-500 hover:shadow-lg hover:shadow-green-500/10 transition-all">
+            <div className="w-12 h-12 bg-gray-50 rounded-xl border border-gray-100 flex items-center justify-center mb-6 group-hover:bg-green-500 group-hover:border-green-500 transition-colors">
+              <Users className="w-6 h-6 text-black group-hover:text-white transition-colors" />
+            </div>
+            <h3 className="text-lg font-bold text-black uppercase tracking-wide mb-2">Afiliados</h3>
+            <p className="text-sm text-gray-500 font-medium">Gestiona códigos de descuento, trackea usos y liquida comisiones a los atletas.</p>
           </Link>
 
         </div>

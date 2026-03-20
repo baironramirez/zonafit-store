@@ -13,6 +13,7 @@ export default function CarritoPage() {
   const [userEmail, setUserEmail] = useState("");
   const [discountInput, setDiscountInput] = useState("");
   const [discountError, setDiscountError] = useState("");
+  const [isVerifyingCoupon, setIsVerifyingCoupon] = useState(false);
 
   // API Colombia States
   const [departments, setDepartments] = useState<any[]>([]);
@@ -123,6 +124,7 @@ export default function CarritoPage() {
           items,
           subtotal,
           descuento: discountAmount,
+          cuponUsado: discount ? discount.code : null,
           total: orderTotal,
         }),
       });
@@ -372,15 +374,18 @@ export default function CarritoPage() {
                       />
                       <button
                         type="button"
-                        onClick={() => {
-                          if (!discountInput.trim()) return;
-                          const res = applyDiscount(discountInput);
+                        onClick={async () => {
+                          if (!discountInput.trim() || isVerifyingCoupon) return;
+                          setIsVerifyingCoupon(true);
+                          const res = await applyDiscount(discountInput);
                           if (!res.success) setDiscountError(res.message);
                           else setDiscountInput("");
+                          setIsVerifyingCoupon(false);
                         }}
-                        className="px-6 bg-black text-white font-bold uppercase tracking-widest text-xs hover:bg-orange-500 transition-colors"
+                        disabled={isVerifyingCoupon}
+                        className="px-6 bg-black text-white font-bold uppercase tracking-widest text-xs hover:bg-orange-500 transition-colors disabled:opacity-50"
                       >
-                        Aplicar
+                        {isVerifyingCoupon ? "..." : "Aplicar"}
                       </button>
                     </div>
                     {discountError && <p className="text-red-500 text-xs mt-2 font-bold">{discountError}</p>}
