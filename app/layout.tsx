@@ -4,6 +4,7 @@ import { CartProvider } from "../context/CartContext";
 import { AuthProvider } from "../context/AuthContext";
 import { FavoritesProvider } from "@/context/FavoritesContext";
 import Navbar from "@/components/Navbar";
+import CartDrawer from "@/components/CartDrawer";
 
 export const metadata: Metadata = {
   title: "ZonaFit Store",
@@ -22,6 +23,7 @@ export default function RootLayout({
           <CartProvider>
             <FavoritesProvider>
               <Navbar />
+              <CartDrawer />
               {children}
             </FavoritesProvider>
           </CartProvider>

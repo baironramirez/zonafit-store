@@ -13,7 +13,7 @@ import { db } from "@/lib/firebase";
 import { doc, getDoc } from "firebase/firestore";
 
 export default function Navbar() {
-  const { cart } = useCart();
+  const { cart, openCart } = useCart();
   const { currentUser, userProfile, loading, logout } = useAuth();
   const { favorites } = useFavorites();
   const router = useRouter();
@@ -283,17 +283,17 @@ export default function Navbar() {
 
               {/* Cart Always Visible */}
 
-              <Link
-                href="/carrito"
-                className="relative text-black hover:text-gray-500 transition-colors flex items-center"
+              <button
+                onClick={openCart}
+                className="relative text-black hover:text-gray-500 transition-colors flex items-center p-1"
               >
                 <ShoppingCart className="w-5 h-5 stroke-[1.5]" />
                 {totalItems > 0 && (
-                  <span className="absolute -top-1.5 -right-2 bg-black text-white text-[10px] font-bold w-4 h-4 flex items-center justify-center rounded-full leading-none">
+                  <span className="absolute -top-1 -right-2 bg-orange-500 text-white text-[10px] font-bold w-4 h-4 flex items-center justify-center rounded-full leading-none shadow-sm">
                     {totalItems}
                   </span>
                 )}
-              </Link>
+              </button>
             </div>
 
           </div>

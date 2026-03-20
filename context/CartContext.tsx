@@ -9,12 +9,16 @@ type CartContextType = {
   removeFromCart: (id: string) => void;
   updateQuantity: (id: string, cantidad: number) => void;
   clearCart: () => void;
+  isCartOpen: boolean;
+  openCart: () => void;
+  closeCart: () => void;
 };
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
 export function CartProvider({ children }: { children: React.ReactNode }) {
   const [cart, setCart] = useState<CartItem[]>([]);
+  const [isCartOpen, setIsCartOpen] = useState(false);
 
   useEffect(() => {
     const savedCart = localStorage.getItem("cart");
@@ -34,12 +38,13 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
       if (existing) {
         return prev.map((p) =>
-          p.id === item.id ? { ...p, cantidad: p.cantidad + 1 } : p,
+          p.id === item.id ? { ...p, cantidad: p.cantidad + item.cantidad } : p,
         );
       }
 
       return [...prev, item];
     });
+    openCart(); // Automatically open cart drawer when adding an item
   }
 
   function removeFromCart(id: string) {
@@ -54,6 +59,14 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     setCart([]);
   }
 
+  function openCart() {
+    setIsCartOpen(true);
+  }
+
+  function closeCart() {
+    setIsCartOpen(false);
+  }
+
   return (
     <CartContext.Provider
       value={{
@@ -62,6 +75,9 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         removeFromCart,
         updateQuantity,
         clearCart,
+        isCartOpen,
+        openCart,
+        closeCart,
       }}
     >
       {children}
