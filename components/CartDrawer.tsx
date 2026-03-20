@@ -1,17 +1,23 @@
 "use client";
 
 import { useCart } from "@/context/CartContext";
-import { X, Trash2, ShoppingBag } from "lucide-react";
+import { X, Trash2, ShoppingBag, Tag } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
+import { useState } from "react";
 
 export default function CartDrawer() {
-  const { cart, isCartOpen, closeCart, updateQuantity, removeFromCart } = useCart();
+  const { cart, isCartOpen, closeCart, updateQuantity, removeFromCart, discount, applyDiscount, removeDiscount } = useCart();
+  const [discountInput, setDiscountInput] = useState("");
+  const [discountError, setDiscountError] = useState("");
 
   const totalAmount = cart.reduce(
     (acc, item) => acc + item.precio * item.cantidad,
     0
   );
+
+  const discountAmount = discount ? totalAmount * (discount.percentage / 100) : 0;
+  const finalTotal = totalAmount - discountAmount;
 
   return (
     <AnimatePresence>
@@ -35,19 +41,19 @@ export default function CartDrawer() {
             className="fixed top-0 right-0 h-full w-full sm:w-[400px] bg-white z-[100] shadow-2xl flex flex-col"
           >
             {/* Header */}
-            <div className="flex items-center justify-between p-6 border-b border-gray-100 shrink-0">
-              <h2 className="text-xl font-black uppercase tracking-widest flex items-center gap-2">
-                <ShoppingBag className="w-5 h-5" /> TU BOLSA
+            <div className="flex items-center justify-between p-6 border-b border-gray-200 shrink-0">
+              <h2 className="text-xl font-black uppercase tracking-widest flex items-center gap-2 text-gray-900">
+                <ShoppingBag className="w-5 h-5 text-gray-900" /> TU BOLSA
               </h2>
+
               <button
                 onClick={closeCart}
-                className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                className="p-2 hover:bg-gray-200 rounded-full transition-colors"
                 aria-label="Cerrar carrito"
               >
-                <X className="w-5 h-5" />
+                <X className="w-5 h-5 text-gray-800" />
               </button>
             </div>
-
             {/* Free Shipping Notice */}
             <div className="bg-emerald-50 p-4 border-b border-emerald-100 shrink-0">
               <p className="text-sm font-bold text-emerald-700 flex items-center gap-2">
@@ -91,7 +97,7 @@ export default function CartDrawer() {
                     <div className="flex-1 flex flex-col justify-between">
                       <div>
                         <div className="flex justify-between items-start gap-2 mb-1">
-                          <h3 className="font-bold text-sm leading-tight line-clamp-2">
+                          <h3 className="font-bold text-sm leading-tight line-clamp-2 text-black">
                             {item.nombre.split(" - ")[0]}
                           </h3>
                           <button
@@ -102,11 +108,11 @@ export default function CartDrawer() {
                           </button>
                         </div>
                         {item.nombre.includes(" - ") && (
-                          <p className="text-xs text-gray-500 mb-2">
+                          <p className="text-xs text-gray-600 mb-2">
                             {item.nombre.split(" - ")[1]}
                           </p>
                         )}
-                        <p className="font-black text-sm">
+                        <p className="font-black text-sm text-black">
                           ${item.precio.toLocaleString("es-AR")}
                         </p>
                       </div>
@@ -119,7 +125,7 @@ export default function CartDrawer() {
                         >
                           -
                         </button>
-                        <span className="w-8 h-8 flex items-center justify-center text-sm font-bold border-x border-gray-200">
+                        <span className="w-8 h-8 flex items-center justify-center text-sm font-black border-x border-gray-200 text-black">
                           {item.cantidad}
                         </span>
                         <button
@@ -137,15 +143,70 @@ export default function CartDrawer() {
 
             {/* Footer / Checkout */}
             {cart.length > 0 && (
-              <div className="border-t border-gray-100 p-6 bg-gray-50 shrink-0">
-                <div className="flex justify-between items-center mb-6">
-                  <span className="font-bold uppercase tracking-widest text-sm text-gray-600">Subtotal</span>
-                  <span className="text-xl font-black">${totalAmount.toLocaleString("es-AR")}</span>
+              <div className="border-t border-gray-200 p-6 bg-white shrink-0">
+                {/* Código de Descuento */}
+                <div className="mb-6">
+                  {discount ? (
+                    <div className="flex justify-between items-center bg-gray-50 border border-gray-200 px-4 py-3">
+                      <div className="flex flex-col">
+                        <span className="font-bold text-xs uppercase tracking-widest flex items-center gap-1 text-black">
+                          <Tag className="w-3 h-3" /> {discount.code}
+                        </span>
+                        <span className="text-xs text-green-600 font-bold mt-0.5">-{discount.percentage}% Aplicado</span>
+                      </div>
+                      <button onClick={removeDiscount} className="text-gray-400 hover:text-red-500 transition-colors p-1">
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ) : (
+                    <div>
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          value={discountInput}
+                          onChange={(e) => { setDiscountInput(e.target.value); setDiscountError(""); }}
+                          placeholder="CÓDIGO DE DESCUENTO"
+                          className="flex-1 px-4 py-3 bg-gray-50 border border-gray-200 text-black placeholder-gray-400 font-bold text-xs uppercase tracking-widest focus:outline-none focus:ring-2 focus:ring-black focus:bg-white transition-all"
+                        />
+                        <button
+                          onClick={() => {
+                            if (!discountInput.trim()) return;
+                            const res = applyDiscount(discountInput);
+                            if (!res.success) setDiscountError(res.message);
+                            else setDiscountInput("");
+                          }}
+                          className="px-6 bg-gray-200 text-black font-bold uppercase tracking-widest text-xs hover:bg-gray-300 transition-colors"
+                        >
+                          Aplicar
+                        </button>
+                      </div>
+                      {discountError && <p className="text-red-500 text-xs mt-2 font-bold">{discountError}</p>}
+                    </div>
+                  )}
                 </div>
+
+                {/* Subtotales */}
+                <div className="space-y-2 mb-6">
+                  <div className="flex justify-between items-center">
+                    <span className="font-bold uppercase tracking-widest text-sm text-gray-500">Subtotal</span>
+                    <span className="font-black text-gray-500">${totalAmount.toLocaleString("es-AR")}</span>
+                  </div>
+                  {discount && (
+                    <div className="flex justify-between items-center text-green-600">
+                      <span className="font-bold uppercase tracking-widest text-sm">Descuento ({discount.code})</span>
+                      <span className="font-black">-${discountAmount.toLocaleString("es-AR")}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between items-center pt-4 border-t border-gray-100">
+                    <span className="font-black uppercase tracking-widest text-sm text-black">Total a Pagar</span>
+                    <span className="text-xl font-black text-black">${finalTotal.toLocaleString("es-AR")}</span>
+                  </div>
+                </div>
+
                 <Link
                   href="/carrito"
                   onClick={closeCart}
-                  className="w-full flex justify-center items-center py-4 bg-black text-white font-black uppercase tracking-widest text-sm hover:bg-gray-900 transition-all hover:scale-[1.02] shadow-[0_10px_30px_-10px_rgba(0,0,0,0.3)]"
+                  className="w-full flex justify-center items-center py-4 bg-black text-white font-black uppercase tracking-widest text-sm hover:bg-orange-500 transition-all hover:scale-[1.02] shadow-[0_10px_30px_-10px_rgba(0,0,0,0.3)]"
                 >
                   <ShoppingBag className="w-4 h-4 mr-2" /> Pagar de forma segura
                 </Link>

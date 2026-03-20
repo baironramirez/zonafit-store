@@ -3,6 +3,11 @@
 import { createContext, useContext, useState, useEffect } from "react";
 import { CartItem } from "../types/cart";
 
+export interface Discount {
+  code: string;
+  percentage: number;
+}
+
 type CartContextType = {
   cart: CartItem[];
   addToCart: (item: CartItem) => void;
@@ -12,6 +17,15 @@ type CartContextType = {
   isCartOpen: boolean;
   openCart: () => void;
   closeCart: () => void;
+  discount: Discount | null;
+  applyDiscount: (code: string) => { success: boolean; message: string };
+  removeDiscount: () => void;
+};
+
+const VALID_CODES: Record<string, number> = {
+  "ZONAFIT10": 10,
+  "GYMSHARK20": 20,
+  "VERANO15": 15,
 };
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -19,6 +33,7 @@ const CartContext = createContext<CartContextType | undefined>(undefined);
 export function CartProvider({ children }: { children: React.ReactNode }) {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
+  const [discount, setDiscount] = useState<Discount | null>(null);
 
   useEffect(() => {
     const savedCart = localStorage.getItem("cart");
@@ -67,6 +82,19 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     setIsCartOpen(false);
   }
 
+  function applyDiscount(code: string) {
+    const upperCode = code.toUpperCase().trim();
+    if (VALID_CODES[upperCode]) {
+      setDiscount({ code: upperCode, percentage: VALID_CODES[upperCode] });
+      return { success: true, message: `Descuento del ${VALID_CODES[upperCode]}% aplicado` };
+    }
+    return { success: false, message: "Código de descuento inválido" };
+  }
+
+  function removeDiscount() {
+    setDiscount(null);
+  }
+
   return (
     <CartContext.Provider
       value={{
@@ -78,6 +106,9 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         isCartOpen,
         openCart,
         closeCart,
+        discount,
+        applyDiscount,
+        removeDiscount,
       }}
     >
       {children}

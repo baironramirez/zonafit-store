@@ -3,14 +3,16 @@
 import { useCart } from "../../context/CartContext";
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { Trash2, ShoppingBag, CreditCard, ChevronLeft, Minus, Plus } from "lucide-react";
+import { Trash2, ShoppingBag, CreditCard, ChevronLeft, Minus, Plus, Tag, X } from "lucide-react";
 import { getAuth } from "firebase/auth";
 
 export default function CarritoPage() {
-  const { cart, removeFromCart, updateQuantity } = useCart();
+  const { cart, removeFromCart, updateQuantity, discount, applyDiscount, removeDiscount } = useCart();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [dbProductos, setDbProductos] = useState<any[]>([]);
   const [userEmail, setUserEmail] = useState("");
+  const [discountInput, setDiscountInput] = useState("");
+  const [discountError, setDiscountError] = useState("");
 
   // API Colombia States
   const [departments, setDepartments] = useState<any[]>([]);
@@ -72,10 +74,13 @@ export default function CarritoPage() {
     }
   }, [selectedDeptId]);
 
-  const total = cart.reduce(
+  const subtotal = cart.reduce(
     (acc, item) => acc + item.precio * item.cantidad,
     0,
   );
+  
+  const discountAmount = discount ? subtotal * (discount.percentage / 100) : 0;
+  const finalTotal = subtotal - discountAmount;
 
   async function handleCheckout(e: any) {
     e.preventDefault();
@@ -102,10 +107,9 @@ export default function CarritoPage() {
       imagen: item.imagen || "",
     }));
 
-    const total = cart.reduce(
-      (acc, item) => acc + item.precio * item.cantidad,
-      0,
-    );
+    const orderTotal = finalTotal;
+
+    const multiplier = discount ? (1 - discount.percentage / 100) : 1;
 
     try {
       // 1️⃣ Crear pedido en Firestore
@@ -117,7 +121,9 @@ export default function CarritoPage() {
         body: JSON.stringify({
           cliente,
           items,
-          total,
+          subtotal,
+          descuento: discountAmount,
+          total: orderTotal,
         }),
       });
 
@@ -142,7 +148,7 @@ export default function CarritoPage() {
             id: item.id,
             title: item.nombre,
             quantity: Number(item.cantidad),
-            unit_price: Number(item.precio),
+            unit_price: Number((item.precio * multiplier).toFixed(2)),
           })),
           orderId: orderData.orderId,
         })
@@ -228,8 +234,14 @@ export default function CarritoPage() {
                 {/* Subtotales */}
                 <div className="flex justify-between items-center mb-4 text-black font-medium">
                   <span>Subtotal</span>
-                  <span>${total.toLocaleString("es-AR")}</span>
+                  <span>${subtotal.toLocaleString("es-AR")}</span>
                 </div>
+                {discount && (
+                  <div className="flex justify-between items-center mb-4 text-green-600 font-medium">
+                    <span>Descuento ({discount.code})</span>
+                    <span>-${discountAmount.toLocaleString("es-AR")}</span>
+                  </div>
+                )}
                 <div className="flex justify-between items-center mb-6 text-black font-medium pb-6 border-b border-gray-200">
                   <span>Envío</span>
                   <span className="text-orange-500 text-sm font-bold uppercase tracking-wider">Por Calcular</span>
@@ -241,7 +253,7 @@ export default function CarritoPage() {
                     Total a Pagar
                   </span>
                   <span className="text-3xl font-black text-black leading-none">
-                    ${total.toLocaleString("es-AR")}
+                    ${finalTotal.toLocaleString("es-AR")}
                   </span>
                 </div>
 
@@ -334,6 +346,48 @@ export default function CarritoPage() {
                 Resumen de Items ({cart.length})
               </h2>
 
+              {/* Código de Descuento en Checkout */}
+              <div className="mb-8">
+                {discount ? (
+                  <div className="flex justify-between items-center bg-gray-50 border border-gray-200 px-4 py-3">
+                    <div className="flex flex-col">
+                      <span className="font-bold text-xs uppercase tracking-widest flex items-center gap-1 text-black">
+                        <Tag className="w-3 h-3" /> {discount.code}
+                      </span>
+                      <span className="text-xs text-green-600 font-bold mt-0.5">-{discount.percentage}% Aplicado a toda la compra</span>
+                    </div>
+                    <button onClick={removeDiscount} className="text-gray-400 hover:text-red-500 transition-colors p-1" type="button">
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                ) : (
+                  <div>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={discountInput}
+                        onChange={(e) => { setDiscountInput(e.target.value); setDiscountError(""); }}
+                        placeholder="CÓDIGO DE DESCUENTO"
+                        className="flex-1 px-4 py-3 bg-gray-50 border border-gray-200 text-black placeholder-gray-400 font-bold text-xs uppercase tracking-widest focus:outline-none focus:ring-2 focus:ring-black focus:bg-white transition-all"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (!discountInput.trim()) return;
+                          const res = applyDiscount(discountInput);
+                          if (!res.success) setDiscountError(res.message);
+                          else setDiscountInput("");
+                        }}
+                        className="px-6 bg-black text-white font-bold uppercase tracking-widest text-xs hover:bg-orange-500 transition-colors"
+                      >
+                        Aplicar
+                      </button>
+                    </div>
+                    {discountError && <p className="text-red-500 text-xs mt-2 font-bold">{discountError}</p>}
+                  </div>
+                )}
+              </div>
+
               <div className="flex flex-col gap-6">
                 {cart.map((item) => {
                   const dbItem = dbProductos.find((p) => p.id === item.id);
@@ -406,7 +460,7 @@ export default function CarritoPage() {
         <div className="fixed bottom-0 left-0 right-0 p-4 bg-white border-t border-gray-200 shadow-[0_-10px_20px_rgba(0,0,0,0.05)] z-40 lg:hidden flex flex-col gap-3">
           <div className="flex justify-between items-center">
             <span className="font-bold text-gray-500 text-xs uppercase tracking-widest">Total a Pagar</span>
-            <span className="font-black text-xl">${total.toLocaleString("es-AR")}</span>
+            <span className="font-black text-xl">${finalTotal.toLocaleString("es-AR")}</span>
           </div>
           <button
             type="submit"
