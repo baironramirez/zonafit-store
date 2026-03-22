@@ -6,13 +6,14 @@ import { motion } from "framer-motion";
 import { useSearchParams } from "next/navigation";
 import { db } from "@/lib/firebase";
 import { doc, getDoc } from "firebase/firestore";
+import { collection, getDocs } from "firebase/firestore";
 
 function ProductosContent() {
   const searchParams = useSearchParams();
   const initialQuery = searchParams.get("q") || "";
   const initialCat = searchParams.get("cat") || "Todos";
   const initialMarca = searchParams.get("marca") || "";
-  
+
   const [productos, setProductos] = useState<ProductoData[]>([]);
   const [loading, setLoading] = useState(true);
   const [filtroCategoria, setFiltroCategoria] = useState<string>(initialCat);
@@ -22,19 +23,18 @@ function ProductosContent() {
   const [categorias, setCategorias] = useState<string[]>(["Todos"]);
 
   useEffect(() => {
-    // If URL query changes, update local state
-    setSearchQuery(searchParams.get("q") || "");
-    const catParam = searchParams.get("cat");
-    if (catParam) {
-      setFiltroCategoria(catParam);
-      setFiltroMarca("");
+    async function loadProductos() {
+      const querySnapshot = await getDocs(collection(db, "productos"));
+      const data = querySnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      setProductos(data as any);
+      setLoading(false);
     }
-    const marcaParam = searchParams.get("marca");
-    if (marcaParam) {
-      setFiltroMarca(marcaParam);
-      setFiltroCategoria("Todos");
-    }
-  }, [searchParams]);
+
+    loadProductos();
+  }, []);
 
   // Fetch configs (Categories)
   useEffect(() => {
@@ -54,28 +54,12 @@ function ProductosContent() {
     loadConfig();
   }, []);
 
-  useEffect(() => {
-    fetch("/api/productos")
-      .then((res) => res.json())
-      .then((data) => {
-        if (Array.isArray(data)) {
-          setProductos(data);
-        } else if (data.productos) {
-          setProductos(data.productos);
-        }
-        setLoading(false);
-      })
-      .catch((err) => {
-        console.error("Error fetching products:", err);
-        setLoading(false);
-      });
-  }, []);
 
   let productosFiltrados = productos;
-  
+
   if (searchQuery) {
-    productosFiltrados = productos.filter(p => 
-      p.nombre.toLowerCase().includes(searchQuery.toLowerCase()) || 
+    productosFiltrados = productos.filter(p =>
+      p.nombre.toLowerCase().includes(searchQuery.toLowerCase()) ||
       (p.categoria || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
       (p.descripcion || "").toLowerCase().includes(searchQuery.toLowerCase())
     );
@@ -128,7 +112,7 @@ function ProductosContent() {
 
       <div className="max-w-7xl mx-auto px-6 py-12">
         <div className="flex flex-col lg:flex-row gap-12">
-          
+
           {/* Sidebar de Filtros Minimalista */}
           <div className="w-full lg:w-64 flex-shrink-0">
             <div className="sticky top-32">
@@ -140,11 +124,10 @@ function ProductosContent() {
                   <button
                     key={cat}
                     onClick={() => setFiltroCategoria(cat)}
-                    className={`whitespace-nowrap px-4 py-3 text-left rounded-lg text-sm font-bold uppercase tracking-wide transition-all ${
-                      filtroCategoria === cat 
-                        ? "bg-black text-white" 
-                        : "text-gray-600 hover:bg-gray-100 hover:text-black"
-                    }`}
+                    className={`whitespace-nowrap px-4 py-3 text-left rounded-lg text-sm font-bold uppercase tracking-wide transition-all ${filtroCategoria === cat
+                      ? "bg-black text-white"
+                      : "text-gray-600 hover:bg-gray-100 hover:text-black"
+                      }`}
                   >
                     {cat}
                   </button>
@@ -163,9 +146,9 @@ function ProductosContent() {
                   <>Mostrando <span className="text-black font-bold">{productosFiltrados.length}</span> suplementos</>
                 )}
               </p>
-              
+
               {searchQuery && (
-                <button 
+                <button
                   onClick={() => setSearchQuery("")}
                   className="text-xs font-bold uppercase tracking-widest text-gray-400 hover:text-black transition-colors"
                 >
@@ -174,7 +157,7 @@ function ProductosContent() {
               )}
 
               {filtroMarca && (
-                <button 
+                <button
                   onClick={() => setFiltroMarca("")}
                   className="text-xs font-bold uppercase tracking-widest bg-black text-white px-3 py-1 rounded-full hover:bg-gray-700 transition-colors"
                 >
@@ -186,7 +169,7 @@ function ProductosContent() {
             {productosFiltrados.length === 0 ? (
               <div className="text-center py-20 bg-gray-50 rounded-2xl border border-gray-200">
                 <p className="text-gray-500 text-lg mb-4">No encontramos suplementos en esta categoría.</p>
-                <button 
+                <button
                   onClick={() => setFiltroCategoria("Todos")}
                   className="text-black font-bold underline hover:text-orange-500 uppercase tracking-widest text-sm"
                 >
@@ -194,7 +177,7 @@ function ProductosContent() {
                 </button>
               </div>
             ) : (
-              <motion.div 
+              <motion.div
                 variants={containerVariants}
                 initial="hidden"
                 animate="show"
