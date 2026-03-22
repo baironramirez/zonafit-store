@@ -24,7 +24,7 @@ function ProductosContent() {
 
   useEffect(() => {
     async function loadProductos() {
-      const querySnapshot = await getDocs(collection(db, "productos"));
+      const querySnapshot = await getDocs(collection(db, "products"));
       const data = querySnapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
