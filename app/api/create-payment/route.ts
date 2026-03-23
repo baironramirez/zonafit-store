@@ -56,13 +56,14 @@ export async function POST(req: Request) {
         // En localhost MercadoPago las rechaza con "back_url.success must be defined".
         // Descomenta esto cuando tengas un dominio real (ej: https://tudominio.com).
         //
-        // back_urls: {
-        //   success: `${baseUrl}/success`,
-        //   failure: `${baseUrl}/failure`,
-        //   pending: `${baseUrl}/pending`,
-        // },
-        // auto_return: "approved",
+        back_urls: {
+          success: `${baseUrl}/success`,
+          failure: `${baseUrl}/failure`,
+          pending: `${baseUrl}/pending`,
+        },
+        auto_return: "approved",
       },
+
     });
 
     console.log("Preferencia creada:", response.id);
