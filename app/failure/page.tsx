@@ -15,7 +15,7 @@ export default function FailurePage() {
         <p className="text-gray-600 mb-8">
           Hubo un problema al procesar tu pago con Mercado Pago. Por favor, intenta nuevamente.
         </p>
-        <Link 
+        <Link
           href="/carrito"
           className="inline-flex items-center justify-center w-full px-6 py-4 bg-black text-white font-bold uppercase tracking-wide rounded-xl hover:bg-orange-500 transition-colors"
         >

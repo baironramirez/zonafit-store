@@ -15,9 +15,9 @@ export default function SuccessPage() {
         <p className="text-gray-600 mb-8">
           Tu pago se ha procesado correctamente. En breve prepararemos tu pedido.
         </p>
-        <Link 
+        <Link
           href="/"
-          className="inline-flex items-center justify-center w-full px-6 py-4 bg-orange-500 text-white font-bold uppercase tracking-wide rounded-xl hover:bg-orange-600 transition-colors"
+          className="inline-flex items-center justify-center w-full px-6 py-4 bg-black text-white font-bold uppercase tracking-wide rounded-xl hover:bg-orange-500 transition-colors"
         >
           Volver a la tienda
         </Link>
