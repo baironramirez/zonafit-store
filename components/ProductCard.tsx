@@ -38,28 +38,29 @@ export default function ProductCard({ producto }: { producto: ProductoData }) {
   const categoria = producto?.categoria || "Sin categoría";
   const marca = producto?.marca;
 
+  // Calculamos el stock basado en si tiene variantes o no
+  const hasVariants = producto?.variantes && producto.variantes.length > 0;
+  const firstVariant = hasVariants ? producto.variantes![0] : null;
+  const currentStock = firstVariant ? firstVariant.stock : producto?.stock || 0;
+  const isOutOfStock = currentStock <= 0 || !producto?.activo;
+
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault(); // Prevent link navigation
-    if (producto) {
-      // Si el producto tiene variantes, usar la primera variante (precio base puede ser 0)
-      const hasVariants = producto.variantes && producto.variantes.length > 0;
-      const firstVariant = hasVariants ? producto.variantes![0] : null;
-
-      const finalPrice = firstVariant ? firstVariant.precio : producto.precio;
-      const finalName = firstVariant
-        ? `${producto.nombre} - ${firstVariant.nombre}`
-        : producto.nombre;
-      const finalId = firstVariant
-        ? `${producto.id}-${firstVariant.id}`
-        : producto.id;
+    if (producto && !isOutOfStock) {
+      const finalPrice = firstVariant ? firstVariant.precio : precio;
+      const finalName = firstVariant ? `${producto.nombre} - ${firstVariant.nombre}` : producto.nombre;
+      const finalId = firstVariant ? `${producto.id}-${firstVariant.id}` : producto.id;
 
       addToCart({
         id: finalId,
+        productoId: producto.id,
+        varianteId: firstVariant ? firstVariant.id : undefined,
         nombre: finalName,
         precio: finalPrice,
+        maxStock: currentStock,
         imagen: producto.imagen,
         cantidad: 1
-      } as any);
+      });
     }
   };
 
@@ -98,13 +99,25 @@ export default function ProductCard({ producto }: { producto: ProductoData }) {
         </button>
         
         {/* Quick Add Button overlay (Mobile: Always visible Orange FAB, Desktop: Hover only) */}
-        <div className={`absolute bottom-3 right-3 md:bottom-4 md:left-0 md:right-0 md:px-4 transition-all duration-300 md:opacity-0 md:translate-y-4 ${isHovered ? 'md:opacity-100 md:translate-y-0' : ''} opacity-100 translate-y-0 z-20`}>
+        <div className={`absolute bottom-3 right-3 md:bottom-4 md:left-0 md:right-0 md:px-4 transition-all duration-300 md:opacity-0 md:translate-y-4 ${isHovered || isOutOfStock ? 'md:opacity-100 md:translate-y-0' : ''} opacity-100 translate-y-0 z-20`}>
           <button 
             onClick={handleAddToCart}
-            className="w-10 h-10 md:w-full md:h-auto bg-orange-500 md:bg-black text-white md:py-3 rounded-full md:rounded-xl font-bold text-sm uppercase tracking-wider flex items-center justify-center gap-2 hover:bg-orange-600 md:hover:bg-orange-500 transition-colors shadow-lg"
-            aria-label="Agregar al carrito"
+            disabled={isOutOfStock}
+            className={`w-10 h-10 md:w-full md:h-auto md:py-3 rounded-full md:rounded-xl font-bold text-sm uppercase tracking-wider flex items-center justify-center gap-2 transition-colors shadow-lg ${
+              isOutOfStock 
+                ? 'bg-gray-300 text-gray-500 cursor-not-allowed hidden md:flex' 
+                : 'bg-orange-500 md:bg-black text-white hover:bg-orange-600 md:hover:bg-orange-500'
+            }`}
+            aria-label={isOutOfStock ? "Agotado" : "Agregar al carrito"}
           >
-            <Plus className="w-5 h-5 md:w-4 md:h-4 stroke-[3] md:stroke-[2]" /> <span className="hidden md:inline">Agregar</span>
+            {isOutOfStock ? (
+              <span className="hidden md:inline">Agotado</span>
+            ) : (
+              <>
+                <Plus className="w-5 h-5 md:w-4 md:h-4 stroke-[3] md:stroke-[2]" /> 
+                <span className="hidden md:inline">Agregar</span>
+              </>
+            )}
           </button>
         </div>
       </div>

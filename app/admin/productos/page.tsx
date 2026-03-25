@@ -348,94 +348,120 @@ export default function AdminProductos() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredProducts.map((product: any) => (
-            <div
-              key={product.id}
-              className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300 flex flex-col"
-            >
-              {/* Imagen del producto */}
-              {product.imagen && (
-                <div className="h-48 bg-gray-200">
-                  <img
-                    src={product.imagen}
-                    alt={product.nombre}
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-              )}
+          {filteredProducts.map((p: any) => {
+            const totalStock = p.variantes && p.variantes.length > 0
+              ? p.variantes.reduce((acc: number, v: any) => acc + v.stock, 0)
+              : (p.stock || 0);
+            const isOutOfStock = totalStock <= 0;
+
+            return (
+    <div
+      key={p.id}
+      className={`bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-all duration-300 flex flex-col border ${isOutOfStock ? 'border-red-200' : 'border-transparent'}`}
+    >
+      {/* Imagen del producto */}
+      {p.imagen && (
+        <div className="h-48 bg-gray-200 relative">
+          <img
+            src={p.imagen}
+            alt={p.nombre}
+            className={`w-full h-full object-cover ${!p.activo || isOutOfStock ? 'grayscale opacity-70' : ''}`}
+          />
+          
+          {/* Status Badges Overlay */}
+          <div className="absolute top-3 left-3 flex flex-col gap-2 z-10">
+            {isOutOfStock && (
+              <span className="bg-red-600 text-white text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded shadow-sm">
+                Agotado
+              </span>
+            )}
+            {!p.activo && (
+              <span className="bg-gray-800 text-white text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded shadow-sm">
+                Oculto
+              </span>
+            )}
+          </div>
+        </div>
+      )}
 
               {/* Información del producto */}
               <div className="p-6 flex-1 flex flex-col">
                 <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                  {product.nombre}
+                  {p.nombre}
                 </h3>
 
-                {product.categoria && (
+                {p.categoria && (
                   <p className="text-sm text-orange-600 font-medium mb-1">
-                    Categoría: {product.categoria}
+                    Categoría: {p.categoria}
                   </p>
                 )}
 
-                {product.marca && (
+                {p.marca && (
                   <p className="text-xs text-blue-600 font-bold mb-2 uppercase tracking-tight">
-                    Marca: {product.marca}
+                    Marca: {p.marca}
                   </p>
                 )}
 
                 <div className="mb-3">
-                  {product.variantes && product.variantes.length > 0 ? (
+                  {p.variantes && p.variantes.length > 0 ? (
                     <div className="space-y-1 mt-2">
-                      <p className="text-xs font-bold uppercase text-gray-400">
-                        Variantes ({product.variantes.length})
-                      </p>
+                      <div className="flex justify-between items-center">
+                        <p className="text-xs font-bold uppercase text-gray-400">
+                          Variantes ({p.variantes.length})
+                        </p>
+                        <p className={`text-sm font-bold border px-2 py-0.5 rounded ${isOutOfStock ? 'text-red-500 border-red-200 bg-red-50' : 'text-gray-600 border-gray-200'}`}>
+                          Stock Total: {totalStock}
+                        </p>
+                      </div>
                       <p className="text-lg font-bold text-gray-900">
                         Desde $
                         {Math.min(
-                          ...product.variantes.map((v: any) => v.precio)
+                          ...p.variantes.map((v: any) => v.precio)
                         ).toLocaleString("es-AR")}
                       </p>
                     </div>
                   ) : (
                     <div className="flex justify-between items-center mt-2">
                       <p className="text-2xl font-bold text-gray-900">
-                        ${product.precio?.toLocaleString("es-AR")}
+                        ${p.precio?.toLocaleString("es-AR")}
                       </p>
-                      <p className="text-sm text-gray-600 border border-gray-200 px-2 py-1 rounded">
-                        Stock: {product.stock}
+                      <p className={`text-sm font-bold border px-2 py-1 rounded ${isOutOfStock ? 'text-red-500 border-red-200 bg-red-50' : 'text-gray-600 border-gray-200'}`}>
+                        Stock: {p.stock}
                       </p>
                     </div>
                   )}
                 </div>
 
-                {product.descripcion && (
+                {p.descripcion && (
                   <p className="text-gray-600 text-sm mb-6 line-clamp-2">
-                    {product.descripcion}
+                    {p.descripcion}
                   </p>
                 )}
 
                 <div className="mt-auto flex justify-between items-center bg-gray-50 -mx-6 -mb-6 p-4 border-t border-gray-100">
                   <div className="flex gap-2 w-full justify-between">
                     <button
-                      onClick={() => openEditModal(product)}
+                      onClick={() => openEditModal(p)}
                       className="flex items-center justify-center gap-2 flex-1 rounded-md font-bold uppercase tracking-wider text-xs border border-gray-300 bg-white text-black hover:bg-black hover:text-white transition-colors duration-200 py-2 shadow-sm"
                     >
                       <Edit2 className="w-4 h-4" /> Configurar
                     </button>
 
                     <button
-                      onClick={() => toggleProduct(product.id, product.activo)}
-                      className={`flex-1 flex justify-center items-center py-2 rounded-md font-bold uppercase tracking-wider text-xs transition-colors duration-200 ${product.activo
+                      onClick={() => toggleProduct(p.id, p.activo)}
+                      className={`flex-1 flex justify-center items-center py-2 rounded-md font-bold uppercase tracking-wider text-xs transition-colors duration-200 ${p.activo
                         ? "bg-red-50 text-red-600 hover:bg-red-100"
                         : "bg-green-50 text-green-600 hover:bg-green-100"
                         }`}
                     >
-                      {product.activo ? "Ocultar" : "Mostrar"}
+                      {p.activo ? "Ocultar" : "Mostrar"}
                     </button>
                   </div>
                 </div>
               </div>
             </div>
-          ))}
+          );
+        })}
         </div>
 
         {filteredProducts.length === 0 && (

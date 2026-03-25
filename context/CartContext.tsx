@@ -44,18 +44,33 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   }, [cart]);
 
   function addToCart(item: CartItem) {
+    let limitReached = false;
+
     setCart((prev) => {
       const existing = prev.find((p) => p.id === item.id);
 
       if (existing) {
+        if (existing.cantidad + item.cantidad > item.maxStock) {
+          limitReached = true;
+          return prev; // No changes if limit reached
+        }
         return prev.map((p) =>
           p.id === item.id ? { ...p, cantidad: p.cantidad + item.cantidad } : p,
         );
       }
 
+      if (item.cantidad > item.maxStock) {
+        limitReached = true;
+        return prev;
+      }
       return [...prev, item];
     });
-    openCart(); // Automatically open cart drawer when adding an item
+
+    if (limitReached) {
+      alert(`No puedes agregar más unidades. El stock máximo disponible es ${item.maxStock}.`);
+    } else {
+      openCart(); // Automatically open cart drawer when adding an item successfully
+    }
   }
 
   function removeFromCart(id: string) {
@@ -63,7 +78,16 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   }
 
   function updateQuantity(id: string, cantidad: number) {
-    setCart((prev) => prev.map((p) => (p.id === id ? { ...p, cantidad } : p)));
+    if (cantidad < 1) return;
+
+    setCart((prev) => {
+      const existingItem = prev.find((p) => p.id === id);
+      if (existingItem && cantidad > existingItem.maxStock) {
+        alert(`No puedes agregar más unidades. El stock máximo disponible es ${existingItem.maxStock}.`);
+        return prev; // Do not update
+      }
+      return prev.map((p) => (p.id === id ? { ...p, cantidad } : p));
+    });
   }
 
   function clearCart() {

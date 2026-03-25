@@ -47,10 +47,11 @@ export default function ProductDetailPage() {
       });
   }, [id]);
 
-  const handleAddToCart = () => {
-    if (producto) {
+  const currentStock = selectedVariant ? selectedVariant.stock : (producto?.stock || 0);
+  const isOutOfStock = currentStock <= 0 || !producto?.activo;
 
-      // If product has variants but none is selected (shouldn't happen due to auto-select, but fallback)
+  const handleAddToCart = () => {
+    if (producto && !isOutOfStock) {
       if (producto.variantes && producto.variantes.length > 0 && !selectedVariant) {
         alert("Por favor selecciona una opción antes de agregar a la bolsa.");
         return;
@@ -63,11 +64,14 @@ export default function ProductDetailPage() {
 
       addToCart({
         id: selectedVariant ? `${producto.id}-${selectedVariant.id}` : producto.id,
+        productoId: producto.id,
+        varianteId: selectedVariant ? selectedVariant.id : undefined,
         nombre: finalName,
         precio: finalPrice,
+        maxStock: currentStock,
         imagen: producto.imagen,
         cantidad: 1
-      } as any);
+      });
 
       setIsAdded(true);
       setTimeout(() => setIsAdded(false), 2000);
@@ -219,10 +223,18 @@ export default function ProductDetailPage() {
               <div className="space-y-4 mb-10 mt-6">
                 <button
                   onClick={handleAddToCart}
-                  className={`w-full py-5 flex items-center justify-center gap-2 font-black uppercase tracking-widest text-sm transition-all duration-300 shadow-[0_10px_30px_-10px_rgba(0,0,0,0.3)] hover:shadow-[0_15px_40px_-10px_rgba(0,0,0,0.5)] ${isAdded ? "bg-orange-500 text-white" : "bg-black text-white hover:scale-[1.02]"
-                    }`}
+                  disabled={isOutOfStock}
+                  className={`w-full py-5 flex items-center justify-center gap-2 font-black uppercase tracking-widest text-sm transition-all duration-300 shadow-[0_10px_30px_-10px_rgba(0,0,0,0.3)] hover:shadow-[0_15px_40px_-10px_rgba(0,0,0,0.5)] ${
+                    isOutOfStock 
+                      ? "bg-gray-300 text-gray-500 cursor-not-allowed shadow-none hover:shadow-none"
+                      : isAdded 
+                        ? "bg-orange-500 text-white" 
+                        : "bg-black text-white hover:scale-[1.02]"
+                  }`}
                 >
-                  {isAdded ? (
+                  {isOutOfStock ? (
+                    "AGOTADO"
+                  ) : isAdded ? (
                     <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="flex items-center gap-2">
                       <Check className="w-5 h-5" /> AGREGADO AL CARRITO
                     </motion.div>
