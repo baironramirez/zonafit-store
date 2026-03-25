@@ -2,8 +2,6 @@ export type CartItem = {
   id: string; // The cart unique ID (usually productoId or productoId-varianteId)
   productoId: string; // The base product ID
   varianteId?: string; // Optional variant ID
-  talla?: string;
-  color?: string;
   nombre: string;
   precio: number;
   cantidad: number;

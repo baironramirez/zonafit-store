@@ -42,6 +42,11 @@ function mapPaymentStatus(mpStatus: string): string {
 
 /**
  * Firm Verification using timingSafeEqual to prevent Timing Attacks
+ * Follows MercadoPago documentation exactly:
+ * Template: id:[data.id_url];request-id:[x-request-id_header];ts:[ts_header];
+ * - data.id comes ONLY from query params
+ * - If data.id is not present in query, that part is OMITTED from the manifest
+ * - If data.id is alphanumeric, it must be lowercased
  */
 function verifySignatureSafe(req: Request, rawBody: string): boolean {
   const secret = process.env.MP_WEBHOOK_SECRET;
@@ -54,10 +59,11 @@ function verifySignatureSafe(req: Request, rawBody: string): boolean {
   const xRequestId = req.headers.get("x-request-id");
 
   if (!xSignature || !xRequestId) {
-    logEvent('warn', 'webhook_security_error', { type: "missing_headers" });
+    logEvent('warn', 'webhook_security_error', { type: "missing_headers", hasSignature: !!xSignature, hasRequestId: !!xRequestId });
     return false;
   }
 
+  // Parse x-signature header: "ts=xxx,v1=yyy"
   const parts: Record<string, string> = {};
   xSignature.split(",").forEach((part) => {
     const [key, value] = part.split("=");
@@ -72,21 +78,32 @@ function verifySignatureSafe(req: Request, rawBody: string): boolean {
     return false;
   }
 
-  // Fallback seguro para data.id
-  let dataId = new URL(req.url).searchParams.get("data.id");
-  if (!dataId) {
-    try {
-      const parsedBody = JSON.parse(rawBody);
-      dataId = parsedBody?.data?.id;
-    } catch (e) {
-      // Ignore parse errors here
-    }
-  }
-  dataId = dataId || "";
+  // data.id MUST come from query params according to MP docs
+  const url = new URL(req.url);
+  let dataId = url.searchParams.get("data.id") || url.searchParams.get("data_id") || "";
 
-  const manifest = `id:${dataId};request-id:${xRequestId};ts:${ts};`;
+  // MP docs: if data.id is alphanumeric, convert to lowercase  
+  if (dataId && /^[a-zA-Z0-9]+$/.test(dataId)) {
+    dataId = dataId.toLowerCase();
+  }
+
+  // Build manifest string conditionally (MP docs: omit parts that are not present)
+  let manifest = "";
+  if (dataId) {
+    manifest += `id:${dataId};`;
+  }
+  manifest += `request-id:${xRequestId};ts:${ts};`;
   
   const hmac = crypto.createHmac("sha256", secret).update(manifest).digest("hex");
+
+  logEvent('info', 'webhook_signature_debug', { 
+    dataId: dataId || "(empty/omitted)",
+    requestId: xRequestId,
+    ts,
+    manifest,
+    generatedHmac: hmac.substring(0, 10) + "...",
+    receivedV1: v1.substring(0, 10) + "...",
+  });
 
   // Comparación segura (anti timing-attacks)
   try {
@@ -94,6 +111,11 @@ function verifySignatureSafe(req: Request, rawBody: string): boolean {
     const receivedBuffer = Buffer.from(v1);
     
     if (generatedBuffer.length !== receivedBuffer.length) {
+      logEvent('error', 'webhook_security_error', { 
+        type: "signature_length_mismatch",
+        generatedLen: generatedBuffer.length,
+        receivedLen: receivedBuffer.length
+      });
       return false;
     }
     
@@ -103,7 +125,8 @@ function verifySignatureSafe(req: Request, rawBody: string): boolean {
       logEvent('error', 'webhook_security_error', { 
         type: "signature_mismatch",
         expected: v1,
-        generated: hmac
+        generated: hmac,
+        manifest_used: manifest
       });
     }
     return isValid;

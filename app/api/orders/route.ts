@@ -43,48 +43,27 @@ export async function POST(req: Request) {
           throw new Error(`El producto ${item.nombre} ya no está disponible.`);
         }
 
-        if (item.varianteId || item.talla || item.color) {
-          // Si tiene varianteId nuevo, o tiene propiedades antiguas de variantes
-          let varianteIdTarget = item.varianteId;
-          
+        if (item.varianteId) {
+          // Handle Variant Stock
           const variants = updatedPData.variantes || [];
+          const variantIndex = variants.findIndex((v: any) => v.id === item.varianteId);
           
-          // Fallback para carritos súper viejos que solo tenían talla/color
-          if (!varianteIdTarget && (item.talla || item.color)) {
-            const matchedVariant = variants.find((v: any) => 
-               (!item.talla || v.talla === item.talla) && 
-               (!item.color || v.color === item.color)
-            );
-            if (matchedVariant) varianteIdTarget = matchedVariant.id;
+          if (variantIndex === -1) {
+            throw new Error(`Variante no encontrada para ${item.nombre}.`);
           }
 
-          if (varianteIdTarget) {
-            const variantIndex = variants.findIndex((v: any) => v.id === varianteIdTarget);
-            
-            if (variantIndex === -1) {
-              throw new Error(`Variante no encontrada para ${item.nombre}.`);
-            }
+          if (variants[variantIndex].stock < item.cantidad) {
+            throw new Error(`Stock insuficiente para ${item.nombre}. Solicitaste ${item.cantidad}, pero solo quedan ${variants[variantIndex].stock}.`);
+          }
 
-            if (variants[variantIndex].stock < item.cantidad) {
-              throw new Error(`Stock insuficiente para ${item.nombre}. Solicitaste ${item.cantidad}, pero solo quedan ${variants[variantIndex].stock}.`);
-            }
+          // Deduct stock
+          variants[variantIndex].stock -= item.cantidad;
+          updatedPData.variantes = variants;
 
-            // Deduct stock
-            variants[variantIndex].stock -= item.cantidad;
-            updatedPData.variantes = variants;
-
-            // Check if overall product should be deactivated
-            const totalStock = variants.reduce((acc: number, v: any) => acc + v.stock, 0);
-            if (totalStock <= 0) {
-              updatedPData.activo = false;
-            }
-          } else {
-             // Si por alguna razón pensaba que tenía variante pero no se halló ID, tratar como base
-             if (updatedPData.stock < item.cantidad) {
-                throw new Error(`Stock insuficiente para ${item.nombre}.`);
-             }
-             updatedPData.stock -= item.cantidad;
-             if (updatedPData.stock <= 0) updatedPData.activo = false;
+          // Check if overall product should be deactivated
+          const totalStock = variants.reduce((acc: number, v: any) => acc + v.stock, 0);
+          if (totalStock <= 0) {
+            updatedPData.activo = false;
           }
         } else {
           // Handle Base Product Stock
