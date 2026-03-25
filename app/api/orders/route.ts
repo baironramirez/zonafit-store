@@ -13,16 +13,21 @@ export async function POST(req: Request) {
       const productDocs = new Map();
 
       for (const item of body.items as CartItem[]) {
-        if (!productRefs.has(item.productoId)) {
-          const pRef = doc(db, "products", item.productoId);
+        const productId = item.productoId || item.id;
+        if (!productId) {
+          throw new Error(`El producto "${item.nombre}" no tiene un ID válido en tu carrito.`);
+        }
+
+        if (!productRefs.has(productId)) {
+          const pRef = doc(db, "products", productId);
           const pSnap = await transaction.get(pRef);
           
           if (!pSnap.exists()) {
             throw new Error(`Producto ${item.nombre} no encontrado en la base de datos.`);
           }
           
-          productRefs.set(item.productoId, pRef);
-          productDocs.set(item.productoId, pSnap.data());
+          productRefs.set(productId, pRef);
+          productDocs.set(productId, pSnap.data());
         }
       }
 
@@ -30,39 +35,61 @@ export async function POST(req: Request) {
       const productUpdates = new Map();
 
       for (const item of body.items as CartItem[]) {
-        const pData = productDocs.get(item.productoId);
-        let updatedPData = productUpdates.get(item.productoId) || { ...pData };
+        const productId = item.productoId || item.id;
+        const pData = productDocs.get(productId);
+        let updatedPData = productUpdates.get(productId) || { ...pData };
 
         if (!updatedPData.activo) {
           throw new Error(`El producto ${item.nombre} ya no está disponible.`);
         }
 
-        if (item.varianteId) {
-          // Handle Variant Stock
-          const variants = updatedPData.variantes || [];
-          const variantIndex = variants.findIndex((v: any) => v.id === item.varianteId);
+        if (item.varianteId || item.talla || item.color) {
+          // Si tiene varianteId nuevo, o tiene propiedades antiguas de variantes
+          let varianteIdTarget = item.varianteId;
           
-          if (variantIndex === -1) {
-            throw new Error(`Variante no encontrada para ${item.nombre}.`);
+          const variants = updatedPData.variantes || [];
+          
+          // Fallback para carritos súper viejos que solo tenían talla/color
+          if (!varianteIdTarget && (item.talla || item.color)) {
+            const matchedVariant = variants.find((v: any) => 
+               (!item.talla || v.talla === item.talla) && 
+               (!item.color || v.color === item.color)
+            );
+            if (matchedVariant) varianteIdTarget = matchedVariant.id;
           }
 
-          if (variants[variantIndex].stock < item.cantidad) {
-            throw new Error(`Stock insuficiente para ${item.nombre}. Solicitaste ${item.cantidad}, pero solo hay ${variants[variantIndex].stock}.`);
-          }
+          if (varianteIdTarget) {
+            const variantIndex = variants.findIndex((v: any) => v.id === varianteIdTarget);
+            
+            if (variantIndex === -1) {
+              throw new Error(`Variante no encontrada para ${item.nombre}.`);
+            }
 
-          // Deduct stock
-          variants[variantIndex].stock -= item.cantidad;
-          updatedPData.variantes = variants;
+            if (variants[variantIndex].stock < item.cantidad) {
+              throw new Error(`Stock insuficiente para ${item.nombre}. Solicitaste ${item.cantidad}, pero solo quedan ${variants[variantIndex].stock}.`);
+            }
 
-          // Check if overall product should be deactivated
-          const totalStock = variants.reduce((acc: number, v: any) => acc + v.stock, 0);
-          if (totalStock <= 0) {
-            updatedPData.activo = false;
+            // Deduct stock
+            variants[variantIndex].stock -= item.cantidad;
+            updatedPData.variantes = variants;
+
+            // Check if overall product should be deactivated
+            const totalStock = variants.reduce((acc: number, v: any) => acc + v.stock, 0);
+            if (totalStock <= 0) {
+              updatedPData.activo = false;
+            }
+          } else {
+             // Si por alguna razón pensaba que tenía variante pero no se halló ID, tratar como base
+             if (updatedPData.stock < item.cantidad) {
+                throw new Error(`Stock insuficiente para ${item.nombre}.`);
+             }
+             updatedPData.stock -= item.cantidad;
+             if (updatedPData.stock <= 0) updatedPData.activo = false;
           }
         } else {
           // Handle Base Product Stock
           if (updatedPData.stock < item.cantidad) {
-            throw new Error(`Stock insuficiente para ${item.nombre}. Solicitaste ${item.cantidad}, pero solo hay ${updatedPData.stock}.`);
+            throw new Error(`Stock insuficiente para ${item.nombre}. Solicitaste ${item.cantidad}, pero solo quedan ${updatedPData.stock}.`);
           }
 
           updatedPData.stock -= item.cantidad;
@@ -72,7 +99,7 @@ export async function POST(req: Request) {
           }
         }
 
-        productUpdates.set(item.productoId, updatedPData);
+        productUpdates.set(productId, updatedPData);
       }
 
       // 3. Perform Writes
