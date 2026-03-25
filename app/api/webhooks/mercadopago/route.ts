@@ -2,54 +2,62 @@ import { NextResponse } from "next/server";
 import { client } from "@/lib/mercadopago";
 import { Payment } from "mercadopago";
 import { db } from "@/lib/firebase";
-import { collection, query, where, getDocs, updateDoc } from "firebase/firestore";
+import { doc, getDoc, updateDoc } from "firebase/firestore";
 import crypto from "crypto";
 
 /**
- * MercadoPago Webhook Handler
- * 
- * Handles payment notifications (IPN) from MercadoPago.
- * Verifies HMAC signature, checks idempotency, and updates order status in Firestore.
- * 
- * Configured events: payment, point_integration_wh (fraud alerts)
+ * LOGGING PROFESIONAL ESTRUCTURADO
  */
+function logEvent(level: 'info' | 'warn' | 'error', event: string, payload: any = {}) {
+  const logMessage = JSON.stringify({
+    event,
+    timestamp: new Date().toISOString(),
+    ...payload
+  });
+  console[level](logMessage);
+}
 
-// Map MercadoPago payment status to our internal order status
+/**
+ * MP Status to Internal Status Mapping
+ */
 function mapPaymentStatus(mpStatus: string): string {
   switch (mpStatus) {
     case "approved":
       return "pagado";
+    case "pending":
+    case "in_process":
+    case "in_mediation":
+    case "authorized":
+      return "pendiente";
     case "rejected":
     case "cancelled":
       return "rechazado";
     case "refunded":
     case "charged_back":
       return "reembolsado";
-    case "pending":
-    case "in_process":
-    case "in_mediation":
     default:
       return "pendiente";
   }
 }
 
-// Verify MercadoPago webhook signature (HMAC-SHA256)
-function verifySignature(req: Request, body: string): boolean {
+/**
+ * Firm Verification using timingSafeEqual to prevent Timing Attacks
+ */
+function verifySignatureSafe(req: Request, rawBody: string): boolean {
   const secret = process.env.MP_WEBHOOK_SECRET;
   if (!secret) {
-    console.warn("[Webhook] MP_WEBHOOK_SECRET not configured, skipping signature verification");
-    return true; // Allow in development
+    logEvent('warn', 'webhook_security_warning', { message: "MP_WEBHOOK_SECRET not configured, skipping signature verification" });
+    return true; // Solo para dev inicial. En prod esto debería retornar false.
   }
 
   const xSignature = req.headers.get("x-signature");
   const xRequestId = req.headers.get("x-request-id");
 
   if (!xSignature || !xRequestId) {
-    console.warn("[Webhook] Missing x-signature or x-request-id headers");
+    logEvent('warn', 'webhook_security_error', { type: "missing_headers" });
     return false;
   }
 
-  // Parse x-signature header: "ts=...,v1=..."
   const parts: Record<string, string> = {};
   xSignature.split(",").forEach((part) => {
     const [key, value] = part.split("=");
@@ -60,126 +68,177 @@ function verifySignature(req: Request, body: string): boolean {
   const v1 = parts["v1"];
 
   if (!ts || !v1) {
-    console.warn("[Webhook] Invalid x-signature format");
+    logEvent('warn', 'webhook_security_error', { type: "invalid_signature_format", header: xSignature });
     return false;
   }
 
-  // Get data_id from URL query params
-  const url = new URL(req.url);
-  const dataId = url.searchParams.get("data.id") || "";
-
-  // Build the manifest string as per MercadoPago docs
-  const manifest = `id:${dataId};request-id:${xRequestId};ts:${ts};`;
-
-  // Create HMAC-SHA256
-  const hmac = crypto.createHmac("sha256", secret);
-  hmac.update(manifest);
-  const generatedHash = hmac.digest("hex");
-
-  const isValid = generatedHash === v1;
-
-  if (!isValid) {
-    console.error("[Webhook] Signature verification FAILED");
-    console.error("[Webhook] Expected:", v1);
-    console.error("[Webhook] Generated:", generatedHash);
+  // Fallback seguro para data.id
+  let dataId = new URL(req.url).searchParams.get("data.id");
+  if (!dataId) {
+    try {
+      const parsedBody = JSON.parse(rawBody);
+      dataId = parsedBody?.data?.id;
+    } catch (e) {
+      // Ignore parse errors here
+    }
   }
+  dataId = dataId || "";
 
-  return isValid;
+  const manifest = `id:${dataId};request-id:${xRequestId};ts:${ts};`;
+  
+  const hmac = crypto.createHmac("sha256", secret).update(manifest).digest("hex");
+
+  // Comparación segura (anti timing-attacks)
+  try {
+    const generatedBuffer = Buffer.from(hmac);
+    const receivedBuffer = Buffer.from(v1);
+    
+    if (generatedBuffer.length !== receivedBuffer.length) {
+      return false;
+    }
+    
+    const isValid = crypto.timingSafeEqual(generatedBuffer, receivedBuffer);
+    
+    if (!isValid) {
+      logEvent('error', 'webhook_security_error', { 
+        type: "signature_mismatch",
+        expected: v1,
+        generated: hmac
+      });
+    }
+    return isValid;
+  } catch (error) {
+    logEvent('error', 'webhook_security_error', { type: "buffer_comparison_failed", error: (error as Error).message });
+    return false;
+  }
 }
 
 export async function POST(req: Request) {
-  console.log("[Webhook] ========== Incoming MercadoPago Webhook ==========");
+  logEvent('info', 'webhook_received', { url: req.url });
 
   try {
     const bodyText = await req.text();
-    const body = JSON.parse(bodyText);
+    let body;
+    try {
+      body = JSON.parse(bodyText);
+    } catch (e) {
+      logEvent('error', 'webhook_data_error', { type: "invalid_json" });
+      return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+    }
 
-    console.log("[Webhook] Type:", body.type);
-    console.log("[Webhook] Action:", body.action);
-    console.log("[Webhook] Data ID:", body.data?.id);
+    logEvent('info', 'webhook_payload', { type: body.type, action: body.action, dataId: body.data?.id });
 
     // 1️⃣ Verify signature
-    if (!verifySignature(req, bodyText)) {
-      console.error("[Webhook] ❌ Signature verification failed - rejecting");
+    if (!verifySignatureSafe(req, bodyText)) {
+      logEvent('error', 'webhook_security_error', { type: "unauthorized_request" });
       return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
     }
-    console.log("[Webhook] ✅ Signature verified");
 
-    // 2️⃣ Only process payment notifications
+    // 2️⃣ Filter Events
     if (body.type !== "payment") {
-      console.log("[Webhook] ℹ️ Ignoring non-payment notification:", body.type);
-      return NextResponse.json({ received: true, ignored: true });
+      logEvent('info', 'webhook_ignored', { reason: "non_payment_event", type: body.type });
+      return NextResponse.json({ received: true });
     }
 
     const paymentId = body.data?.id;
     if (!paymentId) {
-      console.error("[Webhook] ❌ No payment ID in notification");
-      return NextResponse.json({ error: "Missing payment ID" }, { status: 400 });
+      logEvent('error', 'webhook_data_error', { type: "missing_payment_id" });
+      return NextResponse.json({ received: true }); // SIEMPRE 200 excepto error de firma
     }
 
-    // 3️⃣ Fetch full payment details from MercadoPago API
-    console.log("[Webhook] 🔍 Fetching payment details for ID:", paymentId);
-    const payment = new Payment(client);
-    const paymentData = await payment.get({ id: paymentId });
+    // 3️⃣ Fetch MP Data
+    let paymentData;
+    try {
+      const payment = new Payment(client);
+      paymentData = await payment.get({ id: paymentId });
+    } catch (error: any) {
+      logEvent('error', 'webhook_api_error', { type: "mercadopago_api_failure", paymentId, message: error.message });
+      return NextResponse.json({ received: true }); // MercadoPago reintentará u omitiremos sabiamente
+    }
 
     const mpStatus = paymentData.status || "unknown";
     const externalRef = paymentData.external_reference;
     const mpStatusDetail = paymentData.status_detail || "";
     const mpPaymentMethod = paymentData.payment_method_id || "";
     const mpTransactionAmount = paymentData.transaction_amount || 0;
+    const mpCurrency = paymentData.currency_id || "COP";
 
-    console.log("[Webhook] Payment Status:", mpStatus);
-    console.log("[Webhook] Status Detail:", mpStatusDetail);
-    console.log("[Webhook] External Reference (orderId):", externalRef);
-    console.log("[Webhook] Amount:", mpTransactionAmount);
+    logEvent('info', 'webhook_payment_fetched', { 
+      paymentId, 
+      status: mpStatus, 
+      externalRef, 
+      amount: mpTransactionAmount,
+      currency: mpCurrency
+    });
 
     if (!externalRef) {
-      console.warn("[Webhook] ⚠️ Payment has no external_reference, cannot match to order");
-      return NextResponse.json({ received: true, warning: "No external_reference" });
+      logEvent('warn', 'webhook_data_warning', { type: "no_external_reference", paymentId });
+      return NextResponse.json({ received: true });
     }
 
-    // 4️⃣ Find the order in Firestore by document ID (external_reference = orderId)
-    const ordersRef = collection(db, "orders");
-    const q = query(ordersRef, where("__name__", "==", externalRef));
-    // __name__ won't work directly, let's use getDocs approach
-    const { doc: firestoreDoc, getDoc: firestoreGetDoc } = await import("firebase/firestore");
-    const orderDocRef = firestoreDoc(db, "orders", externalRef);
-    const orderSnap = await firestoreGetDoc(orderDocRef);
+    // 4️⃣ Firestore Fetch Directo (Optimizado)
+    const orderDocRef = doc(db, "orders", externalRef);
+    const orderSnap = await getDoc(orderDocRef);
 
     if (!orderSnap.exists()) {
-      console.error("[Webhook] ❌ Order not found in Firestore:", externalRef);
-      return NextResponse.json({ error: "Order not found" }, { status: 404 });
+      logEvent('error', 'webhook_data_error', { type: "order_not_found", orderId: externalRef });
+      return NextResponse.json({ received: true });
     }
 
     const orderData = orderSnap.data();
-    console.log("[Webhook] 📦 Order found. Current status:", orderData.estado);
 
-    // 5️⃣ Idempotency check - don't process the same payment twice
-    if (orderData.mpPaymentId === paymentId.toString() && orderData.mpStatus === mpStatus) {
-      console.log("[Webhook] ℹ️ Payment already processed (idempotent), skipping");
+    // 5️⃣ Validaciones Estratégicas de Negocio (Monto y Moneda)
+    if (mpCurrency !== "COP") {
+      logEvent('warn', 'webhook_business_rule_warning', { 
+        type: "currency_mismatch", 
+        orderId: externalRef, 
+        expected: "COP", 
+        received: mpCurrency 
+      });
+    }
+
+    // Comparamos monto (tolerancia de centavos por flotantes)
+    if (Math.abs(mpTransactionAmount - (orderData.total || 0)) > 0.05) {
+      logEvent('error', 'webhook_business_rule_error', { 
+        type: "amount_mismatch", 
+        orderId: externalRef, 
+        expected: orderData.total, 
+        received: mpTransactionAmount 
+      });
+      return NextResponse.json({ received: true, error: "amount_mismatch" }); // 200 para evitar loops infinitos
+    }
+
+    const newInternalStatus = mapPaymentStatus(mpStatus);
+
+    // 6️⃣ Idempotencia Estricta
+    if (
+      orderData.mpPaymentId === paymentId.toString() && 
+      orderData.mpStatus === mpStatus && 
+      orderData.estado === newInternalStatus
+    ) {
+      logEvent('info', 'webhook_duplicate_ignored', { orderId: externalRef, paymentId, status: mpStatus });
       return NextResponse.json({ received: true, duplicate: true });
     }
 
-    // 6️⃣ Don't downgrade order status (e.g., don't go from "enviado" back to "pagado")
+    // 7️⃣ Lógica de Prioridades Limpia (No Downgrade)
     const statusPriority: Record<string, number> = {
       pendiente: 0,
-      rechazado: 1,
-      reembolsado: 1,
-      pagado: 2,
-      enviado: 3,
-      entregado: 4,
+      pagado: 1,
+      enviado: 2,
+      entregado: 3,
+      rechazado: 4, 
+      reembolsado: 4, 
     };
 
-    const newInternalStatus = mapPaymentStatus(mpStatus);
     const currentPriority = statusPriority[orderData.estado] ?? 0;
     const newPriority = statusPriority[newInternalStatus] ?? 0;
 
-    // Allow update if: new status has higher priority, OR it's a rejection/refund
-    const shouldUpdateStatus = newPriority > currentPriority || 
-      newInternalStatus === "rechazado" || 
-      newInternalStatus === "reembolsado";
+    // Actualiza siempre si la nueva prioridad es mayor.
+    // O si es la misma prioridad (ej: pagado -> pagado) para refrescar datos MP.
+    // PERO bloquea cosas raras como enviado(2) -> pendiente(0).
+    const isDowngrade = newPriority < currentPriority;
 
-    // 7️⃣ Update order in Firestore
+    // 8️⃣ Guardar en Base de Datos
     const updatePayload: Record<string, any> = {
       mpPaymentId: paymentId.toString(),
       mpStatus: mpStatus,
@@ -189,33 +248,33 @@ export async function POST(req: Request) {
       mpLastWebhookAt: new Date().toISOString(),
     };
 
-    if (shouldUpdateStatus) {
+    if (!isDowngrade) {
       updatePayload.estado = newInternalStatus;
-      if (newInternalStatus === "pagado") {
+      // No sobrescribir fechaPago si ya existe
+      if (newInternalStatus === "pagado" && !orderData.fechaPago) {
         updatePayload.fechaPago = new Date().toISOString();
       }
-      console.log("[Webhook] ✅ Updating order status:", orderData.estado, "→", newInternalStatus);
+      logEvent('info', 'webhook_order_updating', { orderId: externalRef, oldStatus: orderData.estado, newStatus: newInternalStatus });
     } else {
-      console.log("[Webhook] ℹ️ Keeping current status:", orderData.estado, "(not downgrading to", newInternalStatus, ")");
+      logEvent('warn', 'webhook_status_downgrade_prevented', { 
+        orderId: externalRef, 
+        attemptedStatus: newInternalStatus, 
+        currentStatus: orderData.estado 
+      });
     }
 
     await updateDoc(orderDocRef, updatePayload);
-    console.log("[Webhook] ✅ Order updated successfully");
-    console.log("[Webhook] ========== Webhook Processing Complete ==========");
+    logEvent('info', 'webhook_processed_successfully', { orderId: externalRef, paymentId });
 
-    return NextResponse.json({ received: true, status: newInternalStatus });
+    return NextResponse.json({ received: true, status: isDowngrade ? orderData.estado : newInternalStatus });
 
   } catch (error: any) {
-    console.error("[Webhook] ❌ Error processing webhook:", error?.message || error);
-    console.error("[Webhook] Stack:", error?.stack);
-
-    // Always return 200 to MercadoPago to avoid retries on our errors
-    // (only return non-200 for auth failures)
-    return NextResponse.json({ error: "Internal processing error" }, { status: 200 });
+    logEvent('error', 'webhook_fatal_error', { message: error?.message || "Unknown error", stack: error?.stack });
+    // CRÍTICO: Siempre 200 ante fallas internas para que MP no enloquezca si no es necesario.
+    return NextResponse.json({ received: true, error: "Internal processing error softly handled" }, { status: 200 });
   }
 }
 
-// MercadoPago may also send GET requests for verification
 export async function GET() {
-  return NextResponse.json({ status: "ok", service: "mercadopago-webhook" });
+  return NextResponse.json({ status: "ok", service: "mercadopago-webhook-pro" });
 }
