@@ -6,7 +6,7 @@ import { useAuth } from "../../context/AuthContext";
 import { collection, query, where, getDocs, Timestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import Link from "next/link";
-import { Package, Clock, CheckCircle2, ChevronRight, ShoppingBag } from "lucide-react";
+import { Package, Clock, CheckCircle2, ChevronRight, ShoppingBag, ChevronDown, ChevronUp, MapPin, CreditCard } from "lucide-react";
 
 interface OrderItem {
   nombre: string;
@@ -20,12 +20,27 @@ interface Order {
   cliente: {
     correo: string;
     nombre: string;
-    // ...other fields we don't strictly need to display here
+    cedula?: string;
+    telefono?: string;
+    direccion?: string;
+    ciudad?: string;
+    departamento?: string;
+    codigoPostal?: string;
   };
   items: OrderItem[];
+  subtotal?: number;
+  descuento?: number;
+  cuponUsado?: string;
   total: number;
   estado: string; // "pendiente", "completado", etc.
   fecha: Timestamp | any; 
+  // MP info
+  mpPaymentId?: string;
+  mpStatus?: string;
+  mpStatusDetail?: string;
+  mpPaymentMethod?: string;
+  fechaPago?: string;
+  fechaEnvio?: string;
 }
 
 export default function PedidosPage() {
@@ -33,6 +48,7 @@ export default function PedidosPage() {
   const router = useRouter();
   const [orders, setOrders] = useState<Order[]>([]);
   const [isLoadingOrders, setIsLoadingOrders] = useState(true);
+  const [expandedOrder, setExpandedOrder] = useState<string | null>(null);
 
   useEffect(() => {
     // If auth is done loading and there is no user, kick them out
@@ -212,11 +228,66 @@ export default function PedidosPage() {
                       </span>
                     </div>
 
-                    {/* Fictional link for future tracking/invoice features */}
-                    <button className="text-gray-400 hover:text-black flex items-center gap-1 text-sm font-bold uppercase tracking-widest transition-colors">
-                      Ver Detalles <ChevronRight className="w-4 h-4" />
+                    {/* Botón Ver Detalles (Toggling state) */}
+                    <button 
+                      onClick={() => setExpandedOrder(expandedOrder === order.id ? null : order.id)}
+                      className="text-gray-400 hover:text-black flex items-center gap-1 text-sm font-bold uppercase tracking-widest transition-colors"
+                    >
+                      {expandedOrder === order.id ? "Ocultar Detalles" : "Ver Detalles"} 
+                      {expandedOrder === order.id ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                     </button>
                   </div>
+
+                  {/* Expanded Details Section */}
+                  {expandedOrder === order.id && (
+                    <div className="mt-6 pt-6 border-t border-gray-100 animate-in fade-in slide-in-from-top-2 duration-300">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        {/* Detalles de Envío */}
+                        <div>
+                          <h4 className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-3 flex items-center gap-2">
+                            <MapPin className="w-4 h-4" /> Datos de Envío
+                          </h4>
+                          <div className="bg-gray-50 p-4 rounded-lg text-sm text-gray-600 space-y-2">
+                            <p><strong className="text-black">Dirección:</strong> {order.cliente.direccion || "No especificada"}</p>
+                            <p><strong className="text-black">Ciudad:</strong> {order.cliente.ciudad || "—"}, {order.cliente.departamento || "—"}</p>
+                            <p><strong className="text-black">Cód. Postal:</strong> {order.cliente.codigoPostal || "—"}</p>
+                            <p className="pt-2 mt-2 border-t border-gray-200">
+                              <strong className="text-black">Recibe:</strong> {order.cliente.nombre} <br/>
+                              <strong className="text-black">Teléfono:</strong> {order.cliente.telefono || "—"}
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Detalles de Pago y Costos */}
+                        <div>
+                          <h4 className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-3 flex items-center gap-2">
+                            <CreditCard className="w-4 h-4" /> Información de Pago
+                          </h4>
+                          <div className="bg-gray-50 p-4 rounded-lg text-sm text-gray-600 space-y-2">
+                            <p><strong className="text-black">Método:</strong> {order.mpPaymentMethod ? order.mpPaymentMethod.toUpperCase() : "MercadoPago"}</p>
+                            <p><strong className="text-black">Estado del Pago:</strong> {order.mpStatus || "Pendiente de confirmación"}</p>
+                            
+                            <div className="pt-2 mt-2 border-t border-gray-200 space-y-1">
+                              <div className="flex justify-between">
+                                <span>Subtotal</span>
+                                <span>${(order.subtotal || order.total).toLocaleString("es-AR")}</span>
+                              </div>
+                              {order.cuponUsado && (
+                                <div className="flex justify-between text-green-600">
+                                  <span>Descuento ({order.cuponUsado})</span>
+                                  <span>-${(order.descuento || 0).toLocaleString("es-AR")}</span>
+                                </div>
+                              )}
+                              <div className="flex justify-between font-bold text-black pt-1 border-t border-gray-100 mt-1">
+                                <span>Total Pagado</span>
+                                <span>${order.total.toLocaleString("es-AR")}</span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
 
                 </div>
               );
