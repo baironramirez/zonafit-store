@@ -102,6 +102,11 @@ export default function CarritoPage() {
     };
 
     const items = cart.map((item) => ({
+      id: item.id,
+      productoId: item.productoId,
+      varianteId: item.varianteId,
+      talla: item.talla,
+      color: item.color,
       nombre: item.nombre,
       precio: item.precio,
       cantidad: item.cantidad,
