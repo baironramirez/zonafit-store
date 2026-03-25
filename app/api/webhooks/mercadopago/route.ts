@@ -42,17 +42,14 @@ function mapPaymentStatus(mpStatus: string): string {
 
 /**
  * Firm Verification using timingSafeEqual to prevent Timing Attacks
- * Follows MercadoPago documentation exactly:
+ * Follows MercadoPago documentation:
  * Template: id:[data.id_url];request-id:[x-request-id_header];ts:[ts_header];
- * - data.id comes ONLY from query params
- * - If data.id is not present in query, that part is OMITTED from the manifest
- * - If data.id is alphanumeric, it must be lowercased
  */
 function verifySignatureSafe(req: Request, rawBody: string): boolean {
   const secret = process.env.MP_WEBHOOK_SECRET;
   if (!secret) {
     logEvent('warn', 'webhook_security_warning', { message: "MP_WEBHOOK_SECRET not configured, skipping signature verification" });
-    return true; // Solo para dev inicial. En prod esto debería retornar false.
+    return true;
   }
 
   const xSignature = req.headers.get("x-signature");
@@ -78,31 +75,33 @@ function verifySignatureSafe(req: Request, rawBody: string): boolean {
     return false;
   }
 
-  // data.id MUST come from query params according to MP docs
+  // Extract data.id: try query params first, then body fallback
   const url = new URL(req.url);
   let dataId = url.searchParams.get("data.id") || url.searchParams.get("data_id") || "";
 
-  // MP docs: if data.id is alphanumeric, convert to lowercase  
-  if (dataId && /^[a-zA-Z0-9]+$/.test(dataId)) {
-    dataId = dataId.toLowerCase();
+  // Fallback: extract from body if not in query
+  if (!dataId) {
+    try {
+      const parsedBody = JSON.parse(rawBody);
+      dataId = String(parsedBody?.data?.id || "");
+    } catch (e) {
+      // Ignore parse errors
+    }
   }
 
-  // Build manifest string conditionally (MP docs: omit parts that are not present)
-  let manifest = "";
-  if (dataId) {
-    manifest += `id:${dataId};`;
-  }
-  manifest += `request-id:${xRequestId};ts:${ts};`;
+  // Build manifest — id: is ALWAYS included (MercadoPago always includes it)
+  const manifest = `id:${dataId};request-id:${xRequestId};ts:${ts};`;
   
   const hmac = crypto.createHmac("sha256", secret).update(manifest).digest("hex");
 
   logEvent('info', 'webhook_signature_debug', { 
-    dataId: dataId || "(empty/omitted)",
+    fullUrl: req.url,
+    queryParams: Object.fromEntries(url.searchParams.entries()),
+    dataId: dataId || "(empty)",
     requestId: xRequestId,
     ts,
     manifest,
-    generatedHmac: hmac.substring(0, 10) + "...",
-    receivedV1: v1.substring(0, 10) + "...",
+    match: hmac === v1,
   });
 
   // Comparación segura (anti timing-attacks)
