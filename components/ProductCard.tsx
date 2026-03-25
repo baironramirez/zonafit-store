@@ -80,7 +80,7 @@ export default function ProductCard({ producto }: { producto: ProductoData }) {
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      <div className="relative aspect-[4/5] overflow-hidden bg-gray-50 border-b border-gray-100 p-6 flex items-center justify-center">
+      <div className="relative aspect-[4/5] overflow-hidden bg-gradient-to-b from-gray-100 to-gray-50 p-6 flex items-center justify-center">
         {/* Placeholder for real product images, with a subtle gray background */}
         <img
           src={imagen}

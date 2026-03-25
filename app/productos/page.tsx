@@ -54,6 +54,13 @@ function ProductosContent() {
     loadConfig();
   }, []);
 
+  // Sync filters with URL search params (reactive to Navbar navigation)
+  useEffect(() => {
+    setFiltroCategoria(searchParams.get("cat") || "Todos");
+    setFiltroMarca(searchParams.get("marca") || "");
+    setSearchQuery(searchParams.get("q") || "");
+  }, [searchParams]);
+
 
   let productosFiltrados = productos;
 
@@ -68,6 +75,11 @@ function ProductosContent() {
   } else if (filtroCategoria !== "Todos") {
     productosFiltrados = productos.filter(p => (p.categoria || "").toLowerCase().includes(filtroCategoria.toLowerCase()));
   }
+
+  // Sort alphabetically by name
+  productosFiltrados = [...productosFiltrados].sort((a, b) =>
+    a.nombre.localeCompare(b.nombre, "es", { sensitivity: "base" })
+  );
 
   // Animaciones Framer Motion
   const containerVariants = {

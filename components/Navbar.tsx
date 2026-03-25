@@ -348,19 +348,36 @@ export default function Navbar() {
           {/* Main Drawer Panel */}
           <div className="absolute top-0 left-0 bottom-0 w-[85vw] max-w-sm bg-white shadow-2xl animate-in slide-in-from-left duration-300 flex flex-col h-full overflow-hidden">
             {/* Drawer Header */}
-            <div className="px-6 py-5 flex justify-between items-center bg-white">
+            <div className="px-6 py-5 flex items-center gap-3 bg-white">
               <button
                 onClick={() => setIsMobileMenuOpen(false)}
-                className="p-1 -ml-1 text-black hover:text-gray-500 transition-colors"
+                className="p-1 -ml-1 text-black hover:text-gray-500 transition-colors flex-shrink-0"
                 aria-label="Cerrar Menú"
               >
                 <X className="w-6 h-6 stroke-[1.5]" />
               </button>
 
+              {/* Search in mobile drawer */}
+              <form
+                onSubmit={(e) => { handleSearchSubmit(e); setIsMobileMenuOpen(false); }}
+                className="flex-1"
+              >
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Buscar productos..."
+                    className="w-full pl-9 pr-3 py-2 bg-gray-100 rounded-lg text-sm text-black outline-none focus:bg-gray-200 transition-colors placeholder:text-gray-400"
+                  />
+                </div>
+              </form>
+
               <Link
                 href="/favoritos"
                 onClick={() => setIsMobileMenuOpen(false)}
-                className="relative p-1 -mr-1 text-black hover:text-gray-500 transition-colors"
+                className="relative p-1 -mr-1 text-black hover:text-gray-500 transition-colors flex-shrink-0"
               >
                 <Heart className="w-6 h-6 stroke-[1.5]" />
                 {totalFavorites > 0 && (
