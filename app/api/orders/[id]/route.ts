@@ -1,8 +1,15 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/firebase";
-import { doc, getDoc, updateDoc } from "firebase/firestore";
+import { doc, runTransaction } from "firebase/firestore";
 
-const VALID_STATES = ["pendiente", "pagado", "enviado", "entregado", "rechazado", "reembolsado"];
+const STATUS_PRIORITY: Record<string, number> = {
+  pendiente: 0,
+  pagado: 1,
+  enviado: 2,
+  entregado: 3,
+  rechazado: 4,
+  reembolsado: 4,
+};
 
 export async function PATCH(
   req: Request,
@@ -13,48 +20,122 @@ export async function PATCH(
     const body = await req.json();
     const { estado } = body;
 
-    if (!estado || !VALID_STATES.includes(estado)) {
+    if (!estado || STATUS_PRIORITY[estado] === undefined) {
       return NextResponse.json(
-        { error: `Estado inválido. Valores permitidos: ${VALID_STATES.join(", ")}` },
+        { error: `Estado inválido. Valores permitidos: ${Object.keys(STATUS_PRIORITY).join(", ")}` },
         { status: 400 }
       );
     }
 
-    // Verify order exists
-    const orderRef = doc(db, "orders", id);
-    const orderSnap = await getDoc(orderRef);
+    try {
+      await runTransaction(db, async (transaction) => {
+        const orderRef = doc(db, "orders", id);
+        const orderSnap = await transaction.get(orderRef);
 
-    if (!orderSnap.exists()) {
-      return NextResponse.json(
-        { error: "Pedido no encontrado" },
-        { status: 404 }
-      );
+        if (!orderSnap.exists()) {
+          throw new Error("ORDER_NOT_FOUND");
+        }
+
+        const orderData = orderSnap.data();
+        const currentStatus = orderData.estado;
+
+        // 1. Validaciones Anti-Downgrade
+        const currentPriority = STATUS_PRIORITY[currentStatus] ?? 0;
+        const newPriority = STATUS_PRIORITY[estado] ?? 0;
+
+        // Un admin no debería poder retroceder el estado manualmente
+        if (newPriority < currentPriority) {
+          throw new Error(`STATUS_DOWNGRADE_INVALID: No se puede cambiar de '${currentStatus}' a '${estado}'.`);
+        }
+
+        if (currentStatus === estado) {
+          return; // Nada que actualizar
+        }
+
+        // 2. Preparar payload de la orden
+        const updatePayload: Record<string, any> = {
+          estado,
+          ultimaActualizacion: new Date().toISOString(),
+        };
+
+        if (estado === "enviado") {
+          updatePayload.fechaEnvio = new Date().toISOString();
+        } else if (estado === "entregado") {
+          updatePayload.fechaEntrega = new Date().toISOString();
+        }
+
+        // 3. Lógica de Reintegro de Inventario
+        const isTerminal = estado === "rechazado" || estado === "reembolsado";
+        const wasTerminal = currentStatus === "rechazado" || currentStatus === "reembolsado";
+
+        // Si la orden cambia a estado terminal, devolvermos los ítems al inventario
+        if (isTerminal && !wasTerminal) {
+          const items = orderData.items || [];
+          const productDocs = new Map();
+          const productRefs = new Map();
+
+          // Fase Lectura
+          for (const item of items) {
+            if (!productRefs.has(item.productoId)) {
+              const pRef = doc(db, "products", item.productoId);
+              const pSnap = await transaction.get(pRef);
+              if (pSnap.exists()) {
+                productRefs.set(item.productoId, pRef);
+                productDocs.set(item.productoId, pSnap.data());
+              }
+            }
+          }
+
+          // Fase Lógica
+          for (const item of items) {
+            const pData = productDocs.get(item.productoId);
+            if (!pData) continue;
+
+            if (item.varianteId) {
+              const variants = pData.variantes || [];
+              const vIndex = variants.findIndex((v: any) => v.id === item.varianteId);
+              if (vIndex !== -1) {
+                variants[vIndex].stock += item.cantidad;
+                pData.variantes = variants;
+              }
+            } else {
+              pData.stock = (pData.stock || 0) + item.cantidad;
+            }
+
+            // Reactivamos el producto si estaba oculto por falta de stock
+            pData.activo = true; 
+            productDocs.set(item.productoId, pData);
+          }
+
+          // Fase Escritura de Productos
+          for (const [pId, pData] of productDocs.entries()) {
+            transaction.update(productRefs.get(pId), pData);
+          }
+        }
+
+        // Fase Escritura Final: Orden
+        transaction.update(orderRef, updatePayload);
+      });
+
+      return NextResponse.json({
+        success: true,
+        orderId: id,
+        nuevoEstado: estado,
+      });
+
+    } catch (txError: any) {
+      if (txError.message === "ORDER_NOT_FOUND") {
+        return NextResponse.json({ error: "Pedido no encontrado" }, { status: 404 });
+      } else if (txError.message.startsWith("STATUS_DOWNGRADE_INVALID")) {
+        return NextResponse.json({ error: txError.message.split(": ")[1] }, { status: 400 });
+      }
+      throw txError; // Redirigir al catch global
     }
 
-    // Build update payload
-    const updatePayload: Record<string, any> = {
-      estado,
-      ultimaActualizacion: new Date().toISOString(),
-    };
-
-    // Add timestamps for specific status changes
-    if (estado === "enviado") {
-      updatePayload.fechaEnvio = new Date().toISOString();
-    } else if (estado === "entregado") {
-      updatePayload.fechaEntrega = new Date().toISOString();
-    }
-
-    await updateDoc(orderRef, updatePayload);
-
-    return NextResponse.json({
-      success: true,
-      orderId: id,
-      nuevoEstado: estado,
-    });
   } catch (error: any) {
     console.error("Error actualizando pedido:", error?.message || error);
     return NextResponse.json(
-      { error: "Error actualizando pedido" },
+      { error: "Error en el servidor al actualizar el pedido." },
       { status: 500 }
     );
   }

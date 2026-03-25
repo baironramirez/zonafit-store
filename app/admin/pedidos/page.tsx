@@ -6,7 +6,7 @@ import { db } from "@/lib/firebase";
 import Link from "next/link";
 import {
   ChevronLeft, Package, Clock, CheckCircle2, Truck, PackageCheck,
-  XCircle, ChevronDown, ChevronUp, Eye, RefreshCw
+  XCircle, ChevronDown, ChevronUp, Eye, RefreshCw, Search
 } from "lucide-react";
 
 interface OrderItem {
@@ -61,6 +61,7 @@ export default function AdminPedidosPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [filtroEstado, setFiltroEstado] = useState("todos");
+  const [searchQuery, setSearchQuery] = useState("");
   const [expandedOrder, setExpandedOrder] = useState<string | null>(null);
   const [updatingOrder, setUpdatingOrder] = useState<string | null>(null);
 
@@ -118,9 +119,16 @@ export default function AdminPedidosPage() {
     }
   }
 
-  const filteredOrders = filtroEstado === "todos"
-    ? orders
-    : orders.filter((o) => o.estado === filtroEstado);
+  const filteredOrders = orders.filter((o) => {
+    const matchesEstado = filtroEstado === "todos" || o.estado === filtroEstado;
+    const searchLower = searchQuery.toLowerCase();
+    const matchesSearch = !searchQuery || 
+      o.id.toLowerCase().includes(searchLower) ||
+      o.cliente?.nombre?.toLowerCase().includes(searchLower) ||
+      o.cliente?.correo?.toLowerCase().includes(searchLower);
+    
+    return matchesEstado && matchesSearch;
+  });
 
   // Stats
   const stats = {
@@ -159,12 +167,25 @@ export default function AdminPedidosPage() {
                 {orders.length} pedidos en total
               </p>
             </div>
-            <button
-              onClick={fetchOrders}
-              className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 hover:border-black text-black rounded-lg text-sm font-bold uppercase tracking-wider transition-colors"
-            >
-              <RefreshCw className="w-4 h-4" /> Actualizar
-            </button>
+            
+            <div className="flex flex-col sm:flex-row flex-1 md:justify-end gap-3 w-full md:w-auto">
+              <div className="relative flex-1 md:w-64 max-w-sm">
+                <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                <input 
+                  type="text" 
+                  placeholder="Buscar por ID, nombre o email..." 
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-9 pr-4 py-2 bg-white border border-gray-200 focus:border-black rounded-lg text-sm text-black outline-none transition-colors"
+                />
+              </div>
+              <button
+                onClick={fetchOrders}
+                className="flex items-center justify-center gap-2 px-4 py-2 bg-white border border-gray-200 hover:border-black text-black rounded-lg text-sm font-bold uppercase tracking-wider transition-colors flex-shrink-0"
+              >
+                <RefreshCw className="w-4 h-4" /> Actualizar
+              </button>
+            </div>
           </div>
         </div>
 
@@ -320,49 +341,80 @@ export default function AdminPedidosPage() {
                         {/* Payment & Actions */}
                         <div>
                           <h4 className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-3">Pago & Estado</h4>
-                          <div className="space-y-2 text-sm mb-6">
-                            {order.mpPaymentId && (
-                              <>
-                                <p><span className="text-gray-400">ID Pago MP:</span> <span className="font-mono text-xs text-black">{order.mpPaymentId}</span></p>
-                                <p><span className="text-gray-400">Estado MP:</span> <span className="font-medium text-black">{order.mpStatus || "—"}</span></p>
-                                <p><span className="text-gray-400">Detalle:</span> <span className="font-medium text-black">{order.mpStatusDetail || "—"}</span></p>
-                                <p><span className="text-gray-400">Método:</span> <span className="font-medium text-black">{order.mpPaymentMethod || "—"}</span></p>
-                              </>
+                          <div className="text-sm mb-6">
+                            {order.mpPaymentId ? (
+                              <div className="bg-white border text-black border-gray-200 p-3 rounded-lg mb-3 shadow-sm">
+                                <p className="mb-1"><span className="text-gray-400">ID Pago:</span> <span className="font-mono text-xs">{order.mpPaymentId}</span></p>
+                                <p className="mb-1"><span className="text-gray-400">Estado MP:</span> <span className="font-medium">{order.mpStatus}</span> {order.mpStatusDetail && <span className="text-xs text-gray-500">({order.mpStatusDetail})</span>}</p>
+                                <p className="mb-1"><span className="text-gray-400">Método:</span> <span className="font-medium uppercase">{order.mpPaymentMethod}</span></p>
+                                
+                                <div className="mt-2 pt-2 border-t border-gray-100 flex items-center justify-between">
+                                  <span className="text-gray-400">Monto Acreditado:</span> 
+                                  <span className={`font-bold ${Math.abs((order.mpTransactionAmount || 0) - order.total) > 0.05 ? 'text-red-500' : 'text-green-600'}`}>
+                                    ${order.mpTransactionAmount?.toLocaleString("es-CO")}
+                                  </span>
+                                </div>
+                                
+                                {Math.abs((order.mpTransactionAmount || 0) - order.total) > 0.05 && (
+                                  <p className="text-[10px] font-bold text-red-500 mt-2 uppercase bg-red-50 p-1.5 rounded border border-red-200">
+                                    ⚠️ Discrepancia de monto. El cobro real difiere del carrito original.
+                                  </p>
+                                )}
+                              </div>
+                            ) : (
+                              <p className="text-gray-400 italic mb-3">Sin datos de pago MercadoPago ligados.</p>
                             )}
-                            {!order.mpPaymentId && (
-                              <p className="text-gray-400 italic">Sin datos de pago MP</p>
-                            )}
-                            {order.fechaPago && (
-                              <p><span className="text-gray-400">Pagado:</span> <span className="font-medium text-green-600">{new Date(order.fechaPago).toLocaleString("es-CO")}</span></p>
-                            )}
-                            {order.fechaEnvio && (
-                              <p><span className="text-gray-400">Enviado:</span> <span className="font-medium text-blue-600">{new Date(order.fechaEnvio).toLocaleString("es-CO")}</span></p>
-                            )}
+
+                            <div className="space-y-1">
+                              {order.fechaPago && (
+                                <p><span className="text-gray-400">Acreditado:</span> <span className="font-medium text-green-600">{new Date(order.fechaPago).toLocaleString("es-CO")}</span></p>
+                              )}
+                              {order.fechaEnvio && (
+                                <p><span className="text-gray-400">Enviado:</span> <span className="font-medium text-blue-600">{new Date(order.fechaEnvio).toLocaleString("es-CO")}</span></p>
+                              )}
+                              {order.fechaEntrega && (
+                                <p><span className="text-gray-400">Entregado:</span> <span className="font-medium text-gray-600">{new Date(order.fechaEntrega).toLocaleString("es-CO")}</span></p>
+                              )}
+                            </div>
                           </div>
 
                           {/* Change Status */}
-                          <h4 className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-2">Cambiar Estado</h4>
+                          <h4 className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-2">Guardarraíles de Estado</h4>
                           <div className="flex flex-wrap gap-2">
-                            {["pendiente", "pagado", "enviado", "entregado", "rechazado"].map((estado) => {
-                              const config = STATUS_CONFIG[estado];
+                            {["pendiente", "pagado", "enviado", "entregado", "rechazado", "reembolsado"].map((estado) => {
+                              const config = STATUS_CONFIG[estado] || STATUS_CONFIG.pendiente;
                               const isCurrent = order.estado === estado;
+                              
+                              const priorityMap: Record<string, number> = {
+                                pendiente: 0, pagado: 1, enviado: 2, entregado: 3, rechazado: 4, reembolsado: 4
+                              };
+                              const currentPriority = priorityMap[order.estado] ?? 0;
+                              const btnPriority = priorityMap[estado] ?? 0;
+                              
+                              const isTerminal = order.estado === 'rechazado' || order.estado === 'reembolsado';
+                              const isDowngrade = btnPriority < currentPriority;
+                              
+                              const isDisabled = isCurrent || updatingOrder === order.id || isDowngrade || (isTerminal && !isCurrent);
+
                               return (
                                 <button
                                   key={estado}
-                                  disabled={isCurrent || updatingOrder === order.id}
+                                  disabled={isDisabled}
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    if (confirm(`¿Cambiar estado a "${config.label}"?`)) {
+                                    if (confirm(`¿Cambiar estado a "${config.label}"? Esto es irreversible y afectará el sistema de inventario.`)) {
                                       handleStatusChange(order.id, estado);
                                     }
                                   }}
                                   className={`px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider border transition-all ${
                                     isCurrent
-                                      ? `${config.bg} ${config.color} cursor-default`
-                                      : "bg-white border-gray-200 text-gray-500 hover:border-black hover:text-black"
-                                  } disabled:opacity-50`}
+                                      ? `${config.bg} ${config.color} cursor-default ring-2 ring-offset-1 ring-${config.color.split("-")[1]}-500`
+                                      : isDisabled
+                                        ? "bg-gray-50 text-gray-300 border-gray-100 cursor-not-allowed"
+                                        : "bg-white border-gray-200 text-gray-600 hover:border-black hover:text-black hover:shadow-sm"
+                                  }`}
                                 >
-                                  {updatingOrder === order.id ? "..." : config.label}
+                                  {updatingOrder === order.id && !isDisabled ? "..." : config.label}
                                 </button>
                               );
                             })}
