@@ -46,16 +46,9 @@ export async function POST(req: Request) {
 
         external_reference: body.orderId ?? null,
 
-        // ⚠️ IMPORTANTE: Si envías un payer.email y es EL MISMO correo de tu cuenta de vendedor de MercadoPago, 
-        // MercadoPago bloqueará el pago con el error "Oh, no, algo anduvo mal"
-        // payer: {
-        //   email: body.email,
-        // },
+        // Webhook URL para recibir notificaciones de pago
+        notification_url: `${baseUrl}/api/webhooks/mercadopago`,
 
-        // ⚠️ back_urls y auto_return requieren una URL HTTPS pública.
-        // En localhost MercadoPago las rechaza con "back_url.success must be defined".
-        // Descomenta esto cuando tengas un dominio real (ej: https://tudominio.com).
-        //
         back_urls: {
           success: `${baseUrl}/success`,
           failure: `${baseUrl}/failure`,

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Package, PlusCircle, Settings, Users, LogOut, TrendingUp, DollarSign, Activity } from "lucide-react";
+import { Package, PlusCircle, Settings, Users, LogOut, TrendingUp, DollarSign, Activity, ClipboardList } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 export default function AdminPage() {
@@ -66,7 +66,16 @@ export default function AdminPage() {
 
         {/* Acciones Principales */}
         <h2 className="text-sm font-bold uppercase tracking-widest text-gray-400 mb-4 px-2">Gestión de Tienda</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
+
+          {/* Tarjeta de Pedidos */}
+          <Link href="/admin/pedidos" className="group bg-white border border-gray-200 rounded-2xl p-6 hover:border-orange-500 hover:shadow-lg hover:shadow-orange-500/10 transition-all">
+            <div className="w-12 h-12 bg-gray-50 rounded-xl border border-gray-100 flex items-center justify-center mb-6 group-hover:bg-orange-500 group-hover:border-orange-500 transition-colors">
+              <ClipboardList className="w-6 h-6 text-orange-500 group-hover:text-white transition-colors" />
+            </div>
+            <h3 className="text-lg font-bold text-black uppercase tracking-wide mb-2">Pedidos</h3>
+            <p className="text-sm text-gray-500 font-medium">Gestiona órdenes, actualiza estados de pago y controla los envíos.</p>
+          </Link>
 
           {/* Tarjeta de Gestión de Productos */}
           <Link href="/admin/productos" className="group bg-white border border-gray-200 rounded-2xl p-6 hover:border-black hover:shadow-lg transition-all">
