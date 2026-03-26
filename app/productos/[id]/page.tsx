@@ -34,9 +34,10 @@ export default function ProductDetailPage() {
         const found = allProducts.find(p => p.id === id);
         if (found) {
           setProducto(found);
-          // Auto-select first variant if exists
+          // Auto-select first in-stock variant if exists, fallback to first
           if (found.variantes && found.variantes.length > 0) {
-            setSelectedVariant(found.variantes[0]);
+            const available = found.variantes.find((v: Variante) => v.stock > 0);
+            setSelectedVariant(available || found.variantes[0]);
           }
         }
         setLoading(false);
@@ -203,18 +204,25 @@ export default function ProductDetailPage() {
                   </div>
 
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                    {producto.variantes.map((variante: Variante) => (
-                      <button
-                        key={variante.id}
-                        onClick={() => setSelectedVariant(variante)}
-                        className={`py-4 px-2 text-xs md:text-sm font-bold uppercase tracking-widest border transition-all ${selectedVariant?.id === variante.id
-                          ? "bg-black text-white border-black"
-                          : "bg-white text-black border-gray-300 hover:border-black"
+                    {producto.variantes.map((variante: Variante) => {
+                      const isVariantOos = variante.stock <= 0;
+                      return (
+                        <button
+                          key={variante.id}
+                          onClick={() => !isVariantOos && setSelectedVariant(variante)}
+                          disabled={isVariantOos}
+                          className={`py-4 px-2 text-xs md:text-sm font-bold uppercase tracking-widest border transition-all ${
+                            isVariantOos 
+                              ? "opacity-50 cursor-not-allowed bg-gray-100 text-gray-500 border-gray-200 line-through"
+                              : selectedVariant?.id === variante.id
+                                ? "bg-black text-white border-black"
+                                : "bg-white text-black border-gray-300 hover:border-black"
                           }`}
-                      >
-                        {variante.nombre}
-                      </button>
-                    ))}
+                        >
+                          {variante.nombre} {isVariantOos && "\n(AGOTADO)"}
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
               )}
