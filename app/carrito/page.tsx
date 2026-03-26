@@ -80,8 +80,12 @@ export default function CarritoPage() {
     0,
   );
   
-  const discountAmount = discount ? subtotal * (discount.percentage / 100) : 0;
-  const finalTotal = subtotal - discountAmount;
+  const discountAmount = discount 
+    ? discount.type === "porcentaje"
+      ? subtotal * (discount.value / 100)
+      : discount.value
+    : 0;
+  const finalTotal = Math.max(0, subtotal - discountAmount);
 
   async function handleCheckout(e: any) {
     e.preventDefault();
@@ -113,7 +117,11 @@ export default function CarritoPage() {
 
     const orderTotal = finalTotal;
 
-    const multiplier = discount ? (1 - discount.percentage / 100) : 1;
+    const multiplier = discount 
+      ? discount.type === "porcentaje"
+        ? (1 - discount.value / 100)
+        : Math.max(0, 1 - discount.value / subtotal) // for metric purposes if needed
+      : 1;
 
     try {
       // 1️⃣ Crear pedido en Firestore
@@ -359,7 +367,9 @@ export default function CarritoPage() {
                       <span className="font-bold text-xs uppercase tracking-widest flex items-center gap-1 text-black">
                         <Tag className="w-3 h-3" /> {discount.code}
                       </span>
-                      <span className="text-xs text-green-600 font-bold mt-0.5">-{discount.percentage}% Aplicado a toda la compra</span>
+                      <span className="text-xs text-green-600 font-bold mt-0.5">
+                        {discount.type === "porcentaje" ? `-${discount.value}% Aplicado a toda la compra` : `-$${discount.value.toLocaleString("es-AR")} Aplicado a la compra`}
+                      </span>
                     </div>
                     <button onClick={removeDiscount} className="text-gray-400 hover:text-red-500 transition-colors p-1" type="button">
                       <X className="w-4 h-4" />

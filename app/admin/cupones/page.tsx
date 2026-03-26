@@ -9,12 +9,15 @@ import { ArrowLeft, Trash2, Plus, Download, Tag, DollarSign, Activity, Users, X 
 export interface Coupon {
   id: string;
   codigo: string;
-  descuento: number; // Porcentaje de descuento para el cliente
+  tipoDescuento?: "porcentaje" | "fijo";
+  descuento: number; // Porcentaje o monto fijo de descuento para el cliente
   tipoComision: "porcentaje" | "fijo";
   valorComision: number;
   activo: boolean;
   usos: number;
   dineroGenerado: number;
+  dineroLiquidado?: number; // Total pagado
+  usosLiquidados?: number;  // Usos ya pagados
   fechaCreacion?: any;
 }
 
@@ -25,6 +28,7 @@ export default function CuponesAdmin() {
   // Form State
   const [isCreating, setIsCreating] = useState(false);
   const [newCodigo, setNewCodigo] = useState("");
+  const [newTipoDescuento, setNewTipoDescuento] = useState<"porcentaje" | "fijo">("porcentaje");
   const [newDescuento, setNewDescuento] = useState<number>(10);
   const [newTipoComision, setNewTipoComision] = useState<"porcentaje" | "fijo">("porcentaje");
   const [newValorComision, setNewValorComision] = useState<number>(10);
@@ -65,12 +69,15 @@ export default function CuponesAdmin() {
     try {
       const newCoupon = {
         codigo: newCodigo.trim().toUpperCase(),
+        tipoDescuento: newTipoDescuento,
         descuento: Number(newDescuento),
         tipoComision: newTipoComision,
         valorComision: Number(newValorComision),
         activo: true,
         usos: 0,
         dineroGenerado: 0,
+        dineroLiquidado: 0,
+        usosLiquidados: 0,
         fechaCreacion: serverTimestamp()
       };
 
@@ -79,6 +86,7 @@ export default function CuponesAdmin() {
       
       // Reset form
       setNewCodigo("");
+      setNewTipoDescuento("porcentaje");
       setNewDescuento(10);
       setNewTipoComision("porcentaje");
       setNewValorComision(10);
@@ -110,25 +118,50 @@ export default function CuponesAdmin() {
     }
   };
 
+  const handleLiquidar = async (coupon: Coupon) => {
+    if (!confirm(`¿Estás seguro que deseas liquidar las comisiones pendientes del atleta ${coupon.codigo}?`)) return;
+    
+    try {
+      await updateDoc(doc(db, "coupons", coupon.id), {
+        dineroLiquidado: coupon.dineroGenerado,
+        usosLiquidados: coupon.usos
+      });
+      setCoupons(coupons.map(c => c.id === coupon.id ? { ...c, dineroLiquidado: c.dineroGenerado, usosLiquidados: c.usos } : c));
+      alert(`Liquidación de ${coupon.codigo} registrada exitosamente.`);
+    } catch (error) {
+      console.error("Error al liquidar:", error);
+      alert("Hubo un error al registrar la liquidación.");
+    }
+  };
+
   const exportCSV = () => {
     // Definimos las cabeceras
-    const headers = ["CÓDIGO", "DESCUENTO (%)", "ACTIVO", "USOS", "TOTAL VENTAS ($)", "TIPO COMISION", "VALOR COMISION", "COMISIÓN A PAGAR ($)"];
+    const headers = ["CÓDIGO", "TIPO DESC.", "DESCUENTO", "ACTIVO", "USOS", "TOTAL VENTAS ($)", "TIPO COMISION", "VALOR COMISION", "TOTAL PAGADO ($)", "COMISIÓN PENDIENTE ($)"];
     
     // Mapeamos los datos
     const rows = coupons.map(c => {
-      const comisionAPagar = c.tipoComision === "porcentaje" 
-        ? c.dineroGenerado * (c.valorComision / 100)
-        : c.usos * c.valorComision;
+      const usosUnpaid = c.usos - (c.usosLiquidados || 0);
+      const moneyUnpaid = c.dineroGenerado - (c.dineroLiquidado || 0);
+      
+      const comisionPendiente = c.tipoComision === "porcentaje" 
+        ? Math.max(0, moneyUnpaid) * (c.valorComision / 100)
+        : Math.max(0, usosUnpaid) * c.valorComision;
+        
+      const comisionPagada = c.tipoComision === "porcentaje" 
+        ? (c.dineroLiquidado || 0) * (c.valorComision / 100)
+        : (c.usosLiquidados || 0) * c.valorComision;
 
       return [
         c.codigo,
+        c.tipoDescuento || "porcentaje",
         c.descuento,
         c.activo ? "SÍ" : "NO",
         c.usos,
         c.dineroGenerado.toFixed(2),
         c.tipoComision.toUpperCase(),
         c.valorComision,
-        comisionAPagar.toFixed(2)
+        comisionPagada.toFixed(2),
+        comisionPendiente.toFixed(2)
       ].join(","); // Join by comma
     });
 
@@ -144,7 +177,9 @@ export default function CuponesAdmin() {
 
   const grandTotalSales = coupons.reduce((acc, c) => acc + c.dineroGenerado, 0);
   const totalCommissionsToPay = coupons.reduce((acc, c) => {
-    return acc + (c.tipoComision === "porcentaje" ? c.dineroGenerado * (c.valorComision / 100) : c.usos * c.valorComision);
+    const usosUnpaid = Math.max(0, c.usos - (c.usosLiquidados || 0));
+    const moneyUnpaid = Math.max(0, c.dineroGenerado - (c.dineroLiquidado || 0));
+    return acc + (c.tipoComision === "porcentaje" ? moneyUnpaid * (c.valorComision / 100) : usosUnpaid * c.valorComision);
   }, 0);
 
   if (loading) {
@@ -238,12 +273,23 @@ export default function CuponesAdmin() {
                 />
               </div>
               <div className="lg:col-span-1">
-                <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Descuento (%)</label>
+                <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Tipo Descuento (Cliente)</label>
+                <select
+                  value={newTipoDescuento}
+                  onChange={e => setNewTipoDescuento(e.target.value as any)}
+                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-black font-bold focus:ring-2 focus:ring-black focus:outline-none transition-all appearance-none"
+                >
+                  <option value="porcentaje">% de Descuento</option>
+                  <option value="fijo">Monto Fijo ($)</option>
+                </select>
+              </div>
+              <div className="lg:col-span-1">
+                <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Valor Descuento (Cliente)</label>
                 <input
                   type="number"
                   required
                   min="0"
-                  max="100"
+                  max={newTipoDescuento === "porcentaje" ? 100 : undefined}
                   value={newDescuento}
                   onChange={e => setNewDescuento(Number(e.target.value))}
                   className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-black font-bold focus:ring-2 focus:ring-black focus:outline-none transition-all"
@@ -304,9 +350,12 @@ export default function CuponesAdmin() {
                   </tr>
                 ) : (
                   coupons.map((coupon) => {
-                    const comisionAPagar = coupon.tipoComision === "porcentaje" 
-                      ? coupon.dineroGenerado * (coupon.valorComision / 100)
-                      : coupon.usos * coupon.valorComision;
+                    const usosUnpaid = Math.max(0, coupon.usos - (coupon.usosLiquidados || 0));
+                    const moneyUnpaid = Math.max(0, coupon.dineroGenerado - (coupon.dineroLiquidado || 0));
+                    
+                    const comisionPendiente = coupon.tipoComision === "porcentaje" 
+                      ? moneyUnpaid * (coupon.valorComision / 100)
+                      : usosUnpaid * coupon.valorComision;
 
                     return (
                       <tr key={coupon.id} className="border-b border-gray-100 last:border-0 hover:bg-gray-50 transition-colors">
@@ -318,20 +367,33 @@ export default function CuponesAdmin() {
                         </td>
                         <td className="py-4 px-6">
                           <span className="font-bold text-sm bg-gray-100 px-3 py-1 rounded-full text-gray-600">
-                            - {coupon.descuento}%
+                            - {coupon.tipoDescuento === "fijo" ? `$${coupon.descuento.toLocaleString("es-AR")}` : `${coupon.descuento}%`}
                           </span>
                         </td>
                         <td className="py-4 px-6">
                           <div className="flex flex-col">
-                            <span className="font-black text-sm">${coupon.dineroGenerado.toLocaleString("es-AR")}</span>
-                            <span className="text-xs text-gray-500 font-medium">{coupon.usos} compras</span>
+                            <span className="font-black text-sm">${coupon.dineroGenerado.toLocaleString("es-AR")} Total</span>
+                            <span className="text-xs text-gray-500 font-medium">{coupon.usos} usos totales</span>
                           </div>
                         </td>
                         <td className="py-4 px-6 bg-orange-50/30">
-                          <div className="flex flex-col">
-                            <span className="font-black text-sm text-orange-600">${comisionAPagar.toLocaleString("es-AR")}</span>
+                          <div className="flex flex-col gap-1">
+                            <div className="flex items-center gap-2">
+                              <span className="font-black text-sm text-orange-600">
+                                PENDIENTE: ${comisionPendiente.toLocaleString("es-AR")}
+                              </span>
+                              {comisionPendiente > 0 && (
+                                <button
+                                  onClick={() => handleLiquidar(coupon)}
+                                  className="bg-green-500 text-white text-[9px] px-2 py-0.5 rounded uppercase font-black hover:bg-green-600 transition-colors"
+                                  title="Marcar pendiente como pagado"
+                                >
+                                  Liquidar
+                                </button>
+                              )}
+                            </div>
                             <span className="text-[10px] uppercase tracking-widest text-orange-400 font-bold">
-                              {coupon.tipoComision === "porcentaje" ? `${coupon.valorComision}% de ventas` : `$${coupon.valorComision} por venta`}
+                              Tarifa: {coupon.tipoComision === "porcentaje" ? `${coupon.valorComision}%` : `$${coupon.valorComision}`}
                             </span>
                           </div>
                         </td>

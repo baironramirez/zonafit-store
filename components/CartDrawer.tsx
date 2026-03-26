@@ -16,9 +16,12 @@ export default function CartDrawer() {
     (acc, item) => acc + item.precio * item.cantidad,
     0
   );
-
-  const discountAmount = discount ? totalAmount * (discount.percentage / 100) : 0;
-  const finalTotal = totalAmount - discountAmount;
+  const discountAmount = discount 
+    ? discount.type === "porcentaje"
+      ? totalAmount * (discount.value / 100)
+      : discount.value
+    : 0;
+  const finalTotal = Math.max(0, totalAmount - discountAmount);
 
   return (
     <AnimatePresence>
@@ -153,7 +156,9 @@ export default function CartDrawer() {
                         <span className="font-bold text-xs uppercase tracking-widest flex items-center gap-1 text-black">
                           <Tag className="w-3 h-3" /> {discount.code}
                         </span>
-                        <span className="text-xs text-green-600 font-bold mt-0.5">-{discount.percentage}% Aplicado</span>
+                        <span className="text-xs text-green-600 font-bold mt-0.5">
+                          {discount.type === "porcentaje" ? `-${discount.value}% Aplicado` : `-$${discount.value.toLocaleString("es-AR")} Aplicado`}
+                        </span>
                       </div>
                       <button onClick={removeDiscount} className="text-gray-400 hover:text-red-500 transition-colors p-1">
                         <X className="w-4 h-4" />

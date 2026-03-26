@@ -7,7 +7,8 @@ import { CartItem } from "../types/cart";
 
 export interface Discount {
   code: string;
-  percentage: number;
+  value: number;
+  type: "porcentaje" | "fijo";
 }
 
 type CartContextType = {
@@ -119,8 +120,14 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         return { success: false, message: "El cupón se encuentra inactivo" };
       }
       
-      setDiscount({ code: upperCode, percentage: couponData.descuento });
-      return { success: true, message: `Descuento del ${couponData.descuento}% aplicado` };
+      const tipo = couponData.tipoDescuento || "porcentaje";
+      setDiscount({ code: upperCode, value: couponData.descuento, type: tipo });
+      
+      const msg = tipo === "porcentaje" 
+        ? `Descuento del ${couponData.descuento}% aplicado` 
+        : `Descuento de $${couponData.descuento.toLocaleString("es-AR")} aplicado`;
+      
+      return { success: true, message: msg };
     } catch (error) {
       console.error("Error applying discount:", error);
       return { success: false, message: "Error conectando con el servidor" };
