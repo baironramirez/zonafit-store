@@ -158,7 +158,8 @@ export async function POST(req: Request) {
     // ✅ Verificar firma SOLO para payment
     if (!verifySignatureSafe(req, bodyText)) {
       logEvent('error', 'webhook_security_error', { type: "unauthorized_request" });
-      return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
+      return NextResponse.json({ received: true }, { status: 200 });
+      //return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
     }
 
     const paymentId = body.data?.id;
