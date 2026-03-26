@@ -161,7 +161,7 @@ export default function CarritoPage() {
             id: item.id,
             title: item.nombre,
             quantity: Number(item.cantidad),
-            unit_price: Number((item.precio * multiplier).toFixed(2)),
+            unit_price: Math.round(item.precio * multiplier),
           })),
           orderId: orderData.orderId,
         })
