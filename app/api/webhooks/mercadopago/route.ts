@@ -63,18 +63,15 @@ function verifyPaymentSignature(req: Request, dataId: string): boolean {
     return false;
   }
 
-  // MP docs: si data.id es alfanumérico, convertir a lowercase
-  let normalizedId = dataId;
-  if (normalizedId && /^[a-zA-Z0-9]+$/.test(normalizedId)) {
-    normalizedId = normalizedId.toLowerCase();
+  // Construir manifest según doc oficial MP:
+  // Solo incluir id: si dataId existe, siempre incluir request-id y ts
+  let manifest = "";
+
+  if (dataId) {
+    manifest += `id:${dataId.toLowerCase()};`;
   }
 
-  // Construir manifest CONDICIONALMENTE (doc oficial MP):
-  // "Si algún valor no está presente, esa parte se OMITE completamente"
-  let manifest = "";
-  if (normalizedId) manifest += `id:${normalizedId};`;
-  if (xRequestId) manifest += `request-id:${xRequestId};`;
-  if (ts) manifest += `ts:${ts};`;
+  manifest += `request-id:${xRequestId};ts:${ts};`;
 
   const hmac = crypto.createHmac("sha256", secret).update(manifest).digest("hex");
 
