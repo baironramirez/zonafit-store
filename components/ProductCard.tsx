@@ -40,24 +40,34 @@ export default function ProductCard({ producto }: { producto: ProductoData }) {
 
   // Calculamos el stock basado en si tiene variantes o no
   const hasVariants = producto?.variantes && producto.variantes.length > 0;
-  const firstVariant = hasVariants ? producto.variantes![0] : null;
-  const currentStock = firstVariant ? firstVariant.stock : producto?.stock || 0;
-  const isOutOfStock = currentStock <= 0 || !producto?.activo;
+  
+  // Buscamos la primera variante que sí tenga stock (si todas están en 0, cae a la primera)
+  const availableVariant = hasVariants 
+    ? producto.variantes!.find((v) => v.stock > 0) || producto.variantes![0] 
+    : null;
+
+  // Calculamos el stock TOTAL para el badge "Agotado"
+  const totalStock = hasVariants
+    ? producto.variantes!.reduce((acc, v) => acc + v.stock, 0)
+    : producto?.stock || 0;
+    
+  const isOutOfStock = totalStock <= 0 || !producto?.activo;
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault(); // Prevent link navigation
     if (producto && !isOutOfStock) {
-      const finalPrice = firstVariant ? firstVariant.precio : precio;
-      const finalName = firstVariant ? `${producto.nombre} - ${firstVariant.nombre}` : producto.nombre;
-      const finalId = firstVariant ? `${producto.id}-${firstVariant.id}` : producto.id;
+      const finalPrice = availableVariant ? availableVariant.precio : precio;
+      const finalName = availableVariant ? `${producto.nombre} - ${availableVariant.nombre}` : producto.nombre;
+      const finalId = availableVariant ? `${producto.id}-${availableVariant.id}` : producto.id;
+      const finalStock = availableVariant ? availableVariant.stock : totalStock;
 
       addToCart({
         id: finalId,
         productoId: producto.id,
-        varianteId: firstVariant ? firstVariant.id : undefined,
+        varianteId: availableVariant ? availableVariant.id : undefined,
         nombre: finalName,
         precio: finalPrice,
-        maxStock: currentStock,
+        maxStock: finalStock,
         imagen: producto.imagen,
         cantidad: 1
       });
