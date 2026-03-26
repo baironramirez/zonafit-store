@@ -194,6 +194,7 @@ export async function POST(req: Request) {
     });
 
     if (!externalRef) {
+      logEvent('warn', 'webhook_abort', { reason: "missing_external_reference", paymentId });
       return NextResponse.json({ received: true });
     }
 
@@ -201,22 +202,31 @@ export async function POST(req: Request) {
     const orderSnap = await getDoc(orderDocRef);
 
     if (!orderSnap.exists()) {
+      logEvent('warn', 'webhook_abort', { reason: "order_not_found", orderId: externalRef });
       return NextResponse.json({ received: true });
     }
 
     const orderData = orderSnap.data();
 
+    // Comparamos monto (tolerancia de centavos por flotantes)
     if (Math.abs(mpTransactionAmount - (orderData.total || 0)) > 0.05) {
+      logEvent('error', 'webhook_abort', { 
+        reason: "amount_mismatch", 
+        orderId: externalRef, 
+        expected: orderData.total, 
+        received: mpTransactionAmount 
+      });
       return NextResponse.json({ received: true });
     }
 
     const newInternalStatus = mapPaymentStatus(mpStatus);
 
     if (
-      orderData.mpPaymentId === paymentId.toString() &&
+      String(orderData.mpPaymentId) === String(paymentId) &&
       orderData.mpStatus === mpStatus &&
       orderData.estado === newInternalStatus
     ) {
+      logEvent('info', 'webhook_abort', { reason: "duplicate_ignored", orderId: externalRef, paymentId });
       return NextResponse.json({ received: true });
     }
 
@@ -247,6 +257,9 @@ export async function POST(req: Request) {
       if (newInternalStatus === "pagado" && !orderData.fechaPago) {
         updatePayload.fechaPago = new Date().toISOString();
       }
+      logEvent('info', 'webhook_order_updating', { orderId: externalRef, from: orderData.estado, to: newInternalStatus });
+    } else {
+      logEvent('warn', 'webhook_status_downgrade_prevented', { orderId: externalRef, attemptedStatus: newInternalStatus, currentStatus: orderData.estado });
     }
 
     await updateDoc(orderDocRef, updatePayload);
