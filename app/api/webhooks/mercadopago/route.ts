@@ -42,10 +42,9 @@ function mapPaymentStatus(mpStatus: string): string {
 
 /**
  * Firm Verification using timingSafeEqual to prevent Timing Attacks
- * Follows MercadoPago documentation:
- * Template: id:[data.id_url];request-id:[x-request-id_header];ts:[ts_header];
+ * Template: id:[data.id];request-id:[x-request-id];ts:[ts];
  */
-function verifySignatureSafe(req: Request, rawBody: string): boolean {
+function verifySignatureSafe(req: Request, dataId: string): boolean {
   const secret = process.env.MP_WEBHOOK_SECRET;
   if (!secret) {
     logEvent('warn', 'webhook_security_warning', { message: "MP_WEBHOOK_SECRET not configured, skipping signature verification" });
@@ -75,28 +74,12 @@ function verifySignatureSafe(req: Request, rawBody: string): boolean {
     return false;
   }
 
-  // Extract data.id: try query params first, then body fallback
-  const url = new URL(req.url);
-  let dataId = url.searchParams.get("data.id") || url.searchParams.get("data_id") || "";
-
-  // Fallback: extract from body if not in query
-  if (!dataId) {
-    try {
-      const parsedBody = JSON.parse(rawBody);
-      dataId = String(parsedBody?.data?.id || "");
-    } catch (e) {
-      // Ignore parse errors
-    }
-  }
-
-  // Build manifest — id: is ALWAYS included (MercadoPago always includes it)
+  // Build manifest — id: is ALWAYS included
   const manifest = `id:${dataId};request-id:${xRequestId};ts:${ts};`;
   
   const hmac = crypto.createHmac("sha256", secret).update(manifest).digest("hex");
 
   logEvent('info', 'webhook_signature_debug', { 
-    fullUrl: req.url,
-    queryParams: Object.fromEntries(url.searchParams.entries()),
     dataId: dataId || "(empty)",
     requestId: xRequestId,
     ts,
@@ -110,11 +93,7 @@ function verifySignatureSafe(req: Request, rawBody: string): boolean {
     const receivedBuffer = Buffer.from(v1);
     
     if (generatedBuffer.length !== receivedBuffer.length) {
-      logEvent('error', 'webhook_security_error', { 
-        type: "signature_length_mismatch",
-        generatedLen: generatedBuffer.length,
-        receivedLen: receivedBuffer.length
-      });
+      logEvent('error', 'webhook_security_error', { type: "signature_length_mismatch" });
       return false;
     }
     
@@ -148,10 +127,23 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
     }
 
-    logEvent('info', 'webhook_payload', { type: body.type, action: body.action, dataId: body.data?.id });
+    // Extract data.id from ALL possible sources BEFORE signature check
+    const url = new URL(req.url);
+    const queryDataId = url.searchParams.get("data.id") || url.searchParams.get("data_id") || "";
+    const bodyDataId = body?.data?.id != null ? String(body.data.id) : "";
+    const dataId = queryDataId || bodyDataId;
 
-    // 1️⃣ Verify signature
-    if (!verifySignatureSafe(req, bodyText)) {
+    logEvent('info', 'webhook_payload', { 
+      type: body.type, 
+      action: body.action, 
+      queryDataId, 
+      bodyDataId, 
+      resolvedDataId: dataId,
+      bodyKeys: Object.keys(body || {}),
+    });
+
+    // 1️⃣ Verify signature (pass pre-extracted dataId)
+    if (!verifySignatureSafe(req, dataId)) {
       logEvent('error', 'webhook_security_error', { type: "unauthorized_request" });
       return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
     }
