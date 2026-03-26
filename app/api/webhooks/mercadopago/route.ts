@@ -5,39 +5,49 @@ import { db } from "@/lib/firebase";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
 import crypto from "crypto";
 
-// ─────────────────────────────────────────────────────────────
-// UTILIDADES
-// ─────────────────────────────────────────────────────────────
-
+/**
+ * LOGGING PROFESIONAL ESTRUCTURADO
+ */
 function logEvent(level: 'info' | 'warn' | 'error', event: string, payload: any = {}) {
-  console[level](JSON.stringify({ event, timestamp: new Date().toISOString(), ...payload }));
+  const logMessage = JSON.stringify({
+    event,
+    timestamp: new Date().toISOString(),
+    ...payload
+  });
+  console[level](logMessage);
 }
 
+/**
+ * MP Status to Internal Status Mapping
+ */
 function mapPaymentStatus(mpStatus: string): string {
-  const map: Record<string, string> = {
-    approved: "pagado",
-    pending: "pendiente",
-    in_process: "pendiente",
-    in_mediation: "pendiente",
-    authorized: "pendiente",
-    rejected: "rechazado",
-    cancelled: "rechazado",
-    refunded: "reembolsado",
-    charged_back: "reembolsado",
-  };
-  return map[mpStatus] || "pendiente";
+  switch (mpStatus) {
+    case "approved":
+      return "pagado";
+    case "pending":
+    case "in_process":
+    case "in_mediation":
+    case "authorized":
+      return "pendiente";
+    case "rejected":
+    case "cancelled":
+      return "rechazado";
+    case "refunded":
+    case "charged_back":
+      return "reembolsado";
+    default:
+      return "pendiente";
+  }
 }
 
-// ─────────────────────────────────────────────────────────────
-// VERIFICACIÓN DE FIRMA HMAC (solo para eventos payment)
-// Template: id:[data.id];request-id:[x-request-id];ts:[ts];
-// ─────────────────────────────────────────────────────────────
-
-function verifyPaymentSignature(req: Request, dataId: string): boolean {
+/**
+ * Firm Verification using timingSafeEqual to prevent Timing Attacks
+ */
+function verifySignatureSafe(req: Request, rawBody: string): boolean {
   const secret = process.env.MP_WEBHOOK_SECRET;
   if (!secret) {
-    logEvent('warn', 'webhook_no_secret', { message: "MP_WEBHOOK_SECRET no configurado, saltando verificación" });
-    return true;
+    logEvent('warn', 'webhook_security_warning', { message: "MP_WEBHOOK_SECRET not configured, skipping signature verification" });
+    return true; // Solo para dev inicial. En prod esto debería retornar false.
   }
 
   const xSignature = req.headers.get("x-signature");
@@ -48,7 +58,6 @@ function verifyPaymentSignature(req: Request, dataId: string): boolean {
     return false;
   }
 
-  // Parsear "ts=xxx,v1=yyy"
   const parts: Record<string, string> = {};
   xSignature.split(",").forEach((part) => {
     const [key, value] = part.split("=");
@@ -59,129 +68,92 @@ function verifyPaymentSignature(req: Request, dataId: string): boolean {
   const v1 = parts["v1"];
 
   if (!ts || !v1) {
-    logEvent('warn', 'webhook_security_error', { type: "invalid_signature_format" });
+    logEvent('warn', 'webhook_security_error', { type: "invalid_signature_format", header: xSignature });
     return false;
   }
 
-  // Construir manifest según doc oficial MP:
-  // Solo incluir id: si dataId existe, siempre incluir request-id y ts
-  let manifest = "";
-
-  if (dataId) {
-    manifest += `id:${dataId.toLowerCase()};`;
+  // Fallback seguro para data.id
+  let dataId = new URL(req.url).searchParams.get("data.id");
+  if (!dataId) {
+    try {
+      const parsedBody = JSON.parse(rawBody);
+      dataId = parsedBody?.data?.id;
+    } catch (e) {
+      // Ignore parse errors here
+    }
   }
+  dataId = dataId || "";
 
-  manifest += `request-id:${xRequestId};ts:${ts};`;
-
+  const manifest = `id:${dataId};request-id:${xRequestId};ts:${ts};`;
+  
   const hmac = crypto.createHmac("sha256", secret).update(manifest).digest("hex");
 
-  // Comparación segura contra timing attacks
+  // Comparación segura (anti timing-attacks)
   try {
-    const generatedBuf = Buffer.from(hmac);
-    const receivedBuf = Buffer.from(v1);
-
-    if (generatedBuf.length !== receivedBuf.length) {
-      logEvent('error', 'webhook_security_error', { type: "signature_mismatch", manifest });
+    const generatedBuffer = Buffer.from(hmac);
+    const receivedBuffer = Buffer.from(v1);
+    
+    if (generatedBuffer.length !== receivedBuffer.length) {
       return false;
     }
-
-    const isValid = crypto.timingSafeEqual(generatedBuf, receivedBuf);
-
-    if (isValid) {
-      logEvent('info', 'webhook_signature_verified', { dataId });
-    } else {
-      logEvent('error', 'webhook_security_error', {
+    
+    const isValid = crypto.timingSafeEqual(generatedBuffer, receivedBuffer);
+    
+    if (!isValid) {
+      logEvent('error', 'webhook_security_error', { 
         type: "signature_mismatch",
-        manifest,
         expected: v1,
-        generated: hmac,
+        generated: hmac
       });
     }
-
     return isValid;
   } catch (error) {
-    logEvent('error', 'webhook_security_error', { type: "comparison_error", error: (error as Error).message });
+    logEvent('error', 'webhook_security_error', { type: "buffer_comparison_failed", error: (error as Error).message });
     return false;
   }
 }
-
-// ─────────────────────────────────────────────────────────────
-// RESOLUCIÓN DE data.id (query params → body fallback)
-// ─────────────────────────────────────────────────────────────
-
-function resolveDataId(req: Request, body: any): string {
-  const url = new URL(req.url);
-
-  // 1. Query param: data.id
-  const fromQuery = url.searchParams.get("data.id")
-    || url.searchParams.get("data_id")
-    || url.searchParams.get("id")
-    || "";
-
-  if (fromQuery) return fromQuery;
-
-  // 2. Body fallback: body.data.id
-  if (body?.data?.id != null) return String(body.data.id);
-
-  return "";
-}
-
-// ─────────────────────────────────────────────────────────────
-// HANDLER PRINCIPAL
-// ─────────────────────────────────────────────────────────────
 
 export async function POST(req: Request) {
   logEvent('info', 'webhook_received', { url: req.url });
 
   try {
-    // ── 1. Parsear body ──────────────────────────────────────
     const bodyText = await req.text();
-    let body: any;
+    let body;
     try {
       body = JSON.parse(bodyText);
-    } catch {
-      logEvent('error', 'webhook_parse_error', { type: "invalid_json" });
+    } catch (e) {
+      logEvent('error', 'webhook_data_error', { type: "invalid_json" });
       return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
     }
 
-    const eventType = body.type || body.topic || "unknown";
+    logEvent('info', 'webhook_payload', { type: body.type, action: body.action, dataId: body.data?.id });
 
-    // ── 2. Filtro temprano: ignorar eventos que NO son payment ─
-    if (eventType !== "payment") {
-      logEvent('info', 'webhook_ignored', {
-        reason: "non_payment_event",
-        eventType,
-        action: body.action,
-      });
-      return NextResponse.json({ received: true, ignored: true });
-    }
-
-    // ── 3. Resolver data.id y verificar firma (solo payment) ──
-    const dataId = resolveDataId(req, body);
-
-    logEvent('info', 'webhook_payment_event', {
-      action: body.action,
-      dataId,
-    });
-
-    if (!verifyPaymentSignature(req, dataId)) {
+    // 1️⃣ Verify signature
+    if (!verifySignatureSafe(req, bodyText)) {
+      logEvent('error', 'webhook_security_error', { type: "unauthorized_request" });
       return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
     }
 
-    // ── 4. Obtener datos del pago desde MP API ───────────────
-    const paymentId = body.data?.id;
-    if (!paymentId) {
-      logEvent('error', 'webhook_data_error', { type: "missing_payment_id" });
+    // 2️⃣ Filter Events
+    if (body.type !== "payment") {
+      logEvent('info', 'webhook_ignored', { reason: "non_payment_event", type: body.type });
       return NextResponse.json({ received: true });
     }
 
+    const paymentId = body.data?.id;
+    if (!paymentId) {
+      logEvent('error', 'webhook_data_error', { type: "missing_payment_id" });
+      return NextResponse.json({ received: true }); // SIEMPRE 200 excepto error de firma
+    }
+
+    // 3️⃣ Fetch MP Data
     let paymentData;
     try {
       const payment = new Payment(client);
       paymentData = await payment.get({ id: paymentId });
     } catch (error: any) {
-      logEvent('error', 'webhook_api_error', { type: "mp_api_failure", paymentId, message: error.message });
-      return NextResponse.json({ received: true });
+      logEvent('error', 'webhook_api_error', { type: "mercadopago_api_failure", paymentId, message: error.message });
+      return NextResponse.json({ received: true }); // MercadoPago reintentará u omitiremos sabiamente
     }
 
     const mpStatus = paymentData.status || "unknown";
@@ -191,12 +163,12 @@ export async function POST(req: Request) {
     const mpTransactionAmount = paymentData.transaction_amount || 0;
     const mpCurrency = paymentData.currency_id || "COP";
 
-    logEvent('info', 'webhook_payment_fetched', {
-      paymentId,
-      status: mpStatus,
-      externalRef,
+    logEvent('info', 'webhook_payment_fetched', { 
+      paymentId, 
+      status: mpStatus, 
+      externalRef, 
       amount: mpTransactionAmount,
-      currency: mpCurrency,
+      currency: mpCurrency
     });
 
     if (!externalRef) {
@@ -204,7 +176,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ received: true });
     }
 
-    // ── 5. Buscar orden en Firestore ─────────────────────────
+    // 4️⃣ Firestore Fetch Directo (Optimizado)
     const orderDocRef = doc(db, "orders", externalRef);
     const orderSnap = await getDoc(orderDocRef);
 
@@ -215,93 +187,94 @@ export async function POST(req: Request) {
 
     const orderData = orderSnap.data();
 
-    // ── 6. Validación de moneda ──────────────────────────────
+    // 5️⃣ Validaciones Estratégicas de Negocio (Monto y Moneda)
     if (mpCurrency !== "COP") {
-      logEvent('warn', 'webhook_business_warning', {
-        type: "currency_mismatch",
-        orderId: externalRef,
-        expected: "COP",
-        received: mpCurrency,
+      logEvent('warn', 'webhook_business_rule_warning', { 
+        type: "currency_mismatch", 
+        orderId: externalRef, 
+        expected: "COP", 
+        received: mpCurrency 
       });
     }
 
-    // ── 7. Validación de monto (tolerancia de centavos) ──────
+    // Comparamos monto (tolerancia de centavos por flotantes)
     if (Math.abs(mpTransactionAmount - (orderData.total || 0)) > 0.05) {
-      logEvent('error', 'webhook_business_error', {
-        type: "amount_mismatch",
-        orderId: externalRef,
-        expected: orderData.total,
-        received: mpTransactionAmount,
+      logEvent('error', 'webhook_business_rule_error', { 
+        type: "amount_mismatch", 
+        orderId: externalRef, 
+        expected: orderData.total, 
+        received: mpTransactionAmount 
       });
-      return NextResponse.json({ received: true, error: "amount_mismatch" });
+      return NextResponse.json({ received: true, error: "amount_mismatch" }); // 200 para evitar loops infinitos
     }
 
     const newInternalStatus = mapPaymentStatus(mpStatus);
 
-    // ── 8. Idempotencia estricta ─────────────────────────────
+    // 6️⃣ Idempotencia Estricta
     if (
-      orderData.mpPaymentId === paymentId.toString() &&
-      orderData.mpStatus === mpStatus &&
+      orderData.mpPaymentId === paymentId.toString() && 
+      orderData.mpStatus === mpStatus && 
       orderData.estado === newInternalStatus
     ) {
-      logEvent('info', 'webhook_duplicate_ignored', { orderId: externalRef, paymentId });
+      logEvent('info', 'webhook_duplicate_ignored', { orderId: externalRef, paymentId, status: mpStatus });
       return NextResponse.json({ received: true, duplicate: true });
     }
 
-    // ── 9. Anti-downgrade de estados ─────────────────────────
+    // 7️⃣ Lógica de Prioridades Limpia (No Downgrade)
     const statusPriority: Record<string, number> = {
       pendiente: 0,
       pagado: 1,
       enviado: 2,
       entregado: 3,
-      rechazado: 4,
-      reembolsado: 4,
+      rechazado: 4, 
+      reembolsado: 4, 
     };
 
     const currentPriority = statusPriority[orderData.estado] ?? 0;
     const newPriority = statusPriority[newInternalStatus] ?? 0;
+
+    // Actualiza siempre si la nueva prioridad es mayor.
+    // O si es la misma prioridad (ej: pagado -> pagado) para refrescar datos MP.
+    // PERO bloquea cosas raras como enviado(2) -> pendiente(0).
     const isDowngrade = newPriority < currentPriority;
 
-    // ── 10. Guardar en Firestore ─────────────────────────────
+    // 8️⃣ Guardar en Base de Datos
     const updatePayload: Record<string, any> = {
       mpPaymentId: paymentId.toString(),
-      mpStatus,
-      mpStatusDetail,
-      mpPaymentMethod,
-      mpTransactionAmount,
+      mpStatus: mpStatus,
+      mpStatusDetail: mpStatusDetail,
+      mpPaymentMethod: mpPaymentMethod,
+      mpTransactionAmount: mpTransactionAmount,
       mpLastWebhookAt: new Date().toISOString(),
     };
 
     if (!isDowngrade) {
       updatePayload.estado = newInternalStatus;
+      // No sobrescribir fechaPago si ya existe
       if (newInternalStatus === "pagado" && !orderData.fechaPago) {
         updatePayload.fechaPago = new Date().toISOString();
       }
-      logEvent('info', 'webhook_order_updating', {
-        orderId: externalRef,
-        from: orderData.estado,
-        to: newInternalStatus,
-      });
+      logEvent('info', 'webhook_order_updating', { orderId: externalRef, oldStatus: orderData.estado, newStatus: newInternalStatus });
     } else {
-      logEvent('warn', 'webhook_downgrade_prevented', {
-        orderId: externalRef,
-        attempted: newInternalStatus,
-        current: orderData.estado,
+      logEvent('warn', 'webhook_status_downgrade_prevented', { 
+        orderId: externalRef, 
+        attemptedStatus: newInternalStatus, 
+        currentStatus: orderData.estado 
       });
     }
 
     await updateDoc(orderDocRef, updatePayload);
-    logEvent('info', 'webhook_processed_ok', { orderId: externalRef, paymentId });
+    logEvent('info', 'webhook_processed_successfully', { orderId: externalRef, paymentId });
 
     return NextResponse.json({ received: true, status: isDowngrade ? orderData.estado : newInternalStatus });
 
   } catch (error: any) {
-    logEvent('error', 'webhook_fatal_error', { message: error?.message || "Unknown" });
-    // Siempre 200 ante fallas internas para que MP no reintente infinitamente
-    return NextResponse.json({ received: true, error: "soft_internal_error" }, { status: 200 });
+    logEvent('error', 'webhook_fatal_error', { message: error?.message || "Unknown error", stack: error?.stack });
+    // CRÍTICO: Siempre 200 ante fallas internas para que MP no enloquezca si no es necesario.
+    return NextResponse.json({ received: true, error: "Internal processing error softly handled" }, { status: 200 });
   }
 }
 
 export async function GET() {
-  return NextResponse.json({ status: "ok", service: "mercadopago-webhook-v2" });
+  return NextResponse.json({ status: "ok", service: "mercadopago-webhook-pro" });
 }
