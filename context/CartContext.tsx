@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useContext, useState, useEffect } from "react";
-import { db } from "@/lib/firebase";
+import { db, auth } from "@/lib/firebase";
 import { collection, query, where, getDocs, limit } from "firebase/firestore";
 import { CartItem } from "../types/cart";
 
@@ -118,6 +118,37 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       
       if (!couponData.activo) {
         return { success: false, message: "El cupón se encuentra inactivo" };
+      }
+
+      // Validate expiration
+      if (couponData.fechaExpiracion) {
+        const expirationDate = new Date(couponData.fechaExpiracion);
+        expirationDate.setHours(23, 59, 59, 999); // End of day
+        if (expirationDate < new Date()) {
+          return { success: false, message: "Este cupón ha expirado" };
+        }
+      }
+
+      // Validate global usage limit
+      if (couponData.limiteUsos && couponData.limiteUsos > 0 && couponData.usos >= couponData.limiteUsos) {
+        return { success: false, message: "Este cupón ha alcanzado su límite de usos" };
+      }
+
+      // Validate single-use per user
+      if (couponData.usoUnicoPorUsuario) {
+        const userEmail = auth.currentUser?.email;
+        if (userEmail) {
+          const ordersQuery = query(
+            collection(db, "orders"),
+            where("cuponUsado", "==", upperCode),
+            where("email", "==", userEmail),
+            limit(1)
+          );
+          const ordersSnap = await getDocs(ordersQuery);
+          if (!ordersSnap.empty) {
+            return { success: false, message: "Ya has utilizado este cupón anteriormente" };
+          }
+        }
       }
       
       const tipo = couponData.tipoDescuento || "porcentaje";

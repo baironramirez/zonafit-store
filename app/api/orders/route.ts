@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { collection, serverTimestamp, query, where, getDocs, updateDoc, increment, doc, runTransaction } from "firebase/firestore";
+import { collection, serverTimestamp, doc, runTransaction } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { CartItem } from "@/types/cart";
 
@@ -99,24 +99,6 @@ export async function POST(req: Request) {
 
       return newOrderRef.id;
     });
-
-    // Si se usó un cupón, actualizamos sus métricas (fuera de la transacción principal para no bloquearla si falla algo menor)
-    if (body.cuponUsado) {
-      try {
-        const q = query(collection(db, "coupons"), where("codigo", "==", body.cuponUsado));
-        const qSnap = await getDocs(q);
-        
-        if (!qSnap.empty) {
-          const couponDoc = qSnap.docs[0];
-          await updateDoc(couponDoc.ref, {
-            usos: increment(1),
-            dineroGenerado: increment(body.subtotal || body.total)
-          });
-        }
-      } catch (err) {
-        console.error("No se pudo actualizar métricas del cupón:", err);
-      }
-    }
 
     return NextResponse.json({
       success: true,
