@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/firebase";
-import { doc, runTransaction } from "firebase/firestore";
+import { doc, runTransaction, collection, query, where, getDocs, getDoc, updateDoc, increment } from "firebase/firestore";
 
 const STATUS_PRIORITY: Record<string, number> = {
   pendiente: 0,
@@ -116,6 +116,39 @@ export async function PATCH(
         // Fase Escritura Final: Orden
         transaction.update(orderRef, updatePayload);
       });
+
+      // 🔟 Acreditar cupón cuando la orden pasa a "pagado" o "entregado"
+      // Se ejecuta FUERA de la transacción para no bloquear el flujo de inventario
+      if ((estado === "pagado" || estado === "entregado")) {
+        try {
+          const orderRef = doc(db, "orders", id);
+          const freshSnap = await getDoc(orderRef);
+          const freshData = freshSnap.data();
+          
+          if (freshData && freshData.cuponUsado && !freshData.cuponAcreditado) {
+            const couponQuery = query(collection(db, "coupons"), where("codigo", "==", freshData.cuponUsado));
+            const couponSnap = await getDocs(couponQuery);
+            
+            if (!couponSnap.empty) {
+              const couponDocRef = couponSnap.docs[0].ref;
+              const creditAmount = freshData.subtotal || freshData.total || 0;
+              
+              await updateDoc(couponDocRef, {
+                usos: increment(1),
+                dineroGenerado: increment(creditAmount),
+              });
+              
+              // Marcar la orden para no acreditar dos veces
+              await updateDoc(orderRef, { cuponAcreditado: true });
+              
+              console.log(`✅ Cupón ${freshData.cuponUsado} acreditado para orden ${id}, monto: ${creditAmount}`);
+            }
+          }
+        } catch (couponError: any) {
+          // No bloqueamos el cambio de estado si falla el cupón
+          console.error(`⚠️ Error acreditando cupón para orden ${id}:`, couponError.message);
+        }
+      }
 
       return NextResponse.json({
         success: true,
