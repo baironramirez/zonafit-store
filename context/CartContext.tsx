@@ -140,12 +140,15 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         if (userEmail) {
           const ordersQuery = query(
             collection(db, "orders"),
-            where("cuponUsado", "==", upperCode),
-            where("email", "==", userEmail),
-            limit(1)
+            where("cuponUsado", "==", upperCode)
           );
           const ordersSnap = await getDocs(ordersQuery);
-          if (!ordersSnap.empty) {
+          // Filtrar en cliente por email del usuario actual
+          const usedByUser = ordersSnap.docs.some((doc) => {
+            const data = doc.data();
+            return data.cliente?.correo === userEmail;
+          });
+          if (usedByUser) {
             return { success: false, message: "Ya has utilizado este cupón anteriormente" };
           }
         }

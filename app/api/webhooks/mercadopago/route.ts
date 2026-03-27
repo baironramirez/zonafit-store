@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { client } from "@/lib/mercadopago";
 import { Payment } from "mercadopago";
 import { db } from "@/lib/firebase";
-import { doc, getDoc, updateDoc, collection, query, where, getDocs, increment } from "firebase/firestore";
+import { doc, getDoc, updateDoc } from "firebase/firestore";
 import crypto from "crypto";
 
 /**
@@ -289,26 +289,7 @@ export async function POST(req: Request) {
     await updateDoc(orderDocRef, updatePayload);
     logEvent('info', 'webhook_processed_successfully', { orderId: externalRef, paymentId });
 
-    // 9️⃣ Acreditar cupón SOLO cuando el pago pasa a "pagado" por primera vez
-    if (newInternalStatus === "pagado" && orderData.estado !== "pagado" && !isDowngrade) {
-      const cuponUsado = orderData.cuponUsado;
-      if (cuponUsado) {
-        try {
-          const couponQuery = query(collection(db, "coupons"), where("codigo", "==", cuponUsado));
-          const couponSnap = await getDocs(couponQuery);
-          if (!couponSnap.empty) {
-            const couponDocRef = couponSnap.docs[0].ref;
-            await updateDoc(couponDocRef, {
-              usos: increment(1),
-              dineroGenerado: increment(orderData.subtotal || orderData.total || mpTransactionAmount)
-            });
-            logEvent('info', 'webhook_coupon_credited', { orderId: externalRef, coupon: cuponUsado, amount: orderData.subtotal || orderData.total });
-          }
-        } catch (couponError: any) {
-          logEvent('error', 'webhook_coupon_credit_error', { orderId: externalRef, coupon: cuponUsado, error: couponError.message });
-        }
-      }
-    }
+
 
     return NextResponse.json({ received: true, status: isDowngrade ? orderData.estado : newInternalStatus });
 
