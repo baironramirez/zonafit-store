@@ -215,10 +215,19 @@ export default function CartDrawer() {
                 <Link
                   href="/carrito"
                   onClick={closeCart}
-                  className="w-full flex justify-center items-center py-4 bg-black text-white font-black uppercase tracking-widest text-sm hover:bg-orange-500 transition-all hover:scale-[1.02] shadow-[0_10px_30px_-10px_rgba(0,0,0,0.3)]"
+                  className="w-full flex justify-center items-center py-4 bg-black text-white font-black uppercase tracking-widest text-sm hover:bg-orange-500 transition-all hover:scale-[1.02] shadow-[0_10px_30px_-10px_rgba(0,0,0,0.3)] mb-4"
                 >
                   <ShoppingBag className="w-4 h-4 mr-2" /> Pagar de forma segura
                 </Link>
+
+                {/* Banner de Pagos Seguro */}
+                <div className="flex justify-center items-center mt-2">
+                  <img 
+                    src="https://firebasestorage.googleapis.com/v0/b/zonafit-store.firebasestorage.app/o/banners_pagos%2Fpagos.png?alt=media&token=75ee8ffc-f7ee-4b85-81e8-ab447d84f4f8" 
+                    alt="Medios de pago aceptados" 
+                    className="h-7 object-contain opacity-90 grayscale hover:grayscale-0 transition-all"
+                  />
+                </div>
               </div>
             )}
           </motion.div>

@@ -331,6 +331,15 @@ export default function CarritoPage() {
                       className="w-full px-4 py-3 bg-white border border-gray-300 text-black placeholder-gray-400 font-medium text-sm focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent transition-all" />
                   </div>
 
+                  {/* Banner de Pagos Seguro */}
+                  <div className="flex justify-center items-center py-4 mt-2 mb-2">
+                    <img 
+                      src="https://firebasestorage.googleapis.com/v0/b/zonafit-store.firebasestorage.app/o/banners_pagos%2Fpagos.png?alt=media&token=75ee8ffc-f7ee-4b85-81e8-ab447d84f4f8" 
+                      alt="Medios de pago aceptados" 
+                      className="h-8 object-contain opacity-90 grayscale hover:grayscale-0 transition-all"
+                    />
+                  </div>
+
                   {/* Submit Button (Hidden on Mobile, replaced by sticky footer) */}
                   <button
                     type="submit"
