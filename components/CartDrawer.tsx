@@ -16,7 +16,7 @@ export default function CartDrawer() {
     (acc, item) => acc + item.precio * item.cantidad,
     0
   );
-  const discountAmount = discount 
+  const discountAmount = discount
     ? discount.type === "porcentaje"
       ? totalAmount * (discount.value / 100)
       : discount.value
@@ -221,11 +221,11 @@ export default function CartDrawer() {
                 </Link>
 
                 {/* Banner de Pagos Seguro */}
-                <div className="flex justify-center items-center mt-2">
-                  <img 
-                    src="https://firebasestorage.googleapis.com/v0/b/zonafit-store.firebasestorage.app/o/banners_pagos%2Fpagos.png?alt=media&token=75ee8ffc-f7ee-4b85-81e8-ab447d84f4f8" 
-                    alt="Medios de pago aceptados" 
-                    className="h-7 object-contain opacity-90 grayscale hover:grayscale-0 transition-all"
+                <div className="flex justify-center items-center mt-3">
+                  <img
+                    src="https://firebasestorage.googleapis.com/v0/b/zonafit-store.firebasestorage.app/o/banners_pagos%2Fpagos.png?alt=media&token=75ee8ffc-f7ee-4b85-81e8-ab447d84f4f8"
+                    alt="Medios de pago aceptados"
+                    className="h-10 object-contain opacity-100 transition-all duration-300 hover:scale-105"
                   />
                 </div>
               </div>

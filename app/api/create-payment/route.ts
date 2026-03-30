@@ -35,7 +35,7 @@ export async function POST(req: Request) {
     console.log("Items enviados a MercadoPago:", items);
 
     // 🔹 url base del proyecto
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://example.com";
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
 
     const preference = new Preference(client);
 
@@ -59,6 +59,7 @@ export async function POST(req: Request) {
 
     });
 
+    console.log("Notification URL enviada a MP:", `${baseUrl}/api/webhooks/mercadopago`);
     console.log("Preferencia creada:", response.id);
 
     return NextResponse.json({
