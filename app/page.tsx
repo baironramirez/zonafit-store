@@ -11,6 +11,7 @@ import { doc, getDoc, collection, getDocs } from "firebase/firestore";
 export default function Home() {
   const [productos, setProductos] = useState<ProductoData[]>([]);
   const [loading, setLoading] = useState(true);
+  const [extraBlocks, setExtraBlocks] = useState<any[]>([]);
 
   // Hero Banner State
   const [heroBanners, setHeroBanners] = useState<string[]>([]);
@@ -57,7 +58,17 @@ export default function Home() {
           if (data.autoRotateBanner !== undefined) setAutoRotateBanner(data.autoRotateBanner);
           if (data.bannerInterval !== undefined) setBannerInterval(data.bannerInterval);
           if (data.featuredProductIds && Array.isArray(data.featuredProductIds) && data.featuredProductIds.length > 0) {
-            pIds = data.featuredProductIds;
+            pIds = [...data.featuredProductIds];
+          }
+          if (data.extraBlocks && Array.isArray(data.extraBlocks)) {
+            setExtraBlocks(data.extraBlocks);
+            data.extraBlocks.forEach((block: any) => {
+              if (block.type === 'products' && block.productIds) {
+                block.productIds.forEach((id: string) => {
+                  if (!pIds.includes(id)) pIds.push(id);
+                });
+              }
+            });
           }
         }
 
@@ -252,6 +263,76 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      {/* 3. BLOQUES DINÁMICOS ADICIONALES */}
+      {!loading && extraBlocks.map((block, index) => {
+        if (block.type === 'banner') {
+          return (
+            <Link href={block.link || '#'} key={block.id} className="block relative h-[50vh] md:h-[60vh] w-full bg-black overflow-hidden group">
+              {/* Imagen Desktop */}
+              <img
+                src={block.desktopImage || '/images/b1.jpg'}
+                alt={`Banner Promocional ${index}`}
+                className="absolute inset-0 w-full h-full object-cover hidden md:block opacity-90 group-hover:scale-105 transition-transform duration-700"
+              />
+              {/* Imagen Mobile */}
+              <img
+                src={block.mobileImage || block.desktopImage || '/images/b1.jpg'}
+                alt={`Banner Promocional ${index} Móvil`}
+                className="absolute inset-0 w-full h-full object-cover md:hidden opacity-90 group-hover:scale-105 transition-transform duration-700"
+              />
+            </Link>
+          );
+        }
+
+        if (block.type === 'products') {
+          return (
+            <section key={block.id} className="py-20 md:py-28 bg-white border-t border-gray-100">
+              <div className="max-w-[1400px] mx-auto px-6">
+                <div className="flex justify-between items-end mb-10">
+                  <h2 className="text-3xl md:text-4xl font-black uppercase tracking-tight text-black">
+                    {block.title || 'NUEVA COLECCIÓN'}
+                  </h2>
+
+                  {block.category && (
+                    <Link
+                      href={`/productos?cat=${encodeURIComponent(block.category)}`}
+                      className="hidden md:inline-flex text-black font-bold uppercase tracking-widest border-b-2 border-black pb-1 hover:text-gray-500 hover:border-gray-500 transition-colors text-sm"
+                    >
+                      Ver Todo
+                    </Link>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+                  {(block.productIds || []).map((id: string) => {
+                    const prod = productos.find(p => p.id === id);
+                    if (!prod) return null;
+                    return (
+                      <div key={prod.id} className="group relative">
+                        <ProductCard producto={prod} />
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {block.category && (
+                  <div className="mt-10 text-center md:hidden">
+                    <Link
+                      href={`/productos?cat=${encodeURIComponent(block.category)}`}
+                      className="inline-flex text-black font-bold uppercase tracking-widest border-b-2 border-black pb-1 text-sm"
+                    >
+                      Ver Todo
+                    </Link>
+                  </div>
+                )}
+              </div>
+            </section>
+          );
+        }
+
+        return null;
+      })}
 
       {/* 3. NEWSLETTER */}
       <section className="py-20 bg-gray-50 border-t border-gray-100">

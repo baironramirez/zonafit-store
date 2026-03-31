@@ -41,6 +41,7 @@ export default function AjustesPage() {
   const [newCategory, setNewCategory] = useState<string>("");
   const [marcas, setMarcas] = useState<string[]>([]);
   const [newMarca, setNewMarca] = useState<string>("");
+  const [extraBlocks, setExtraBlocks] = useState<any[]>([]);
 
   useEffect(() => {
     async function fetchSettings() {
@@ -87,9 +88,15 @@ export default function AjustesPage() {
           } else {
             setMarcas(["Optimum Nutrition", "Dymatize", "MuscleTech", "BSN", "Cellucor"]);
           }
+          if (data.extraBlocks && Array.isArray(data.extraBlocks)) {
+            setExtraBlocks(data.extraBlocks);
+          } else {
+            setExtraBlocks([]);
+          }
         } else {
           setCategorias(["Proteínas", "Pre-Entrenos", "Creatina", "Vitaminas"]);
           setMarcas(["Optimum Nutrition", "Dymatize", "MuscleTech", "BSN", "Cellucor"]);
+          setExtraBlocks([]);
         }
 
         // Fetch gallery from storage
@@ -275,7 +282,8 @@ export default function AjustesPage() {
         promoText,
         featuredProductIds,
         categorias,
-        marcas
+        marcas,
+        extraBlocks
       }, { merge: true });
       alert("¡Ajustes guardados correctamente!");
       setHasChanges(false);
@@ -716,6 +724,184 @@ export default function AjustesPage() {
                     </div>
                   );
                 })}
+              </div>
+            </div>
+
+            {/* SECCIÓN BLOQUES ADICIONALES */}
+            <div className="p-6 md:p-8 bg-white border-t border-gray-200">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 pb-6 border-b border-gray-100 gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-3 bg-purple-50 text-purple-600 rounded-xl">
+                    <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16m-7 6h7" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-bold uppercase tracking-wide">Bloques Adicionales</h2>
+                    <p className="text-sm text-gray-500">Agrega más banners o listas de productos debajo de novedades.</p>
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <button onClick={() => {
+                    setHasChanges(true);
+                    setExtraBlocks([...extraBlocks, { id: Date.now().toString(), type: 'banner', desktopImage: '', mobileImage: '', link: '' }]);
+                  }} className="bg-gray-100 hover:bg-gray-200 text-black px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-widest transition-colors shadow-sm">
+                    + Banner Extra
+                  </button>
+                  <button onClick={() => {
+                    setHasChanges(true);
+                    setExtraBlocks([...extraBlocks, { id: Date.now().toString(), type: 'products', title: 'NUEVA COLECCIÓN', category: '', productIds: [] }]);
+                  }} className="bg-gray-100 hover:bg-gray-200 text-black px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-widest transition-colors shadow-sm">
+                    + Productos Extra
+                  </button>
+                </div>
+              </div>
+
+              <div className="space-y-6">
+                {extraBlocks.map((block, index) => (
+                  <div key={block.id} className="border border-gray-200 rounded-xl p-4 bg-gray-50 relative shadow-sm">
+                    <div className="absolute top-4 right-4 flex gap-2">
+                      <button onClick={() => {
+                        if (index === 0) return;
+                        const newBlocks = [...extraBlocks];
+                        [newBlocks[index - 1], newBlocks[index]] = [newBlocks[index], newBlocks[index - 1]];
+                        setExtraBlocks(newBlocks);
+                        setHasChanges(true);
+                      }} className="p-1.5 bg-white border border-gray-200 rounded hover:bg-gray-100 disabled:opacity-50" disabled={index === 0}>
+                        <ChevronLeft className="w-4 h-4 rotate-90" />
+                      </button>
+                      <button onClick={() => {
+                        if (index === extraBlocks.length - 1) return;
+                        const newBlocks = [...extraBlocks];
+                        [newBlocks[index + 1], newBlocks[index]] = [newBlocks[index], newBlocks[index + 1]];
+                        setExtraBlocks(newBlocks);
+                        setHasChanges(true);
+                      }} className="p-1.5 bg-white border border-gray-200 rounded hover:bg-gray-100 disabled:opacity-50" disabled={index === extraBlocks.length - 1}>
+                        <ChevronRight className="w-4 h-4 rotate-90" />
+                      </button>
+                      <button onClick={() => {
+                        if(confirm('¿Seguro quieres borrar este bloque?')) {
+                          setExtraBlocks(extraBlocks.filter(b => b.id !== block.id));
+                          setHasChanges(true);
+                        }
+                      }} className="p-1.5 bg-red-50 text-red-500 border border-red-100 rounded hover:bg-red-100 ml-2">
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+
+                    <h3 className="font-bold text-sm uppercase tracking-widest mb-4">
+                      {block.type === 'banner' ? `Bloque ${index + 1}: Banner Promocional` : `Bloque ${index + 1}: Carrusel de Productos`}
+                    </h3>
+
+                    {block.type === 'banner' ? (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-1">URL Imagen Desktop</label>
+                          <input type="text" value={block.desktopImage || ''} onChange={(e) => {
+                            const newBlocks = [...extraBlocks];
+                            newBlocks[index].desktopImage = e.target.value;
+                            setExtraBlocks(newBlocks);
+                            setHasChanges(true);
+                          }} className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm font-medium" placeholder="https://..." />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-1">URL Imagen Móvil</label>
+                          <input type="text" value={block.mobileImage || ''} onChange={(e) => {
+                            const newBlocks = [...extraBlocks];
+                            newBlocks[index].mobileImage = e.target.value;
+                            setExtraBlocks(newBlocks);
+                            setHasChanges(true);
+                          }} className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm font-medium" placeholder="https://..." />
+                        </div>
+                        <div className="md:col-span-2">
+                          <label className="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-1">Enlace al dar clic (Opcional)</label>
+                          <input type="text" value={block.link || ''} onChange={(e) => {
+                            const newBlocks = [...extraBlocks];
+                            newBlocks[index].link = e.target.value;
+                            setExtraBlocks(newBlocks);
+                            setHasChanges(true);
+                          }} className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm font-medium" placeholder="Ej: /productos?cat=Proteínas" />
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <label className="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-1">Título de la Sección</label>
+                            <input type="text" value={block.title || ''} onChange={(e) => {
+                              const newBlocks = [...extraBlocks];
+                              newBlocks[index].title = e.target.value;
+                              setExtraBlocks(newBlocks);
+                              setHasChanges(true);
+                            }} className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm font-bold uppercase" />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-1">Categoría enlace "Ver Todo" (Opcional)</label>
+                            <select value={block.category || ''} onChange={(e) => {
+                              const newBlocks = [...extraBlocks];
+                              newBlocks[index].category = e.target.value;
+                              setExtraBlocks(newBlocks);
+                              setHasChanges(true);
+                            }} className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm bg-white font-medium">
+                              <option value="">Ninguna</option>
+                              {categorias.map(c => <option key={c} value={c}>{c}</option>)}
+                            </select>
+                          </div>
+                        </div>
+                        
+                        <div>
+                          <label className="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-2">Selecciona hasta 4 productos destacados</label>
+                          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2 max-h-[250px] overflow-y-auto p-3 border border-gray-200 rounded-lg bg-white">
+                            {productos.map((producto) => {
+                              const isSelected = (block.productIds || []).includes(producto.id);
+                              return (
+                                <div
+                                  key={producto.id}
+                                  onClick={() => {
+                                    const newBlocks = [...extraBlocks];
+                                    const currentIds = newBlocks[index].productIds || [];
+                                    if (currentIds.includes(producto.id)) {
+                                      newBlocks[index].productIds = currentIds.filter((id: string) => id !== producto.id);
+                                    } else {
+                                      if (currentIds.length >= 4) { alert("Máximo 4 productos por bloque"); return; }
+                                      newBlocks[index].productIds = [...currentIds, producto.id];
+                                    }
+                                    setExtraBlocks(newBlocks);
+                                    setHasChanges(true);
+                                  }}
+                                  className={`relative rounded-lg border-2 p-1.5 cursor-pointer transition-all ${isSelected ? 'border-blue-500 bg-blue-50 shadow-sm' : 'border-gray-100 hover:border-gray-300'}`}
+                                >
+                                  <div className="aspect-square bg-gray-100 rounded overflow-hidden mb-1">
+                                    <img src={producto.imagen || '/images/b1.jpg'} alt={producto.nombre} className="w-full h-full object-cover" />
+                                  </div>
+                                  <p className="text-[10px] font-bold uppercase truncate text-black">{producto.nombre}</p>
+                                  {isSelected && (
+                                    <div className="absolute -top-1 -right-1 bg-blue-500 text-white w-5 h-5 rounded-full flex items-center justify-center shadow-md">
+                                      <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                      </svg>
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))}
+                
+                {extraBlocks.length === 0 && (
+                  <div className="text-center py-10 border-2 border-dashed border-gray-200 rounded-xl bg-gray-50">
+                    <p className="text-sm font-medium text-gray-500 mb-2">
+                      No has añadido bloques extra.
+                    </p>
+                    <p className="text-xs text-gray-400">
+                      Usa los botones superiores para agregar banners o más colecciones a tu página principal.
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
 
