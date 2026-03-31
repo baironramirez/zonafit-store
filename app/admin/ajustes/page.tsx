@@ -261,6 +261,29 @@ export default function AjustesPage() {
     }
   };
 
+  const handleExtraBannerUpload = async (index: number, type: 'desktop' | 'mobile', e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      setSaving(true);
+      try {
+        const folder = type === 'desktop' ? 'banners' : 'banners_movil';
+        const fileRef = ref(storage, `${folder}/extra_${Date.now()}_${file.name.replace(/\s+/g, '_')}`);
+        await uploadBytes(fileRef, file);
+        const url = await getDownloadURL(fileRef);
+        const newBlocks = [...extraBlocks];
+        if (type === 'desktop') newBlocks[index].desktopImage = url;
+        else newBlocks[index].mobileImage = url;
+        setExtraBlocks(newBlocks);
+        setHasChanges(true);
+      } catch (error) {
+        console.error("Error uploading extra banner:", error);
+        alert("Error al subir la imagen.");
+      } finally {
+        setSaving(false);
+      }
+    }
+  };
+
   const handleSave = async () => {
     setSaving(true);
     try {
@@ -796,31 +819,49 @@ export default function AjustesPage() {
                     {block.type === 'banner' ? (
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                          <label className="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-1">URL Imagen Desktop</label>
-                          <input type="text" value={block.desktopImage || ''} onChange={(e) => {
-                            const newBlocks = [...extraBlocks];
-                            newBlocks[index].desktopImage = e.target.value;
-                            setExtraBlocks(newBlocks);
-                            setHasChanges(true);
-                          }} className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm font-medium" placeholder="https://..." />
+                          <label className="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-1">Imagen Desktop (Horizontal)</label>
+                          <div className="flex gap-2 items-center">
+                            {block.desktopImage ? (
+                              <div className="relative w-16 h-12 rounded border border-gray-200 bg-gray-100 overflow-hidden shrink-0">
+                                <img src={block.desktopImage} className="w-full h-full object-cover" alt="Desktop Preview" />
+                              </div>
+                            ) : null}
+                            <label className="cursor-pointer flex-1 bg-white border border-gray-300 text-black px-3 py-2 rounded-lg font-bold text-xs uppercase tracking-wide hover:bg-gray-50 flex items-center justify-center text-center">
+                              Subir Desktop
+                              <input type="file" accept="image/*" className="hidden" onChange={(e) => handleExtraBannerUpload(index, 'desktop', e)} disabled={saving} />
+                            </label>
+                          </div>
                         </div>
                         <div>
-                          <label className="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-1">URL Imagen Móvil</label>
-                          <input type="text" value={block.mobileImage || ''} onChange={(e) => {
-                            const newBlocks = [...extraBlocks];
-                            newBlocks[index].mobileImage = e.target.value;
-                            setExtraBlocks(newBlocks);
-                            setHasChanges(true);
-                          }} className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm font-medium" placeholder="https://..." />
+                          <label className="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-1">Imagen Móvil (Vertical)</label>
+                          <div className="flex gap-2 items-center">
+                            {block.mobileImage ? (
+                              <div className="relative w-10 h-12 rounded border border-gray-200 bg-gray-100 overflow-hidden shrink-0">
+                                <img src={block.mobileImage} className="w-full h-full object-cover" alt="Mobile Preview" />
+                              </div>
+                            ) : null}
+                            <label className="cursor-pointer flex-1 bg-white border border-gray-300 text-black px-3 py-2 rounded-lg font-bold text-xs uppercase tracking-wide hover:bg-gray-50 flex items-center justify-center text-center">
+                              Subir Móvil
+                              <input type="file" accept="image/*" className="hidden" onChange={(e) => handleExtraBannerUpload(index, 'mobile', e)} disabled={saving} />
+                            </label>
+                          </div>
                         </div>
                         <div className="md:col-span-2">
-                          <label className="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-1">Enlace al dar clic (Opcional)</label>
-                          <input type="text" value={block.link || ''} onChange={(e) => {
+                          <label className="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-1">Categoría al dar clic (Opcional)</label>
+                          <select value={block.category || ''} onChange={(e) => {
                             const newBlocks = [...extraBlocks];
-                            newBlocks[index].link = e.target.value;
+                            newBlocks[index].category = e.target.value;
+                            if (e.target.value) {
+                              newBlocks[index].link = `/productos?cat=${encodeURIComponent(e.target.value)}`;
+                            } else {
+                              newBlocks[index].link = '';
+                            }
                             setExtraBlocks(newBlocks);
                             setHasChanges(true);
-                          }} className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm font-medium" placeholder="Ej: /productos?cat=Proteínas" />
+                          }} className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm font-medium bg-white outline-none focus:border-black">
+                            <option value="">Ninguna</option>
+                            {categorias.map(c => <option key={c} value={c}>{c}</option>)}
+                          </select>
                         </div>
                       </div>
                     ) : (

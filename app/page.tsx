@@ -11,6 +11,7 @@ import { doc, getDoc, collection, getDocs } from "firebase/firestore";
 export default function Home() {
   const [productos, setProductos] = useState<ProductoData[]>([]);
   const [loading, setLoading] = useState(true);
+  const [featuredProductIds, setFeaturedProductIds] = useState<string[]>([]);
   const [extraBlocks, setExtraBlocks] = useState<any[]>([]);
 
   // Hero Banner State
@@ -58,6 +59,7 @@ export default function Home() {
           if (data.autoRotateBanner !== undefined) setAutoRotateBanner(data.autoRotateBanner);
           if (data.bannerInterval !== undefined) setBannerInterval(data.bannerInterval);
           if (data.featuredProductIds && Array.isArray(data.featuredProductIds) && data.featuredProductIds.length > 0) {
+            setFeaturedProductIds(data.featuredProductIds);
             pIds = [...data.featuredProductIds];
           }
           if (data.extraBlocks && Array.isArray(data.extraBlocks)) {
@@ -245,7 +247,10 @@ export default function Home() {
             </div>
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-              {productos.map((producto) => (
+              {productos
+                .filter(p => featuredProductIds.length === 0 || featuredProductIds.includes(p.id))
+                .slice(0, 4)
+                .map((producto) => (
                 <div key={producto.id} className="group relative">
                   <ProductCard producto={producto} />
                 </div>
