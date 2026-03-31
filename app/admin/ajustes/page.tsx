@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { doc, getDoc, setDoc, collection, getDocs, orderBy, query } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL, listAll, deleteObject } from "firebase/storage";
 import { db, storage } from "@/lib/firebase";
-import { Image as ImageIcon, Save, ArrowLeft, Loader2, UploadCloud, Type, Megaphone, Trash2, ChevronLeft, ChevronRight } from "lucide-react";
+import { Image as ImageIcon, Save, ArrowLeft, Loader2, UploadCloud, Type, Megaphone, Trash2, ChevronLeft, ChevronRight, X } from "lucide-react";
 import Link from "next/link";
 import { ProductoData } from "@/components/ProductCard";
 
@@ -478,8 +478,15 @@ export default function AjustesPage() {
                       <h4 className="text-xs font-bold uppercase tracking-widest text-blue-800 mb-3">Orden de Visualización</h4>
                       <div className="flex gap-4 overflow-x-auto pb-2 snap-x">
                         {currentBanners.map((url, i) => (
-                           <div key={url} className="relative w-32 md:w-40 shrink-0 snap-start aspect-video rounded-lg overflow-hidden border border-blue-200 shadow-sm">
+                           <div key={url} className="relative w-32 md:w-40 shrink-0 snap-start aspect-video rounded-lg overflow-hidden border border-blue-200 shadow-sm group">
                              <img src={url} className="w-full h-full object-cover" />
+                             <button
+                               onClick={(e) => { e.stopPropagation(); toggleBannerSelection(url); }}
+                               className="absolute top-1 right-1 p-1 bg-red-500 hover:bg-red-600 text-white rounded-full z-10 transition-all opacity-0 group-hover:opacity-100 shadow-md"
+                               title="Quitar de visualización"
+                             >
+                               <X className="w-3 h-3" />
+                             </button>
                              <div className="absolute inset-0 bg-black/40 flex items-center justify-between px-2">
                                <button onClick={(e) => { e.stopPropagation(); moveBanner(url, 'left', false); }} className="p-1 bg-white/20 hover:bg-white/40 backdrop-blur-sm text-white rounded transition-colors disabled:opacity-30 disabled:cursor-not-allowed" disabled={i === 0}>
                                  <ChevronLeft className="w-5 h-5" />
@@ -565,8 +572,15 @@ export default function AjustesPage() {
                       <h4 className="text-xs font-bold uppercase tracking-widest text-orange-800 mb-3">Orden de Visualización Móvil</h4>
                       <div className="flex gap-4 overflow-x-auto pb-2 snap-x">
                         {currentMobileBanners.map((url, i) => (
-                           <div key={`ord-${url}`} className="relative w-24 md:w-28 shrink-0 snap-start aspect-[3/4] rounded-lg overflow-hidden border border-orange-200 shadow-sm">
+                           <div key={`ord-${url}`} className="relative w-24 md:w-28 shrink-0 snap-start aspect-[3/4] rounded-lg overflow-hidden border border-orange-200 shadow-sm group">
                              <img src={url} className="w-full h-full object-cover" />
+                             <button
+                               onClick={(e) => { e.stopPropagation(); toggleMobileBannerSelection(url); }}
+                               className="absolute top-1 right-1 p-1 bg-red-500 hover:bg-red-600 text-white rounded-full z-10 transition-all opacity-0 group-hover:opacity-100 shadow-md"
+                               title="Quitar de visualización"
+                             >
+                               <X className="w-3 h-3" />
+                             </button>
                              <div className="absolute inset-x-0 bottom-0 py-2 bg-gradient-to-t from-black/80 to-transparent flex items-end justify-between px-2 h-1/2">
                                <button onClick={(e) => { e.stopPropagation(); moveBanner(url, 'left', true); }} className="p-1.5 bg-white/20 hover:bg-white/40 backdrop-blur-sm text-white rounded transition-colors disabled:opacity-30 disabled:cursor-not-allowed" disabled={i === 0}>
                                  <ChevronLeft className="w-4 h-4" />
