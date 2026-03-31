@@ -6,7 +6,16 @@ import { useAuth } from "../../context/AuthContext";
 import { collection, query, where, getDocs, Timestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import Link from "next/link";
-import { Package, Clock, CheckCircle2, ChevronRight, ShoppingBag, ChevronDown, ChevronUp, MapPin, CreditCard } from "lucide-react";
+import { Package, Clock, CheckCircle2, ChevronRight, ShoppingBag, ChevronDown, ChevronUp, MapPin, CreditCard, Truck, PackageCheck, XCircle, RefreshCw } from "lucide-react";
+
+export const STATUS_CONFIG: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
+  pendiente: { label: "Pendiente", color: "text-orange-500", icon: <Clock className="w-5 h-5" /> },
+  pagado: { label: "Pagado", color: "text-green-500", icon: <CheckCircle2 className="w-5 h-5" /> },
+  enviado: { label: "Enviado", color: "text-blue-500", icon: <Truck className="w-5 h-5" /> },
+  entregado: { label: "Entregado", color: "text-gray-600", icon: <PackageCheck className="w-5 h-5" /> },
+  rechazado: { label: "Rechazado", color: "text-red-500", icon: <XCircle className="w-5 h-5" /> },
+  reembolsado: { label: "Reembolsado", color: "text-purple-500", icon: <RefreshCw className="w-5 h-5" /> },
+};
 
 interface OrderItem {
   nombre: string;
@@ -41,6 +50,7 @@ interface Order {
   mpPaymentMethod?: string;
   fechaPago?: string;
   fechaEnvio?: string;
+  guiaEnvio?: string;
 }
 
 export default function PedidosPage() {
@@ -157,7 +167,7 @@ export default function PedidosPage() {
                 : "Fecha desconocida";
 
               // Determine status style
-              const isCompleted = order.estado.toLowerCase() === "completado" || order.estado.toLowerCase() === "aprobado";
+              const statusConfig = STATUS_CONFIG[order.estado] || STATUS_CONFIG.pendiente;
               
               return (
                 <div key={order.id} className="bg-white border border-gray-200 p-6 md:p-8 hover:border-gray-300 transition-colors">
@@ -217,14 +227,10 @@ export default function PedidosPage() {
 
                   {/* Order Footer (Status) */}
                   <div className="flex items-center justify-between pt-4 border-t border-gray-100">
-                    <div className="flex items-center gap-2">
-                      {isCompleted ? (
-                        <CheckCircle2 className="w-5 h-5 text-green-500" />
-                      ) : (
-                        <Clock className="w-5 h-5 text-orange-500" />
-                      )}
-                      <span className="font-bold uppercase tracking-widest text-sm text-black">
-                        {order.estado || "Pendiente"}
+                    <div className={`flex items-center gap-2 ${statusConfig.color}`}>
+                      {statusConfig.icon}
+                      <span className="font-bold uppercase tracking-widest text-sm">
+                        {statusConfig.label}
                       </span>
                     </div>
 
@@ -251,6 +257,11 @@ export default function PedidosPage() {
                             <p><strong className="text-black">Dirección:</strong> {order.cliente.direccion || "No especificada"}</p>
                             <p><strong className="text-black">Ciudad:</strong> {order.cliente.ciudad || "—"}, {order.cliente.departamento || "—"}</p>
                             <p><strong className="text-black">Cód. Postal:</strong> {order.cliente.codigoPostal || "—"}</p>
+                            {order.guiaEnvio && (
+                              <p className="bg-blue-50 border border-blue-100 px-3 py-2 rounded mt-2">
+                                <strong className="text-blue-800">Guía de Envío:</strong> <span className="font-mono text-blue-900">{order.guiaEnvio}</span>
+                              </p>
+                            )}
                             <p className="pt-2 mt-2 border-t border-gray-200">
                               <strong className="text-black">Recibe:</strong> {order.cliente.nombre} <br/>
                               <strong className="text-black">Teléfono:</strong> {order.cliente.telefono || "—"}

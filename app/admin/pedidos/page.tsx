@@ -44,6 +44,7 @@ interface Order {
   fechaPago?: string;
   fechaEnvio?: string;
   fechaEntrega?: string;
+  guiaEnvio?: string;
 }
 
 const ESTADOS = ["todos", "pendiente", "pagado", "enviado", "entregado", "rechazado", "reembolsado"];
@@ -64,6 +65,7 @@ export default function AdminPedidosPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [expandedOrder, setExpandedOrder] = useState<string | null>(null);
   const [updatingOrder, setUpdatingOrder] = useState<string | null>(null);
+  const [guiaInputs, setGuiaInputs] = useState<Record<string, string>>({});
 
   async function fetchOrders() {
     setLoading(true);
@@ -114,6 +116,26 @@ export default function AdminPedidosPage() {
     } catch (error) {
       console.error("Error updating order:", error);
       alert("Error al actualizar el pedido");
+    } finally {
+      setUpdatingOrder(null);
+    }
+  }
+
+  async function handleUpdateGuia(orderId: string) {
+    const guia = guiaInputs[orderId];
+    if (guia === undefined) return;
+    
+    setUpdatingOrder(orderId + "-guia");
+    try {
+      const { doc, updateDoc } = await import("firebase/firestore");
+      await updateDoc(doc(db, "orders", orderId), { guiaEnvio: guia });
+      setOrders((prev) =>
+        prev.map((o) => (o.id === orderId ? { ...o, guiaEnvio: guia } : o))
+      );
+      alert("Guía de envío actualizada correctamente");
+    } catch (error) {
+      console.error("Error updating guia:", error);
+      alert("Error al actualizar la guía de envío");
     } finally {
       setUpdatingOrder(null);
     }
@@ -335,6 +357,26 @@ export default function AdminPedidosPage() {
                             <p><span className="text-gray-400">Cédula:</span> <span className="font-medium text-black">{order.cliente?.cedula || "—"}</span></p>
                             <p><span className="text-gray-400">Dirección:</span> <span className="font-medium text-black">{order.cliente?.direccion || "—"}</span></p>
                             <p><span className="text-gray-400">Ciudad:</span> <span className="font-medium text-black">{order.cliente?.ciudad || "—"}, {order.cliente?.departamento || ""}</span></p>
+                          </div>
+
+                          <div className="mt-4 pt-4 border-t border-gray-100">
+                            <label className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-2 block">Guía de Envío (Opcional)</label>
+                            <div className="flex gap-2">
+                              <input 
+                                type="text" 
+                                placeholder="Ej: 9029990234..."
+                                value={guiaInputs[order.id] !== undefined ? guiaInputs[order.id] : (order.guiaEnvio || "")}
+                                onChange={(e) => setGuiaInputs({...guiaInputs, [order.id]: e.target.value})}
+                                className="w-full px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-black outline-none focus:border-black transition-colors"
+                              />
+                              <button 
+                                onClick={(e) => { e.stopPropagation(); handleUpdateGuia(order.id); }}
+                                disabled={updatingOrder === order.id + "-guia" || (guiaInputs[order.id] === undefined && !order.guiaEnvio)}
+                                className="px-3 py-1.5 bg-black text-white text-xs font-bold uppercase tracking-wider rounded-lg disabled:opacity-50 transition-opacity whitespace-nowrap"
+                              >
+                                {updatingOrder === order.id + "-guia" ? "..." : "Guardar"}
+                              </button>
+                            </div>
                           </div>
                         </div>
 
