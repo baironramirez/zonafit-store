@@ -16,6 +16,7 @@ export default function AjustesPage() {
   const [currentBanners, setCurrentBanners] = useState<string[]>([]);
   const [currentMobileBanners, setCurrentMobileBanners] = useState<string[]>([]);
   const [gallery, setGallery] = useState<string[]>([]);
+  const [galleryMobile, setGalleryMobile] = useState<string[]>([]);
   const [bannerFile, setBannerFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string>("");
   const [autoRotateBanner, setAutoRotateBanner] = useState<boolean>(true);
@@ -99,11 +100,16 @@ export default function AjustesPage() {
           setExtraBlocks([]);
         }
 
-        // Fetch gallery from storage
+        // Fetch galleries from storage
         const listRef = ref(storage, "banners");
         const res = await listAll(listRef);
         const urls = await Promise.all(res.items.map((itemRef) => getDownloadURL(itemRef)));
         setGallery(urls);
+
+        const listRefMobile = ref(storage, "banners_movil");
+        const resMobile = await listAll(listRefMobile);
+        const urlsMobile = await Promise.all(resMobile.items.map((itemRef) => getDownloadURL(itemRef)));
+        setGalleryMobile(urlsMobile);
       } catch (error) {
         console.error("Error fetching settings:", error);
       } finally {
@@ -162,6 +168,7 @@ export default function AjustesPage() {
       const imageRef = ref(storage, url);
       await deleteObject(imageRef);
       setGallery(prev => prev.filter(u => u !== url));
+      setGalleryMobile(prev => prev.filter(u => u !== url));
       setCurrentBanners(prev => prev.filter(u => u !== url));
       setCurrentMobileBanners(prev => prev.filter(u => u !== url));
       setHasChanges(true);
@@ -261,23 +268,20 @@ export default function AjustesPage() {
     }
   };
 
-  const handleExtraBannerUpload = async (index: number, type: 'desktop' | 'mobile', e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleMobileFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
       setSaving(true);
       try {
-        const folder = type === 'desktop' ? 'banners' : 'banners_movil';
-        const fileRef = ref(storage, `${folder}/extra_${Date.now()}_${file.name.replace(/\s+/g, '_')}`);
+        const fileRef = ref(storage, `banners_movil/heroMobileBanner_${Date.now()}`);
         await uploadBytes(fileRef, file);
         const url = await getDownloadURL(fileRef);
-        const newBlocks = [...extraBlocks];
-        if (type === 'desktop') newBlocks[index].desktopImage = url;
-        else newBlocks[index].mobileImage = url;
-        setExtraBlocks(newBlocks);
+        setGalleryMobile(prev => [url, ...prev]);
+        setCurrentMobileBanners(prev => [...prev, url]);
         setHasChanges(true);
       } catch (error) {
-        console.error("Error uploading extra banner:", error);
-        alert("Error al subir la imagen.");
+        console.error("Error uploading mobile banner:", error);
+        alert("Error al subir la imagen móvil.");
       } finally {
         setSaving(false);
       }
@@ -412,7 +416,7 @@ export default function AjustesPage() {
                 <div className="flex justify-start">
                   <label className="cursor-pointer bg-white border border-gray-300 text-black px-6 py-3 rounded-lg font-bold uppercase tracking-wide hover:bg-gray-50 transition-colors flex items-center gap-2 text-sm shadow-sm">
                     {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <UploadCloud className="w-5 h-5" />}
-                    Subir Nueva Imagen
+                    Subir Imagen Desktop
                     <input
                       type="file"
                       accept="image/*"
@@ -494,10 +498,27 @@ export default function AjustesPage() {
 
                 {/* Gallery Selection Mobile */}
                 <div className="mt-8 pt-8 border-t border-gray-100">
-                  <h3 className="text-sm font-bold uppercase tracking-widest text-gray-400 mb-2">Galería de Imágenes (Móvil)</h3>
-                  <p className="text-xs text-gray-500 mb-4">Selecciona las imágenes que se mostrarán en la versión de teléfono (Recomendado formato vertical 9:16).</p>
+                  <div className="flex flex-col md:flex-row md:items-center justify-between mb-4 gap-4">
+                    <div>
+                      <h3 className="text-sm font-bold uppercase tracking-widest text-gray-400 mb-2">Galería de Imágenes (Móvil)</h3>
+                      <p className="text-xs text-gray-500">Selecciona las imágenes que se mostrarán en la versión de teléfono (Formato vertical 9:16).</p>
+                    </div>
+                    
+                    <label className="shrink-0 cursor-pointer bg-white border border-gray-300 text-black px-4 py-2 rounded-lg font-bold uppercase tracking-wide hover:bg-gray-50 transition-colors flex items-center gap-2 text-xs shadow-sm">
+                      {saving ? <Loader2 className="w-3 h-3 animate-spin" /> : <UploadCloud className="w-4 h-4" />}
+                      Subir Imagen Móvil
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={handleMobileFileChange}
+                        disabled={saving}
+                      />
+                    </label>
+                  </div>
+
                   <div className="flex gap-4 overflow-x-auto pb-4 snap-x pr-8">
-                    {gallery.map((url, i) => {
+                    {galleryMobile.map((url, i) => {
                       const isSelected = currentMobileBanners.includes(url);
                       return (
                         <div
@@ -817,36 +838,60 @@ export default function AjustesPage() {
                     </h3>
 
                     {block.type === 'banner' ? (
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-6">
                         <div>
-                          <label className="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-1">Imagen Desktop (Horizontal)</label>
-                          <div className="flex gap-2 items-center">
-                            {block.desktopImage ? (
-                              <div className="relative w-16 h-12 rounded border border-gray-200 bg-gray-100 overflow-hidden shrink-0">
-                                <img src={block.desktopImage} className="w-full h-full object-cover" alt="Desktop Preview" />
+                          <label className="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-2">Seleccionar Imagen Desktop (Galería 'banners')</label>
+                          <div className="flex gap-3 overflow-x-auto pb-2 snap-x items-center">
+                            {gallery.length === 0 && <span className="text-xs text-gray-400">No hay imágenes en la galería.</span>}
+                            {gallery.map(url => (
+                              <div
+                                key={`extra-desk-${url}`}
+                                onClick={() => {
+                                  const newBlocks = [...extraBlocks];
+                                  newBlocks[index].desktopImage = url;
+                                  setExtraBlocks(newBlocks);
+                                  setHasChanges(true);
+                                }}
+                                className={`relative w-24 md:w-32 aspect-video shrink-0 snap-start rounded-lg border-2 cursor-pointer transition-all overflow-hidden ${block.desktopImage === url ? 'border-blue-500 shadow-md ring-2 ring-blue-500/50' : 'border-gray-200 hover:border-gray-300'}`}
+                              >
+                                <img src={url} className="w-full h-full object-cover" alt="Desktop option" />
+                                {block.desktopImage === url && (
+                                  <div className="absolute top-1 right-1 bg-blue-500 text-white p-0.5 rounded-full shadow-md">
+                                    <svg viewBox="0 0 20 20" fill="currentColor" className="w-3 h-3"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg>
+                                  </div>
+                                )}
                               </div>
-                            ) : null}
-                            <label className="cursor-pointer flex-1 bg-white border border-gray-300 text-black px-3 py-2 rounded-lg font-bold text-xs uppercase tracking-wide hover:bg-gray-50 flex items-center justify-center text-center">
-                              Subir Desktop
-                              <input type="file" accept="image/*" className="hidden" onChange={(e) => handleExtraBannerUpload(index, 'desktop', e)} disabled={saving} />
-                            </label>
+                            ))}
                           </div>
                         </div>
+
                         <div>
-                          <label className="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-1">Imagen Móvil (Vertical)</label>
-                          <div className="flex gap-2 items-center">
-                            {block.mobileImage ? (
-                              <div className="relative w-10 h-12 rounded border border-gray-200 bg-gray-100 overflow-hidden shrink-0">
-                                <img src={block.mobileImage} className="w-full h-full object-cover" alt="Mobile Preview" />
+                          <label className="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-2">Seleccionar Imagen Móvil (Galería 'banners_movil')</label>
+                          <div className="flex gap-3 overflow-x-auto pb-2 snap-x items-center">
+                            {galleryMobile.length === 0 && <span className="text-xs text-gray-400">No hay imágenes en la galería móvil.</span>}
+                            {galleryMobile.map(url => (
+                              <div
+                                key={`extra-mob-${url}`}
+                                onClick={() => {
+                                  const newBlocks = [...extraBlocks];
+                                  newBlocks[index].mobileImage = url;
+                                  setExtraBlocks(newBlocks);
+                                  setHasChanges(true);
+                                }}
+                                className={`relative w-16 md:w-20 aspect-[3/4] shrink-0 snap-start rounded-lg border-2 cursor-pointer transition-all overflow-hidden ${block.mobileImage === url ? 'border-orange-500 shadow-md ring-2 ring-orange-500/50' : 'border-gray-200 hover:border-gray-300'}`}
+                              >
+                                <img src={url} className="w-full h-full object-cover" alt="Mobile option" />
+                                {block.mobileImage === url && (
+                                  <div className="absolute top-1 right-1 bg-orange-500 text-white p-0.5 rounded-full shadow-md">
+                                    <svg viewBox="0 0 20 20" fill="currentColor" className="w-3 h-3"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg>
+                                  </div>
+                                )}
                               </div>
-                            ) : null}
-                            <label className="cursor-pointer flex-1 bg-white border border-gray-300 text-black px-3 py-2 rounded-lg font-bold text-xs uppercase tracking-wide hover:bg-gray-50 flex items-center justify-center text-center">
-                              Subir Móvil
-                              <input type="file" accept="image/*" className="hidden" onChange={(e) => handleExtraBannerUpload(index, 'mobile', e)} disabled={saving} />
-                            </label>
+                            ))}
                           </div>
                         </div>
-                        <div className="md:col-span-2">
+
+                        <div>
                           <label className="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-1">Categoría al dar clic (Opcional)</label>
                           <select value={block.category || ''} onChange={(e) => {
                             const newBlocks = [...extraBlocks];
