@@ -11,7 +11,7 @@ import { ProductoData } from "@/components/ProductCard";
 
 export default function AjustesPage() {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<string>("hero");
+  const [activeTab, setActiveTab] = useState<string>("promo");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [currentBanners, setCurrentBanners] = useState<string[]>([]);
@@ -370,10 +370,10 @@ export default function AjustesPage() {
             {/* Tab Navigation */}
             <div className="flex overflow-x-auto gap-2 mb-6 scrollbar-hide pb-2">
               {[
-                { id: 'hero', label: 'Banner Principal', icon: <ImageIcon className="w-4 h-4" /> },
                 { id: 'promo', label: 'Barra Promocional', icon: <Megaphone className="w-4 h-4" /> },
-                { id: 'catalog', label: 'Catálogo & Destacados', icon: <ShoppingBag className="w-4 h-4" /> },
+                { id: 'hero', label: 'Banner & Destacados', icon: <ImageIcon className="w-4 h-4" /> },
                 { id: 'extra', label: 'Bloques Adicionales', icon: <LayoutDashboard className="w-4 h-4" /> },
+                { id: 'catalog', label: 'Categorías y Marcas', icon: <ShoppingBag className="w-4 h-4" /> },
               ].map(t => (
                 <button
                   key={t.id}
@@ -730,6 +730,50 @@ export default function AjustesPage() {
                 </div>
               </div>
             </div>
+
+            {/* SECCIÓN PRODUCTOS DESTACADOS (Movido aquí a petición del usuario) */}
+            <div className="p-6 md:p-8 bg-gray-50 border-t border-gray-200">
+              <div className="flex items-center gap-3 mb-6 pb-6 border-b border-gray-200">
+                <div className="p-3 bg-black text-white rounded-xl">
+                  {/* Reuse Package icon or similar */}
+                  <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
+                  </svg>
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold uppercase tracking-wide">Productos Destacados</h2>
+                  <p className="text-sm text-gray-500">Selecciona hasta 4 productos para mostrar en la pestaña "Novedades Élite". Seleccionados: {featuredProductIds.length}/4</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-h-[400px] overflow-y-auto p-2">
+                {productos.map((producto) => {
+                  const isSelected = featuredProductIds.includes(producto.id);
+                  return (
+                    <div
+                      key={producto.id}
+                      onClick={() => toggleProductSelection(producto.id)}
+                      className={`relative bg-white rounded-xl border-2 p-3 cursor-pointer transition-all ${isSelected ? 'border-blue-500 shadow-md' : 'border-gray-200 hover:border-gray-300'
+                        }`}
+                    >
+                      <div className="aspect-square bg-gray-100 rounded-lg overflow-hidden mb-3">
+                        <img src={producto.imagen || '/images/b1.jpg'} alt={producto.nombre} className="w-full h-full object-cover" />
+                      </div>
+                      <p className="text-xs font-bold uppercase truncate">{producto.nombre}</p>
+
+                      {isSelected && (
+                        <div className="absolute top-2 right-2 bg-blue-500 text-white w-6 h-6 rounded-full flex items-center justify-center shadow-lg">
+                          <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
+                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                          </svg>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
             </>
             )}
 
@@ -778,51 +822,8 @@ export default function AjustesPage() {
             {/* TAB CATALOG */}
             {activeTab === 'catalog' && (
             <>
-            {/* SECCIÓN PRODUCTOS DESTACADOS */}
-            <div className="p-6 md:p-8">
-              <div className="flex items-center gap-3 mb-6 pb-6 border-b border-gray-200">
-                <div className="p-3 bg-black text-white rounded-xl">
-                  {/* Reuse Package icon or similar, since we didn't import Package we'll use ImageIcon as a fallback visual or Import Package later */}
-                  <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
-                  </svg>
-                </div>
-                <div>
-                  <h2 className="text-xl font-bold uppercase tracking-wide">Productos Destacados</h2>
-                  <p className="text-sm text-gray-500">Selecciona hasta 4 productos para mostrar en la pestaña "Novedades Élite". Seleccionados: {featuredProductIds.length}/4</p>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-h-[400px] overflow-y-auto p-2">
-                {productos.map((producto) => {
-                  const isSelected = featuredProductIds.includes(producto.id);
-                  return (
-                    <div
-                      key={producto.id}
-                      onClick={() => toggleProductSelection(producto.id)}
-                      className={`relative bg-white rounded-xl border-2 p-3 cursor-pointer transition-all ${isSelected ? 'border-blue-500 shadow-md' : 'border-gray-200 hover:border-gray-300'
-                        }`}
-                    >
-                      <div className="aspect-square bg-gray-100 rounded-lg overflow-hidden mb-3">
-                        <img src={producto.imagen || '/images/b1.jpg'} alt={producto.nombre} className="w-full h-full object-cover" />
-                      </div>
-                      <p className="text-xs font-bold uppercase truncate">{producto.nombre}</p>
-
-                      {isSelected && (
-                        <div className="absolute top-2 right-2 bg-blue-500 text-white w-6 h-6 rounded-full flex items-center justify-center shadow-lg">
-                          <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
-                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                          </svg>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* SECCIÓN CATEGORÍAS Y MARCAS - Movidas aquí dentro de CATALOG */}
-            <div className="p-6 md:p-8 bg-white border-t border-gray-200">
+            {/* SECCIÓN CATEGORÍAS Y MARCAS */}
+            <div className="p-6 md:p-8 bg-white">
               <div className="flex items-center gap-3 mb-6 pb-6 border-b border-gray-100">
                 <div className="p-3 bg-purple-50 text-purple-600 rounded-xl">
                   <Type className="w-6 h-6" />
