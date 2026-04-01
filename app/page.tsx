@@ -274,16 +274,43 @@ export default function Home() {
         if (block.type === 'banner') {
           return (
             <Link href={block.link || '#'} key={block.id} className="block relative h-[50vh] md:h-[60vh] w-full bg-black overflow-hidden group">
+              {/* Overlay Gradient for readability */}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent z-10 hidden md:block" />
+              <div className="absolute inset-0 bg-black/40 z-10 md:hidden" />
+              
+              {/* Text content overlapping banner */}
+              {(block.title || block.subtitle || block.buttonText) && (
+                <div className="absolute inset-0 z-20 flex flex-col justify-end md:justify-center items-center text-center pb-20 md:pb-0 p-6">
+                  {block.title && (
+                    <h2 className="text-4xl md:text-6xl font-black text-white uppercase tracking-tight md:mb-2 drop-shadow-lg">
+                      {block.title.split('\n').map((line: string, i: number) => (
+                        <span key={i} className="block">{line}</span>
+                      ))}
+                    </h2>
+                  )}
+                  {block.subtitle && (
+                    <p className="text-white text-sm md:text-lg font-bold tracking-widest uppercase mb-6 md:mb-8 drop-shadow-md">
+                      {block.subtitle}
+                    </p>
+                  )}
+                  {block.buttonText && (
+                    <span className="inline-block px-8 py-3 bg-white text-black font-black uppercase tracking-widest text-sm hover:bg-black hover:text-white transition-all shadow-lg group-hover:scale-105">
+                      {block.buttonText}
+                    </span>
+                  )}
+                </div>
+              )}
+
               {/* Imagen Desktop */}
               <img
                 src={block.desktopImage || '/images/b1.jpg'}
-                alt={`Banner Promocional ${index}`}
+                alt={block.title || `Banner Promocional ${index}`}
                 className="absolute inset-0 w-full h-full object-cover hidden md:block opacity-90 group-hover:scale-105 transition-transform duration-700"
               />
               {/* Imagen Mobile */}
               <img
                 src={block.mobileImage || block.desktopImage || '/images/b1.jpg'}
-                alt={`Banner Promocional ${index} Móvil`}
+                alt={block.title || `Banner Promocional ${index} Móvil`}
                 className="absolute inset-0 w-full h-full object-cover md:hidden opacity-90 group-hover:scale-105 transition-transform duration-700"
               />
             </Link>

@@ -2,15 +2,16 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { doc, getDoc, setDoc, collection, getDocs, orderBy, query } from "firebase/firestore";
+import { doc, getDoc, setDoc, collection, getDocs } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL, listAll, deleteObject } from "firebase/storage";
 import { db, storage } from "@/lib/firebase";
-import { Image as ImageIcon, Save, ArrowLeft, Loader2, UploadCloud, Type, Megaphone, Trash2, ChevronLeft, ChevronRight, X } from "lucide-react";
+import { Image as ImageIcon, Save, ArrowLeft, Loader2, UploadCloud, Type, Megaphone, Trash2, ChevronLeft, ChevronRight, X, LayoutDashboard, Grid, ShoppingBag } from "lucide-react";
 import Link from "next/link";
 import { ProductoData } from "@/components/ProductCard";
 
 export default function AjustesPage() {
   const router = useRouter();
+  const [activeTab, setActiveTab] = useState<string>("hero");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [currentBanners, setCurrentBanners] = useState<string[]>([]);
@@ -365,8 +366,36 @@ export default function AjustesPage() {
             <Loader2 className="w-10 h-10 animate-spin text-gray-400" />
           </div>
         ) : (
-          <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm">
-            <div className="p-6 md:p-8">
+          <>
+            {/* Tab Navigation */}
+            <div className="flex overflow-x-auto gap-2 mb-6 scrollbar-hide pb-2">
+              {[
+                { id: 'hero', label: 'Banner Principal', icon: <ImageIcon className="w-4 h-4" /> },
+                { id: 'promo', label: 'Barra Promocional', icon: <Megaphone className="w-4 h-4" /> },
+                { id: 'catalog', label: 'Catálogo & Destacados', icon: <ShoppingBag className="w-4 h-4" /> },
+                { id: 'extra', label: 'Bloques Adicionales', icon: <LayoutDashboard className="w-4 h-4" /> },
+              ].map(t => (
+                <button
+                  key={t.id}
+                  onClick={() => setActiveTab(t.id)}
+                  className={`flex items-center gap-2 px-5 py-3 rounded-xl text-xs font-bold uppercase tracking-wider transition-all whitespace-nowrap shadow-sm border ${
+                    activeTab === t.id 
+                    ? 'bg-black text-white border-black shadow-md' 
+                    : 'bg-white border-gray-200 text-gray-500 hover:text-black hover:border-black hover:bg-gray-50'
+                  }`}
+                >
+                  {t.icon}
+                  {t.label}
+                </button>
+              ))}
+            </div>
+
+            <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm">
+              
+              {/* TAB HERO */}
+              {activeTab === 'hero' && (
+                <>
+                  <div className="p-6 md:p-8">
               <div className="flex items-center gap-3 mb-6 pb-6 border-b border-gray-100">
                 <div className="p-3 bg-blue-50 text-blue-600 rounded-xl">
                   <ImageIcon className="w-6 h-6" />
@@ -701,9 +730,12 @@ export default function AjustesPage() {
                 </div>
               </div>
             </div>
+            </>
+            )}
 
-            {/* SECCIÓN BARRA PROMOCIONAL */}
-            <div className="p-6 md:p-8 border-t border-gray-200">
+            {/* TAB PROMO */}
+            {activeTab === 'promo' && (
+            <div className="p-6 md:p-8">
               <div className="flex items-center gap-3 mb-6 pb-6 border-b border-gray-100">
                 <div className="p-3 bg-orange-50 text-orange-500 rounded-xl">
                   <Megaphone className="w-6 h-6" />
@@ -741,9 +773,13 @@ export default function AjustesPage() {
                 )}
               </div>
             </div>
+            )}
 
+            {/* TAB CATALOG */}
+            {activeTab === 'catalog' && (
+            <>
             {/* SECCIÓN PRODUCTOS DESTACADOS */}
-            <div className="p-6 md:p-8 bg-gray-50 border-t border-gray-200">
+            <div className="p-6 md:p-8">
               <div className="flex items-center gap-3 mb-6 pb-6 border-b border-gray-200">
                 <div className="p-3 bg-black text-white rounded-xl">
                   {/* Reuse Package icon or similar, since we didn't import Package we'll use ImageIcon as a fallback visual or Import Package later */}
@@ -785,8 +821,98 @@ export default function AjustesPage() {
               </div>
             </div>
 
-            {/* SECCIÓN BLOQUES ADICIONALES */}
+            {/* SECCIÓN CATEGORÍAS Y MARCAS - Movidas aquí dentro de CATALOG */}
             <div className="p-6 md:p-8 bg-white border-t border-gray-200">
+              <div className="flex items-center gap-3 mb-6 pb-6 border-b border-gray-100">
+                <div className="p-3 bg-purple-50 text-purple-600 rounded-xl">
+                  <Type className="w-6 h-6" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold uppercase tracking-wide">Categorías de la Tienda</h2>
+                  <p className="text-sm text-gray-500">Administra las colecciones donde agruparás tus productos al crearlos.</p>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap gap-3 mb-6">
+                {categorias.map((cat, idx) => (
+                  <div key={idx} className="flex items-center gap-2 bg-gray-100 px-4 py-2 rounded-full border border-gray-200">
+                    <span className="text-sm font-bold uppercase tracking-wider text-black">{cat}</span>
+                    <button
+                      onClick={() => removeCategory(cat)}
+                      className="text-gray-400 hover:text-red-500 transition-colors bg-white rounded-full p-0.5"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" /></svg>
+                    </button>
+                  </div>
+                ))}
+              </div>
+
+              <div className="flex items-center gap-4 max-w-sm">
+                <input
+                  type="text"
+                  value={newCategory}
+                  onChange={(e) => setNewCategory(e.target.value)}
+                  placeholder="Nueva categoría..."
+                  className="flex-1 px-4 py-3 bg-white border border-gray-300 rounded-lg text-sm font-medium focus:border-black focus:ring-1 focus:ring-black outline-none"
+                  onKeyDown={(e) => e.key === 'Enter' && handleAddCategory()}
+                />
+                <button
+                  onClick={handleAddCategory}
+                  className="bg-black text-white px-6 py-3 rounded-lg font-bold uppercase tracking-widest text-xs hover:bg-gray-800 transition-colors whitespace-nowrap"
+                >
+                  Agregar
+                </button>
+              </div>
+            </div>
+
+            <div className="p-6 md:p-8 bg-gray-50 border-t border-gray-200">
+              <div className="flex items-center gap-3 mb-6 pb-6 border-b border-gray-100">
+                <div className="p-3 bg-blue-50 text-blue-600 rounded-xl">
+                  <Grid className="w-6 h-6" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold uppercase tracking-wide">Marcas de la Tienda</h2>
+                  <p className="text-sm text-gray-500">Administra las marcas de los suplementos para filtrarlos mejor.</p>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap gap-3 mb-6">
+                {marcas.map((marca, idx) => (
+                  <div key={idx} className="flex items-center gap-2 bg-white px-4 py-2 rounded-full border border-gray-200 shadow-sm">
+                    <span className="text-sm font-bold uppercase tracking-wider text-black">{marca}</span>
+                    <button
+                      onClick={() => removeMarca(marca)}
+                      className="text-gray-400 hover:text-red-500 transition-colors bg-gray-50 hover:bg-red-50 rounded-full p-0.5"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" /></svg>
+                    </button>
+                  </div>
+                ))}
+              </div>
+
+              <div className="flex items-center gap-4 max-w-sm">
+                <input
+                  type="text"
+                  value={newMarca}
+                  onChange={(e) => setNewMarca(e.target.value)}
+                  placeholder="Nueva marca..."
+                  className="flex-1 px-4 py-3 bg-white border border-gray-300 rounded-lg text-sm font-medium focus:border-black focus:ring-1 focus:ring-black outline-none"
+                  onKeyDown={(e) => e.key === 'Enter' && handleAddMarca()}
+                />
+                <button
+                  onClick={handleAddMarca}
+                  className="bg-black text-white px-6 py-3 rounded-lg font-bold uppercase tracking-widest text-xs hover:bg-gray-800 transition-colors whitespace-nowrap"
+                >
+                  Agregar
+                </button>
+              </div>
+            </div>
+            </>
+            )}
+
+            {/* TAB EXTRA BLOCKS */}
+            {activeTab === 'extra' && (
+            <div className="p-6 md:p-8 bg-white">
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 pb-6 border-b border-gray-100 gap-4">
                 <div className="flex items-center gap-3">
                   <div className="p-3 bg-purple-50 text-purple-600 rounded-xl">
@@ -906,21 +1032,53 @@ export default function AjustesPage() {
                         </div>
 
                         <div>
-                          <label className="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-1">Categoría al dar clic (Opcional)</label>
-                          <select value={block.category || ''} onChange={(e) => {
+                          <label className="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-1">Título del Banner (Opcional)</label>
+                          <input type="text" value={block.title || ''} onChange={(e) => {
                             const newBlocks = [...extraBlocks];
-                            newBlocks[index].category = e.target.value;
-                            if (e.target.value) {
-                              newBlocks[index].link = `/productos?cat=${encodeURIComponent(e.target.value)}`;
-                            } else {
-                              newBlocks[index].link = '';
-                            }
+                            newBlocks[index].title = e.target.value;
                             setExtraBlocks(newBlocks);
                             setHasChanges(true);
-                          }} className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm font-medium bg-white outline-none focus:border-black">
-                            <option value="">Ninguna</option>
-                            {categorias.map(c => <option key={c} value={c}>{c}</option>)}
-                          </select>
+                          }} className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm font-bold uppercase focus:border-black focus:outline-none" placeholder="EJ: NEW COLLECTION" />
+                        </div>
+                        
+                        <div>
+                          <label className="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-1">Subtítulo (Opcional)</label>
+                          <input type="text" value={block.subtitle || ''} onChange={(e) => {
+                            const newBlocks = [...extraBlocks];
+                            newBlocks[index].subtitle = e.target.value;
+                            setExtraBlocks(newBlocks);
+                            setHasChanges(true);
+                          }} className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:border-black focus:outline-none" placeholder="Descripción corta" />
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <label className="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-1">Texto del Botón</label>
+                            <input type="text" value={block.buttonText || ''} onChange={(e) => {
+                              const newBlocks = [...extraBlocks];
+                              newBlocks[index].buttonText = e.target.value;
+                              setExtraBlocks(newBlocks);
+                              setHasChanges(true);
+                            }} className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm font-bold focus:border-black focus:outline-none" placeholder="Ver Todo" />
+                          </div>
+
+                          <div>
+                            <label className="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-1">Categoría al dar clic (Opcional)</label>
+                            <select value={block.category || ''} onChange={(e) => {
+                              const newBlocks = [...extraBlocks];
+                              newBlocks[index].category = e.target.value;
+                              if (e.target.value) {
+                                newBlocks[index].link = `/productos?cat=${encodeURIComponent(e.target.value)}`;
+                              } else {
+                                newBlocks[index].link = '';
+                              }
+                              setExtraBlocks(newBlocks);
+                              setHasChanges(true);
+                            }} className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm font-medium bg-white outline-none focus:border-black">
+                              <option value="">Ninguna</option>
+                              {categorias.map(c => <option key={c} value={c}>{c}</option>)}
+                            </select>
+                          </div>
                         </div>
                       </div>
                     ) : (
@@ -1004,102 +1162,9 @@ export default function AjustesPage() {
                 )}
               </div>
             </div>
-
-            {/* SECCIÓN CATEGORÍAS DE PRODUCTOS */}
-            <div className="p-6 md:p-8 bg-white border-t border-gray-200">
-              <div className="flex items-center gap-3 mb-6 pb-6 border-b border-gray-100">
-                <div className="p-3 bg-purple-50 text-purple-600 rounded-xl">
-                  {/* Reuse Type icon as a fallback visual */}
-                  <Type className="w-6 h-6" />
-                </div>
-                <div>
-                  <h2 className="text-xl font-bold uppercase tracking-wide">Categorías de la Tienda</h2>
-                  <p className="text-sm text-gray-500">Administra las colecciones donde agruparás tus productos al crearlos.</p>
-                </div>
-              </div>
-
-              <div className="flex flex-wrap gap-3 mb-6">
-                {categorias.map((cat, idx) => (
-                  <div key={idx} className="flex items-center gap-2 bg-gray-100 px-4 py-2 rounded-full border border-gray-200">
-                    <span className="text-sm font-bold uppercase tracking-wider text-black">{cat}</span>
-                    <button
-                      onClick={() => removeCategory(cat)}
-                      className="text-gray-400 hover:text-red-500 transition-colors bg-white rounded-full p-0.5"
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
-                        <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
-                      </svg>
-                    </button>
-                  </div>
-                ))}
-              </div>
-
-              <div className="flex items-center gap-4 max-w-sm">
-                <input
-                  type="text"
-                  value={newCategory}
-                  onChange={(e) => setNewCategory(e.target.value)}
-                  placeholder="Nueva categoría..."
-                  className="flex-1 px-4 py-3 bg-white border border-gray-300 rounded-lg text-sm font-medium focus:border-black focus:ring-1 focus:ring-black outline-none"
-                  onKeyDown={(e) => e.key === 'Enter' && handleAddCategory()}
-                />
-                <button
-                  onClick={handleAddCategory}
-                  className="bg-black text-white px-6 py-3 rounded-lg font-bold uppercase tracking-widest text-xs hover:bg-gray-800 transition-colors whitespace-nowrap"
-                >
-                  Agregar
-                </button>
-              </div>
-            </div>
-
-            {/* SECCIÓN MARCAS DE LA TIENDA */}
-            <div className="p-6 md:p-8 bg-white border-t border-gray-200">
-              <div className="flex items-center gap-3 mb-6 pb-6 border-b border-gray-100">
-                <div className="p-3 bg-blue-50 text-blue-600 rounded-xl">
-                  {/* Using an SVg for brand representation */}
-                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2l8 4-8 4-8-4 8-4z" /><path d="M4 10v6l8 4 8-4v-6" /><path d="M4 14l8 4 8-4" /></svg>
-                </div>
-                <div>
-                  <h2 className="text-xl font-bold uppercase tracking-wide">Marcas de la Tienda</h2>
-                  <p className="text-sm text-gray-500">Administra las marcas de los suplementos para filtrarlos mejor.</p>
-                </div>
-              </div>
-
-              <div className="flex flex-wrap gap-3 mb-6">
-                {marcas.map((marca, idx) => (
-                  <div key={idx} className="flex items-center gap-2 bg-gray-100 px-4 py-2 rounded-full border border-gray-200">
-                    <span className="text-sm font-bold uppercase tracking-wider text-black">{marca}</span>
-                    <button
-                      onClick={() => removeMarca(marca)}
-                      className="text-gray-400 hover:text-red-500 transition-colors bg-white rounded-full p-0.5"
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
-                        <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
-                      </svg>
-                    </button>
-                  </div>
-                ))}
-              </div>
-
-              <div className="flex items-center gap-4 max-w-sm">
-                <input
-                  type="text"
-                  value={newMarca}
-                  onChange={(e) => setNewMarca(e.target.value)}
-                  placeholder="Nueva marca..."
-                  className="flex-1 px-4 py-3 bg-white border border-gray-300 rounded-lg text-sm font-medium focus:border-black focus:ring-1 focus:ring-black outline-none"
-                  onKeyDown={(e) => e.key === 'Enter' && handleAddMarca()}
-                />
-                <button
-                  onClick={handleAddMarca}
-                  className="bg-black text-white px-6 py-3 rounded-lg font-bold uppercase tracking-widest text-xs hover:bg-gray-800 transition-colors whitespace-nowrap"
-                >
-                  Agregar
-                </button>
-              </div>
-            </div>
-
+            )}
           </div>
+          </>
         )}
       </div>
 
