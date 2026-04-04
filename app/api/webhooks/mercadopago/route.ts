@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import { client } from "@/lib/mercadopago";
 import { Payment } from "mercadopago";
 import { db } from "@/lib/firebase";
-import { doc, getDoc, updateDoc } from "firebase/firestore";
+import { doc, getDoc, updateDoc, runTransaction } from "firebase/firestore";
+import { CartItem } from "@/types/cart";
 import crypto from "crypto";
 
 /**
@@ -93,10 +94,10 @@ function verifySignatureSafe(req: Request, rawBody: string): boolean {
     manifest += `id:${dataId};`;
   }
   manifest += `request-id:${xRequestId};ts:${ts};`;
-  
+
   const hmac = crypto.createHmac("sha256", secret).update(manifest).digest("hex");
 
-  logEvent('info', 'webhook_signature_debug', { 
+  logEvent('info', 'webhook_signature_debug', {
     dataId: dataId || "(empty/omitted)",
     requestId: xRequestId,
     ts,
@@ -109,20 +110,20 @@ function verifySignatureSafe(req: Request, rawBody: string): boolean {
   try {
     const generatedBuffer = Buffer.from(hmac);
     const receivedBuffer = Buffer.from(v1);
-    
+
     if (generatedBuffer.length !== receivedBuffer.length) {
-      logEvent('error', 'webhook_security_error', { 
+      logEvent('error', 'webhook_security_error', {
         type: "signature_length_mismatch",
         generatedLen: generatedBuffer.length,
         receivedLen: receivedBuffer.length
       });
       return false;
     }
-    
+
     const isValid = crypto.timingSafeEqual(generatedBuffer, receivedBuffer);
-    
+
     if (!isValid) {
-      logEvent('error', 'webhook_security_error', { 
+      logEvent('error', 'webhook_security_error', {
         type: "signature_mismatch",
         expected: v1,
         generated: hmac,
@@ -186,10 +187,10 @@ export async function POST(req: Request) {
     const mpTransactionAmount = paymentData.transaction_amount || 0;
     const mpCurrency = paymentData.currency_id || "COP";
 
-    logEvent('info', 'webhook_payment_fetched', { 
-      paymentId, 
-      status: mpStatus, 
-      externalRef, 
+    logEvent('info', 'webhook_payment_fetched', {
+      paymentId,
+      status: mpStatus,
+      externalRef,
       amount: mpTransactionAmount,
       currency: mpCurrency
     });
@@ -212,21 +213,21 @@ export async function POST(req: Request) {
 
     // 5️⃣ Validaciones Estratégicas de Negocio (Monto y Moneda)
     if (mpCurrency !== "COP") {
-      logEvent('warn', 'webhook_business_rule_warning', { 
-        type: "currency_mismatch", 
-        orderId: externalRef, 
-        expected: "COP", 
-        received: mpCurrency 
+      logEvent('warn', 'webhook_business_rule_warning', {
+        type: "currency_mismatch",
+        orderId: externalRef,
+        expected: "COP",
+        received: mpCurrency
       });
     }
 
     // Comparamos monto (tolerancia de centavos por flotantes)
     if (Math.abs(mpTransactionAmount - (orderData.total || 0)) > 0.05) {
-      logEvent('error', 'webhook_business_rule_error', { 
-        type: "amount_mismatch", 
-        orderId: externalRef, 
-        expected: orderData.total, 
-        received: mpTransactionAmount 
+      logEvent('error', 'webhook_business_rule_error', {
+        type: "amount_mismatch",
+        orderId: externalRef,
+        expected: orderData.total,
+        received: mpTransactionAmount
       });
       return NextResponse.json({ received: true, error: "amount_mismatch" }); // 200 para evitar loops infinitos
     }
@@ -235,8 +236,8 @@ export async function POST(req: Request) {
 
     // 6️⃣ Idempotencia Estricta
     if (
-      orderData.mpPaymentId === paymentId.toString() && 
-      orderData.mpStatus === mpStatus && 
+      orderData.mpPaymentId === paymentId.toString() &&
+      orderData.mpStatus === mpStatus &&
       orderData.estado === newInternalStatus
     ) {
       logEvent('info', 'webhook_duplicate_ignored', { orderId: externalRef, paymentId, status: mpStatus });
@@ -249,8 +250,8 @@ export async function POST(req: Request) {
       pagado: 1,
       enviado: 2,
       entregado: 3,
-      rechazado: 4, 
-      reembolsado: 4, 
+      rechazado: 4,
+      reembolsado: 4,
     };
 
     const currentPriority = statusPriority[orderData.estado] ?? 0;
@@ -261,7 +262,7 @@ export async function POST(req: Request) {
     // PERO bloquea cosas raras como enviado(2) -> pendiente(0).
     const isDowngrade = newPriority < currentPriority;
 
-    // 8️⃣ Guardar en Base de Datos
+    // 8️⃣ Guardar en Base de Datos (con restauración de inventario si aplica)
     const updatePayload: Record<string, any> = {
       mpPaymentId: paymentId.toString(),
       mpStatus: mpStatus,
@@ -273,23 +274,90 @@ export async function POST(req: Request) {
 
     if (!isDowngrade) {
       updatePayload.estado = newInternalStatus;
-      // No sobrescribir fechaPago si ya existe
       if (newInternalStatus === "pagado" && !orderData.fechaPago) {
         updatePayload.fechaPago = new Date().toISOString();
       }
       logEvent('info', 'webhook_order_updating', { orderId: externalRef, oldStatus: orderData.estado, newStatus: newInternalStatus });
     } else {
-      logEvent('warn', 'webhook_status_downgrade_prevented', { 
-        orderId: externalRef, 
-        attemptedStatus: newInternalStatus, 
-        currentStatus: orderData.estado 
+      logEvent('warn', 'webhook_status_downgrade_prevented', {
+        orderId: externalRef,
+        attemptedStatus: newInternalStatus,
+        currentStatus: orderData.estado
       });
     }
 
-    await updateDoc(orderDocRef, updatePayload);
+    // 9️⃣ Restaurar inventario si el pago falló (rechazado/reembolsado)
+    // Solo si el estado ANTERIOR no era ya un estado de falla (idempotencia)
+    const isFailedState = newInternalStatus === "rechazado" || newInternalStatus === "reembolsado";
+    const wasAlreadyFailed = orderData.estado === "rechazado" || orderData.estado === "reembolsado";
+    const shouldRestoreStock = !isDowngrade && isFailedState && !wasAlreadyFailed;
+
+    if (shouldRestoreStock && Array.isArray(orderData.items) && orderData.items.length > 0) {
+      logEvent('info', 'webhook_stock_restore_start', { orderId: externalRef, itemCount: orderData.items.length });
+
+      await runTransaction(db, async (transaction) => {
+        // Reads first (Firestore rule)
+        const productRefs = new Map<string, any>();
+        const productDocs = new Map<string, any>();
+
+        for (const item of orderData.items as CartItem[]) {
+          const productId = item.productoId || item.id;
+          if (!productId || productRefs.has(productId)) continue;
+          const pRef = doc(db, "products", productId);
+          const pSnap = await transaction.get(pRef);
+          if (pSnap.exists()) {
+            productRefs.set(productId, pRef);
+            productDocs.set(productId, pSnap.data());
+          } else {
+            logEvent('warn', 'webhook_stock_restore_product_missing', { orderId: externalRef, productId });
+          }
+        }
+
+        // Prepare stock updates
+        const stockUpdates = new Map<string, any>();
+
+        for (const item of orderData.items as CartItem[]) {
+          const productId = item.productoId || item.id;
+          if (!productDocs.has(productId)) continue;
+
+          const base = productDocs.get(productId);
+          const updated = stockUpdates.get(productId) || { ...base };
+
+          if (item.varianteId) {
+            const variants: any[] = [...(updated.variantes || [])];
+            const idx = variants.findIndex((v: any) => v.id === item.varianteId);
+            if (idx !== -1) {
+              variants[idx] = { ...variants[idx], stock: (variants[idx].stock || 0) + item.cantidad };
+              updated.variantes = variants;
+            } else {
+              logEvent('warn', 'webhook_stock_restore_variant_missing', { orderId: externalRef, productId, varianteId: item.varianteId });
+            }
+          } else {
+            updated.stock = (updated.stock || 0) + item.cantidad;
+          }
+
+          // Si el producto estaba inactivo por falta de stock, reactivarlo
+          if (!updated.activo) updated.activo = true;
+
+          stockUpdates.set(productId, updated);
+        }
+
+        // Writes: stock updates
+        for (const [pId, data] of stockUpdates.entries()) {
+          transaction.update(productRefs.get(pId), data);
+        }
+
+        // Write: order status update
+        transaction.update(orderDocRef, updatePayload);
+      });
+
+      logEvent('info', 'webhook_stock_restored', { orderId: externalRef, restoredItems: orderData.items.length });
+    } else {
+      // Sin restauración de stock, solo actualizar la orden
+      await updateDoc(orderDocRef, updatePayload);
+    }
+
     logEvent('info', 'webhook_processed_successfully', { orderId: externalRef, paymentId });
-
-
 
     return NextResponse.json({ received: true, status: isDowngrade ? orderData.estado : newInternalStatus });
 
