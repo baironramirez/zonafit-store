@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
+import { doc, getDoc } from "firebase/firestore";
+import { db } from "@/lib/firebase";
+import { processOrderUpdate } from "@/lib/orders";
 import { client } from "@/lib/mercadopago";
 import { Payment } from "mercadopago";
-import { db } from "@/lib/firebase";
-import { doc, getDoc, updateDoc, runTransaction } from "firebase/firestore";
-import { CartItem } from "@/types/cart";
 import crypto from "crypto";
 
 /**
@@ -18,28 +18,8 @@ function logEvent(level: 'info' | 'warn' | 'error', event: string, payload: any 
   console[level](logMessage);
 }
 
-/**
- * MP Status to Internal Status Mapping
- */
-function mapPaymentStatus(mpStatus: string): string {
-  switch (mpStatus) {
-    case "approved":
-      return "pagado";
-    case "pending":
-    case "in_process":
-    case "in_mediation":
-    case "authorized":
-      return "pendiente";
-    case "rejected":
-    case "cancelled":
-      return "rechazado";
-    case "refunded":
-    case "charged_back":
-      return "reembolsado";
-    default:
-      return "pendiente";
-  }
-}
+// Mapping moved to @/lib/orders.ts
+import { mapPaymentStatus } from "@/lib/orders";
 
 /**
  * Firm Verification using timingSafeEqual to prevent Timing Attacks
@@ -234,140 +214,80 @@ export async function POST(req: Request) {
 
     const newInternalStatus = mapPaymentStatus(mpStatus);
 
-    // 6️⃣ Idempotencia Estricta
-    if (
-      orderData.mpPaymentId === paymentId.toString() &&
-      orderData.mpStatus === mpStatus &&
-      orderData.estado === newInternalStatus
-    ) {
-      logEvent('info', 'webhook_duplicate_ignored', { orderId: externalRef, paymentId, status: mpStatus });
-      return NextResponse.json({ received: true, duplicate: true });
-    }
-
-    // 7️⃣ Lógica de Prioridades Limpia (No Downgrade)
-    const statusPriority: Record<string, number> = {
-      pendiente: 0,
-      pagado: 1,
-      enviado: 2,
-      entregado: 3,
-      rechazado: 4,
-      reembolsado: 4,
-    };
-
-    const currentPriority = statusPriority[orderData.estado] ?? 0;
-    const newPriority = statusPriority[newInternalStatus] ?? 0;
-
-    // Actualiza siempre si la nueva prioridad es mayor.
-    // O si es la misma prioridad (ej: pagado -> pagado) para refrescar datos MP.
-    // PERO bloquea cosas raras como enviado(2) -> pendiente(0).
-    const isDowngrade = newPriority < currentPriority;
-
-    // 8️⃣ Guardar en Base de Datos (con restauración de inventario si aplica)
-    const updatePayload: Record<string, any> = {
-      mpPaymentId: paymentId.toString(),
-      mpStatus: mpStatus,
-      mpStatusDetail: mpStatusDetail,
-      mpPaymentMethod: mpPaymentMethod,
-      mpTransactionAmount: mpTransactionAmount,
-      mpLastWebhookAt: new Date().toISOString(),
-    };
-
-    if (!isDowngrade) {
-      updatePayload.estado = newInternalStatus;
-      if (newInternalStatus === "pagado" && !orderData.fechaPago) {
-        updatePayload.fechaPago = new Date().toISOString();
-      }
-      logEvent('info', 'webhook_order_updating', { orderId: externalRef, oldStatus: orderData.estado, newStatus: newInternalStatus });
-    } else {
-      logEvent('warn', 'webhook_status_downgrade_prevented', {
+    // 6️⃣ Usar Función Unificada con Transacción e Idempotencia (Maneja Stock)
+    try {
+      const updateResult = await processOrderUpdate({
         orderId: externalRef,
-        attemptedStatus: newInternalStatus,
-        currentStatus: orderData.estado
-      });
-    }
-
-    // 9️⃣ Restaurar inventario si el pago falló (rechazado/reembolsado)
-    // Solo si el estado ANTERIOR no era ya un estado de falla (idempotencia)
-    const isFailedState = newInternalStatus === "rechazado" || newInternalStatus === "reembolsado";
-    const wasAlreadyFailed = orderData.estado === "rechazado" || orderData.estado === "reembolsado";
-    const shouldRestoreStock = !isDowngrade && isFailedState && !wasAlreadyFailed;
-
-    if (shouldRestoreStock && Array.isArray(orderData.items) && orderData.items.length > 0) {
-      logEvent('info', 'webhook_stock_restore_start', { orderId: externalRef, itemCount: orderData.items.length });
-
-      await runTransaction(db, async (transaction) => {
-        // Reads first (Firestore rule)
-        const productRefs = new Map<string, any>();
-        const productDocs = new Map<string, any>();
-
-        for (const item of orderData.items as CartItem[]) {
-          const productId = item.productoId || item.id;
-          if (!productId || productRefs.has(productId)) continue;
-          const pRef = doc(db, "products", productId);
-          const pSnap = await transaction.get(pRef);
-          if (pSnap.exists()) {
-            productRefs.set(productId, pRef);
-            productDocs.set(productId, pSnap.data());
-          } else {
-            logEvent('warn', 'webhook_stock_restore_product_missing', { orderId: externalRef, productId });
-          }
-        }
-
-        // Prepare stock updates
-        const stockUpdates = new Map<string, any>();
-
-        for (const item of orderData.items as CartItem[]) {
-          const productId = item.productoId || item.id;
-          if (!productDocs.has(productId)) continue;
-
-          const base = productDocs.get(productId);
-          const updated = stockUpdates.get(productId) || { ...base };
-
-          if (item.varianteId) {
-            const variants: any[] = [...(updated.variantes || [])];
-            const idx = variants.findIndex((v: any) => v.id === item.varianteId);
-            if (idx !== -1) {
-              variants[idx] = { ...variants[idx], stock: (variants[idx].stock || 0) + item.cantidad };
-              updated.variantes = variants;
-            } else {
-              logEvent('warn', 'webhook_stock_restore_variant_missing', { orderId: externalRef, productId, varianteId: item.varianteId });
-            }
-          } else {
-            updated.stock = (updated.stock || 0) + item.cantidad;
-          }
-
-          // Si el producto estaba inactivo por falta de stock, reactivarlo
-          if (!updated.activo) updated.activo = true;
-
-          stockUpdates.set(productId, updated);
-        }
-
-        // Writes: stock updates
-        for (const [pId, data] of stockUpdates.entries()) {
-          transaction.update(productRefs.get(pId), data);
-        }
-
-        // Write: order status update
-        transaction.update(orderDocRef, updatePayload);
+        paymentId: paymentId.toString(),
+        mpStatus,
+        mpStatusDetail,
+        mpPaymentMethod,
+        mpTransactionAmount,
+        logEvent,
       });
 
-      logEvent('info', 'webhook_stock_restored', { orderId: externalRef, restoredItems: orderData.items.length });
-    } else {
-      // Sin restauración de stock, solo actualizar la orden
-      await updateDoc(orderDocRef, updatePayload);
+      logEvent('info', 'webhook_processed_successfully', { 
+        orderId: externalRef, 
+        paymentId, 
+        status: updateResult.newStatus, 
+        duplicate: updateResult.duplicate,
+        restoredStock: updateResult.restoredStock
+      });
+
+      return NextResponse.json({ 
+        received: true, 
+        status: updateResult.newStatus,
+        duplicate: updateResult.duplicate 
+      });
+
+    } catch (error: any) {
+      logEvent('error', 'webhook_process_failed', { orderId: externalRef, message: error.message });
+      return NextResponse.json({ received: true, error: error.message }, { status: 200 });
     }
-
-    logEvent('info', 'webhook_processed_successfully', { orderId: externalRef, paymentId });
-
-    return NextResponse.json({ received: true, status: isDowngrade ? orderData.estado : newInternalStatus });
 
   } catch (error: any) {
     logEvent('error', 'webhook_fatal_error', { message: error?.message || "Unknown error", stack: error?.stack });
-    // CRÍTICO: Siempre 200 ante fallas internas para que MP no enloquezca si no es necesario.
     return NextResponse.json({ received: true, error: "Internal processing error softly handled" }, { status: 200 });
   }
 }
 
-export async function GET() {
-  return NextResponse.json({ status: "ok", service: "mercadopago-webhook-pro" });
+export async function GET(req: Request) {
+  const url = new URL(req.url);
+  const orderId = url.searchParams.get("id");
+  const force = url.searchParams.get("force") === "true";
+
+  if (!orderId) {
+    return NextResponse.json({ status: "ok", service: "mercadopago-webhook-pro" });
+  }
+
+  // Manual Trigger Logic (Useful for debugging/syncing)
+  try {
+    const { db } = await import("@/lib/firebase");
+    const orderSnap = await getDoc(doc(db, "orders", orderId));
+
+    if (!orderSnap.exists()) {
+      return NextResponse.json({ error: "Order not found" }, { status: 404 });
+    }
+
+    const orderData = orderSnap.data();
+    if (!orderData.mpPaymentId) {
+      return NextResponse.json({ error: "Order has no mpPaymentId to sync" }, { status: 400 });
+    }
+
+    const payment = new Payment(client);
+    const paymentData = await payment.get({ id: orderData.mpPaymentId });
+
+    const result = await processOrderUpdate({
+      orderId,
+      paymentId: orderData.mpPaymentId,
+      mpStatus: paymentData.status!,
+      mpStatusDetail: paymentData.status_detail,
+      mpPaymentMethod: paymentData.payment_method_id,
+      mpTransactionAmount: paymentData.transaction_amount,
+    });
+
+    return NextResponse.json({ success: true, result });
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
 }
