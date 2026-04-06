@@ -61,6 +61,7 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; 
 export default function AdminPedidosPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
+  const [syncing, setSyncing] = useState(false);
   const [filtroEstado, setFiltroEstado] = useState("todos");
   const [searchQuery, setSearchQuery] = useState("");
   const [expandedOrder, setExpandedOrder] = useState<string | null>(null);
@@ -68,8 +69,28 @@ export default function AdminPedidosPage() {
   const [guiaInputs, setGuiaInputs] = useState<Record<string, string>>({});
 
   async function fetchOrders() {
+    if (syncing || loading && !orders.length) {
+      // Prevent multiple simultaneous calls (except initial load)
+    }
     setLoading(true);
     try {
+      // Step 1: Sync pending orders with MercadoPago before reading
+      setSyncing(true);
+      try {
+        const syncRes = await fetch("/api/cron/sync-orders");
+        const syncData = await syncRes.json();
+        if (syncRes.ok) {
+          console.log("✅ Sincronización MP completada:", syncData);
+        } else {
+          console.warn("⚠️ Sincronización MP falló:", syncData);
+        }
+      } catch (syncError) {
+        console.error("❌ Error en sincronización MP (no bloquea carga):", syncError);
+      } finally {
+        setSyncing(false);
+      }
+
+      // Step 2: Fetch orders from Firestore (now with updated statuses)
       const querySnapshot = await getDocs(collection(db, "orders"));
       const data: Order[] = [];
       querySnapshot.forEach((doc) => {
@@ -165,7 +186,9 @@ export default function AdminPedidosPage() {
       <div className="min-h-screen bg-white text-black flex justify-center items-center pt-24">
         <div className="text-center">
           <div className="w-16 h-16 border-4 border-gray-200 border-t-orange-500 rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="font-medium text-gray-500 uppercase tracking-widest text-sm">Cargando Pedidos...</p>
+          <p className="font-medium text-gray-500 uppercase tracking-widest text-sm">
+            {syncing ? "Sincronizando pagos con MercadoPago..." : "Cargando Pedidos..."}
+          </p>
         </div>
       </div>
     );
@@ -203,9 +226,11 @@ export default function AdminPedidosPage() {
               </div>
               <button
                 onClick={fetchOrders}
-                className="flex items-center justify-center gap-2 px-4 py-2 bg-white border border-gray-200 hover:border-black text-black rounded-lg text-sm font-bold uppercase tracking-wider transition-colors flex-shrink-0"
+                disabled={loading || syncing}
+                className="flex items-center justify-center gap-2 px-4 py-2 bg-white border border-gray-200 hover:border-black text-black rounded-lg text-sm font-bold uppercase tracking-wider transition-colors flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <RefreshCw className="w-4 h-4" /> Actualizar
+                <RefreshCw className={`w-4 h-4 ${syncing ? "animate-spin" : ""}`} />
+                {syncing ? "Sincronizando..." : "Actualizar"}
               </button>
             </div>
           </div>
