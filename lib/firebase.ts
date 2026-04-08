@@ -3,24 +3,6 @@ import { getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 import { getAuth } from "firebase/auth";
 
-// Required Firebase environment variables
-const requiredEnvVars = [
-  "NEXT_PUBLIC_FIREBASE_API_KEY",
-  "NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN",
-  "NEXT_PUBLIC_FIREBASE_PROJECT_ID",
-  "NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET",
-  "NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID",
-  "NEXT_PUBLIC_FIREBASE_APP_ID",
-] as const;
-
-// Validate that all required variables are present
-const missing = requiredEnvVars.filter((key) => !process.env[key]);
-if (missing.length > 0) {
-  throw new Error(
-    `❌ Firebase config incomplete. Missing environment variables:\n${missing.map((k) => `  - ${k}`).join("\n")}\n\nAdd them to .env.local or Vercel Dashboard.`
-  );
-}
-
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
   authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
@@ -29,6 +11,17 @@ const firebaseConfig = {
   messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
+
+// Validate that all required config values are present
+const missingConfigKeys = Object.entries(firebaseConfig)
+  .filter(([_, value]) => !value)
+  .map(([key]) => key);
+
+if (missingConfigKeys.length > 0) {
+  throw new Error(
+    `❌ Firebase config incomplete. Missing values for:\n${missingConfigKeys.map((k) => `  - ${k}`).join("\n")}\n\nAdd the corresponding NEXT_PUBLIC_FIREBASE_* variables to .env.local or Vercel Dashboard.`
+  );
+}
 
 // Prevent re-initialization (important for SSR + hot reload)
 const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
