@@ -59,28 +59,12 @@ function verifySignatureSafe(req: Request, rawBody: string): boolean {
     return false;
   }
 
-  // data.id MUST come from query params according to MP docs
+  // data.id SOLO debe venir de query params (como firma MP)
   const url = new URL(req.url);
 
-  // 1. Intentar desde query (forma oficial)
   let dataId = url.searchParams.get("data.id") || url.searchParams.get("data_id");
 
-  // 2. 🔥 Fallback crítico (realidad de producción)
-  if (!dataId) {
-    try {
-      const parsedBody = JSON.parse(rawBody);
-      dataId = parsedBody?.data?.id?.toString();
-    } catch (e) {
-      // ignore
-    }
-  }
-
-  // 3. Normalizar
-  if (dataId && /^[a-zA-Z0-9]+$/.test(dataId)) {
-    dataId = dataId.toLowerCase();
-  }
-
-  // MP docs: if data.id is alphanumeric, convert to lowercase  
+  // Normalizar SOLO una vez
   if (dataId && /^[a-zA-Z0-9]+$/.test(dataId)) {
     dataId = dataId.toLowerCase();
   }
