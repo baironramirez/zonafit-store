@@ -29,11 +29,11 @@ import { mapPaymentStatus } from "@/lib/orders";
  * - If data.id is not present in query, that part is OMITTED from the manifest
  * - If data.id is alphanumeric, it must be lowercased
  */
-function verifySignatureSafe(req: Request, rawBody: string): boolean {
+function verifySignatureSafe(req: Request): boolean {
   const secret = process.env.MP_WEBHOOK_SECRET;
   if (!secret) {
     logEvent('warn', 'webhook_security_warning', { message: "MP_WEBHOOK_SECRET not configured, skipping signature verification" });
-    return true; // Solo para dev inicial. En prod esto debería retornar false.
+    return true; 
   }
 
   const xSignature = req.headers.get("x-signature");
@@ -59,16 +59,17 @@ function verifySignatureSafe(req: Request, rawBody: string): boolean {
     return false;
   }
 
-  // data.id MUST come from query params according to MP docs
+  // data.id can come from 'data.id', 'data_id' or simply 'id' (topic-style)
   const url = new URL(req.url);
-  let dataId = url.searchParams.get("data.id") || url.searchParams.get("data_id") || "";
+  let dataId = url.searchParams.get("data.id") || url.searchParams.get("data_id") || url.searchParams.get("id") || "";
 
   // MP docs: if data.id is alphanumeric, convert to lowercase  
   if (dataId && /^[a-zA-Z0-9]+$/.test(dataId)) {
     dataId = dataId.toLowerCase();
   }
 
-  // Build manifest string conditionally (MP docs: omit parts that are not present)
+  // Build manifest string (MP docs: id:resource_id;request-id:request_id_value;ts:timestamp_value;)
+  // Omit parts that are not present.
   let manifest = "";
   if (dataId) {
     manifest += `id:${dataId};`;
@@ -77,25 +78,18 @@ function verifySignatureSafe(req: Request, rawBody: string): boolean {
 
   const hmac = crypto.createHmac("sha256", secret).update(manifest).digest("hex");
 
-  logEvent('info', 'webhook_signature_debug', {
-    dataId: dataId || "(empty/omitted)",
-    requestId: xRequestId,
-    ts,
-    manifest,
-    generatedHmac: hmac.substring(0, 10) + "...",
-    receivedV1: v1.substring(0, 10) + "...",
-  });
-
   // Comparación segura (anti timing-attacks)
   try {
     const generatedBuffer = Buffer.from(hmac);
-    const receivedBuffer = Buffer.from(v1);
+    const receivedBuffer = Buffer.from(v1.toLowerCase()); // Ensure lowercase comparison
 
     if (generatedBuffer.length !== receivedBuffer.length) {
       logEvent('error', 'webhook_security_error', {
         type: "signature_length_mismatch",
-        generatedLen: generatedBuffer.length,
-        receivedLen: receivedBuffer.length
+        manifest_used: manifest,
+        url_received: req.url,
+        expected_len: receivedBuffer.length,
+        generated_len: generatedBuffer.length
       });
       return false;
     }
@@ -107,8 +101,11 @@ function verifySignatureSafe(req: Request, rawBody: string): boolean {
         type: "signature_mismatch",
         expected: v1,
         generated: hmac,
-        manifest_used: manifest
+        manifest_used: manifest,
+        url_received: req.url
       });
+    } else {
+      logEvent('info', 'webhook_signature_success', { requestId: xRequestId });
     }
     return isValid;
   } catch (error) {
@@ -133,7 +130,7 @@ export async function POST(req: Request) {
     logEvent('info', 'webhook_payload', { type: body.type, action: body.action, dataId: body.data?.id });
 
     // 1️⃣ Verify signature
-    if (!verifySignatureSafe(req, bodyText)) {
+    if (!verifySignatureSafe(req)) {
       logEvent('error', 'webhook_security_error', { type: "unauthorized_request" });
       return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
     }
