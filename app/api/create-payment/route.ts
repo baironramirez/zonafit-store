@@ -47,7 +47,7 @@ export async function POST(req: Request) {
         external_reference: body.orderId ?? null,
 
         // Webhook URL para recibir notificaciones de pago
-        notification_url: `${baseUrl}/api/webhooks/mercadopago?source_news=webhooks`,
+        notification_url: `${baseUrl}/api/webhooks/mercadopago`,
 
         back_urls: {
           success: `${baseUrl}/success?orderId=${body.orderId}`,

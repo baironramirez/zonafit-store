@@ -29,35 +29,19 @@ import { mapPaymentStatus } from "@/lib/orders";
  * - If data.id is not present in query, that part is OMITTED from the manifest
  * - If data.id is alphanumeric, it must be lowercased
  */
-function verifySignatureSafe(req: Request): "valid" | "invalid" | "skip" {
+function verifySignatureSafe(req: Request, rawBody: string): boolean {
   const secret = process.env.MP_WEBHOOK_SECRET;
-  
-  // Detectar si es IPN (Legacy) o Webhook (V2)
-  const url = new URL(req.url);
-  const isWebhook = url.searchParams.has("data.id");
-  const isIPN = url.searchParams.has("topic") || (url.searchParams.has("id") && !isWebhook);
-
   if (!secret) {
-    logEvent('warn', 'webhook_security_warning', { message: "MP_WEBHOOK_SECRET not configured" });
-    return "skip"; 
-  }
-
-  // Si es IPN, Mercado Pago no soporta la verificación de firma con Secret Key según documentación oficial.
-  if (isIPN && !isWebhook) {
-    logEvent('info', 'webhook_ipn_detected', { message: "IPN detected, skipping signature verification", url: req.url });
-    return "skip";
+    logEvent('warn', 'webhook_security_warning', { message: "MP_WEBHOOK_SECRET not configured, skipping signature verification" });
+    return true; // Solo para dev inicial. En prod esto debería retornar false.
   }
 
   const xSignature = req.headers.get("x-signature");
   const xRequestId = req.headers.get("x-request-id");
 
   if (!xSignature || !xRequestId) {
-    // Si no es un webhook explícito de MP, pero tiene parámetros, podríamos saltarlo.
-    // Pero si tiene x-signature y x-request-id, intentamos validar.
-    if (!xSignature) return "skip";
-    
-    logEvent('warn', 'webhook_security_error', { type: "missing_headers", url: req.url });
-    return "invalid";
+    logEvent('warn', 'webhook_security_error', { type: "missing_headers", hasSignature: !!xSignature, hasRequestId: !!xRequestId });
+    return false;
   }
 
   // Parse x-signature header: "ts=xxx,v1=yyy"
@@ -72,18 +56,36 @@ function verifySignatureSafe(req: Request): "valid" | "invalid" | "skip" {
 
   if (!ts || !v1) {
     logEvent('warn', 'webhook_security_error', { type: "invalid_signature_format", header: xSignature });
-    return "invalid";
+    return false;
   }
 
-  // MP docs: El ID para el manifest viene de 'data.id'
-  let dataId = url.searchParams.get("data.id") || "";
+  // data.id MUST come from query params according to MP docs
+  const url = new URL(req.url);
+
+  // 1. Intentar desde query (forma oficial)
+  let dataId = url.searchParams.get("data.id") || url.searchParams.get("data_id");
+
+  // 2. 🔥 Fallback crítico (realidad de producción)
+  if (!dataId) {
+    try {
+      const parsedBody = JSON.parse(rawBody);
+      dataId = parsedBody?.data?.id?.toString();
+    } catch (e) {
+      // ignore
+    }
+  }
+
+  // 3. Normalizar
+  if (dataId && /^[a-zA-Z0-9]+$/.test(dataId)) {
+    dataId = dataId.toLowerCase();
+  }
 
   // MP docs: if data.id is alphanumeric, convert to lowercase  
   if (dataId && /^[a-zA-Z0-9]+$/.test(dataId)) {
     dataId = dataId.toLowerCase();
   }
 
-  // Build manifest string: id:[data.id_url];request-id:[x-request-id_header];ts:[ts_header];
+  // Build manifest string conditionally (MP docs: omit parts that are not present)
   let manifest = "";
   if (dataId) {
     manifest += `id:${dataId};`;
@@ -92,17 +94,27 @@ function verifySignatureSafe(req: Request): "valid" | "invalid" | "skip" {
 
   const hmac = crypto.createHmac("sha256", secret).update(manifest).digest("hex");
 
+  logEvent('info', 'webhook_signature_debug', {
+    dataId: dataId || "(empty/omitted)",
+    requestId: xRequestId,
+    ts,
+    manifest,
+    generatedHmac: hmac.substring(0, 10) + "...",
+    receivedV1: v1.substring(0, 10) + "...",
+  });
+
+  // Comparación segura (anti timing-attacks)
   try {
     const generatedBuffer = Buffer.from(hmac);
-    const receivedBuffer = Buffer.from(v1.toLowerCase());
+    const receivedBuffer = Buffer.from(v1);
 
     if (generatedBuffer.length !== receivedBuffer.length) {
       logEvent('error', 'webhook_security_error', {
         type: "signature_length_mismatch",
-        manifest_used: manifest,
-        url_received: req.url
+        generatedLen: generatedBuffer.length,
+        receivedLen: receivedBuffer.length
       });
-      return "invalid";
+      return false;
     }
 
     const isValid = crypto.timingSafeEqual(generatedBuffer, receivedBuffer);
@@ -112,16 +124,13 @@ function verifySignatureSafe(req: Request): "valid" | "invalid" | "skip" {
         type: "signature_mismatch",
         expected: v1,
         generated: hmac,
-        manifest_used: manifest,
-        url_received: req.url
+        manifest_used: manifest
       });
-      return "invalid";
-    } 
-    
-    return "valid";
+    }
+    return isValid;
   } catch (error) {
     logEvent('error', 'webhook_security_error', { type: "buffer_comparison_failed", error: (error as Error).message });
-    return "invalid";
+    return false;
   }
 }
 
@@ -141,37 +150,22 @@ export async function POST(req: Request) {
     logEvent('info', 'webhook_payload', { type: body.type, action: body.action, dataId: body.data?.id });
 
     // 1️⃣ Verify signature
-    const sigStatus = verifySignatureSafe(req);
-    if (sigStatus === "invalid") {
+    if (!verifySignatureSafe(req, bodyText)) {
       logEvent('error', 'webhook_security_error', { type: "unauthorized_request" });
       return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
     }
 
-    const url = new URL(req.url);
-    const eventType = body.type || url.searchParams.get("type") || url.searchParams.get("topic");
-    const resourceId = body.data?.id || url.searchParams.get("data.id") || url.searchParams.get("id");
-
     // 2️⃣ Filter Events
-    // MercadoPago envía 'payment' o 'merchant_order'. 
-    // Para simplificar, nos enfocamos en 'payment', pero permitimos que 'merchant_order' pase sin error (solo loggeamos).
-    if (eventType !== "payment" && eventType !== "merchant_order") {
-      logEvent('info', 'webhook_ignored', { reason: "unsupported_event_type", type: eventType });
+    if (body.type !== "payment") {
+      logEvent('info', 'webhook_ignored', { reason: "non_payment_event", type: body.type });
       return NextResponse.json({ received: true });
     }
 
-    if (!resourceId) {
-      logEvent('error', 'webhook_data_error', { type: "missing_resource_id", eventType });
-      return NextResponse.json({ received: true }); 
+    const paymentId = body.data?.id;
+    if (!paymentId) {
+      logEvent('error', 'webhook_data_error', { type: "missing_payment_id" });
+      return NextResponse.json({ received: true }); // SIEMPRE 200 excepto error de firma
     }
-
-    if (eventType === "merchant_order") {
-       logEvent('info', 'webhook_merchant_order_received', { resourceId });
-       // Por ahora no procesamos merchant_orders directamente, pero podrías consultar la orden 
-       // para ver si todos sus pagos están aprobados.
-       return NextResponse.json({ received: true });
-    }
-
-    const paymentId = resourceId;
 
     // 3️⃣ Fetch MP Data
     let paymentData;
@@ -249,18 +243,18 @@ export async function POST(req: Request) {
         logEvent,
       });
 
-      logEvent('info', 'webhook_processed_successfully', { 
-        orderId: externalRef, 
-        paymentId, 
-        status: updateResult.newStatus, 
+      logEvent('info', 'webhook_processed_successfully', {
+        orderId: externalRef,
+        paymentId,
+        status: updateResult.newStatus,
         duplicate: updateResult.duplicate,
         restoredStock: updateResult.restoredStock
       });
 
-      return NextResponse.json({ 
-        received: true, 
+      return NextResponse.json({
+        received: true,
         status: updateResult.newStatus,
-        duplicate: updateResult.duplicate 
+        duplicate: updateResult.duplicate
       });
 
     } catch (error: any) {
