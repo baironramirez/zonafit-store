@@ -97,6 +97,12 @@ function verifySignatureSafe(req: Request, rawBody: string): boolean {
     }
   });
 
+  logEvent('info', 'secret_check', {
+    length: secret.length,
+    firstChars: secret.substring(0, 5),
+    lastChars: secret.substring(secret.length - 5)
+  });
+
   // Comparación segura (anti timing-attacks)
   try {
     const generatedBuffer = Buffer.from(hmac);
