@@ -50,9 +50,9 @@ export async function POST(req: Request) {
         notification_url: `${baseUrl}/api/webhooks/mercadopago`,
 
         back_urls: {
-          success: `${baseUrl}/success`,
-          failure: `${baseUrl}/failure`,
-          pending: `${baseUrl}/pending`,
+          success: `${baseUrl}/success?orderId=${body.orderId}`,
+          failure: `${baseUrl}/failure?orderId=${body.orderId}`,
+          pending: `${baseUrl}/pending?orderId=${body.orderId}`,
         },
         auto_return: "approved",
       },
