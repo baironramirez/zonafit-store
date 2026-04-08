@@ -159,6 +159,11 @@ export async function POST(req: Request) {
 
     logEvent('info', 'webhook_payload', { type: body.type, action: body.action, dataId: body.data?.id });
 
+    // 🔥 IGNORAR eventos que no sean payment
+    if (body.type !== "payment") {
+      logEvent('info', 'webhook_ignored', { reason: "not_payment", body });
+      return NextResponse.json({ received: true });
+    }
     // 1️⃣ Verify signature
     if (!verifySignatureSafe(req, bodyText)) {
       logEvent('error', 'webhook_security_error', { type: "unauthorized_request" });
