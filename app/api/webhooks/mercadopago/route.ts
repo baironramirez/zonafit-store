@@ -103,6 +103,16 @@ function verifySignatureSafe(req: Request, rawBody: string): boolean {
     receivedV1: v1.substring(0, 10) + "...",
   });
 
+  logEvent('info', 'webhook_signature_full_debug', {
+    manifest,
+    secret,
+    rawBody,
+    headers: {
+      xSignature,
+      xRequestId
+    }
+  });
+
   // Comparación segura (anti timing-attacks)
   try {
     const generatedBuffer = Buffer.from(hmac);
