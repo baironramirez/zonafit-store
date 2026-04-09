@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
-import { ProductoData } from "@/components/ProductCard";
+import { ProductoData } from "@/components/shop/ProductCard";
 
 interface FavoritesContextType {
   favorites: ProductoData[];
