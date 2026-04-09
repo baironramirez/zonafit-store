@@ -1,7 +1,7 @@
 "use client";
 
 import { useFavorites } from "@/context/FavoritesContext";
-import ProductCard from "@/components/ProductCard";
+import ProductCard from "@/components/shop/ProductCard";
 import Link from "next/link";
 import { ArrowLeft, Heart } from "lucide-react";
 

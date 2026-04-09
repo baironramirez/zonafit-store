@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, Suspense } from "react";
-import ProductCard, { ProductoData } from "@/components/ProductCard";
+import ProductCard, { ProductoData } from "@/components/shop/ProductCard";
 import { motion } from "framer-motion";
 import { useSearchParams } from "next/navigation";
 import { db } from "@/lib/firebase";

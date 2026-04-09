@@ -7,7 +7,7 @@ import { ref, uploadBytes, getDownloadURL, listAll, deleteObject } from "firebas
 import { db, storage } from "@/lib/firebase";
 import { Image as ImageIcon, Save, ArrowLeft, Loader2, UploadCloud, Type, Megaphone, Trash2, ChevronLeft, ChevronRight, X, LayoutDashboard, Grid, ShoppingBag } from "lucide-react";
 import Link from "next/link";
-import { ProductoData } from "@/components/ProductCard";
+import { ProductoData } from "@/components/shop/ProductCard";
 
 export default function AjustesPage() {
   const router = useRouter();

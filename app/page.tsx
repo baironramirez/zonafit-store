@@ -4,7 +4,7 @@ import Link from "next/link";
 import { ArrowRight, ArrowLeft, Heart, ShoppingBag } from "lucide-react";
 import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
-import ProductCard, { ProductoData } from "@/components/ProductCard";
+import ProductCard, { ProductoData } from "@/components/shop/ProductCard";
 import { db } from "@/lib/firebase";
 import { doc, getDoc, collection, getDocs } from "firebase/firestore";
 

@@ -6,7 +6,7 @@ import { doc, getDoc } from "firebase/firestore";
 import { useState, useEffect } from "react";
 import { ArrowLeft, UploadCloud, Plus, X } from "lucide-react";
 import Link from "next/link";
-import { Variante } from "@/components/ProductCard";
+import { Variante } from "@/components/shop/ProductCard";
 
 
 export default function CrearProducto() {

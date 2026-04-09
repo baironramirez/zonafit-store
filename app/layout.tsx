@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import { CartProvider } from "../context/CartContext";
-import { AuthProvider } from "../context/AuthContext";
+import { CartProvider } from "@/context/CartContext";
+import { AuthProvider } from "@/context/AuthContext";
 import { FavoritesProvider } from "@/context/FavoritesContext";
-import Navbar from "@/components/Navbar";
-import CartDrawer from "@/components/CartDrawer";
+import Navbar from "@/components/layout/Navbar";
+import CartDrawer from "@/components/cart/CartDrawer";
 import { Analytics } from "@vercel/analytics/react";
 
 export const metadata: Metadata = {

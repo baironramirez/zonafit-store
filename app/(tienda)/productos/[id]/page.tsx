@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useCart } from "@/context/CartContext";
 import { useFavorites } from "@/context/FavoritesContext";
-import { ProductoData, Variante } from "@/components/ProductCard";
+import { ProductoData, Variante } from "@/components/shop/ProductCard";
 import { ArrowLeft, Check, Heart, Share, Star } from "lucide-react";
 import Link from "next/link";
 import { motion } from "framer-motion";

@@ -5,7 +5,7 @@ import { X, Save, Edit2, UploadCloud, Plus, Trash2, Search } from "lucide-react"
 import { storage, db } from "@/lib/firebase";
 import { ref, uploadBytes, getDownloadURL, deleteObject } from "firebase/storage";
 import { doc, getDoc } from "firebase/firestore";
-import { Variante } from "@/components/ProductCard";
+import { Variante } from "@/components/shop/ProductCard";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 
