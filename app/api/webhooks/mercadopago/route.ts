@@ -147,6 +147,11 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
     }
 
+    //log de prueba id borrar 
+    logEvent('info', 'webhook_origin_check', {
+      user_id: body.user_id,
+      live_mode: body.live_mode
+    });
     logEvent('info', 'webhook_payload', { type: body.type, action: body.action, dataId: body.data?.id });
 
     // 🔥 IGNORAR eventos que no sean payment
