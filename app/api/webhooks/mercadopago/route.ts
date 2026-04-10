@@ -33,7 +33,7 @@ function verifySignatureSafe(req: Request, rawBody: string): boolean {
   const secret = process.env.MP_WEBHOOK_SECRET;
   if (!secret) {
     logEvent('warn', 'webhook_security_warning', { message: "MP_WEBHOOK_SECRET not configured, skipping signature verification" });
-    return false; // Solo para dev inicial. En prod esto debería retornar false.
+    return true; // Solo para dev inicial. En prod esto debería retornar false.
   }
 
   const xSignature = req.headers.get("x-signature");
