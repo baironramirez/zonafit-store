@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { processOrderUpdate } from "@/lib/orders";
+import { sendOrderNotification } from "@/lib/notifications";
 import { client } from "@/lib/mercadopago";
 import { Payment } from "mercadopago";
 import crypto from "crypto";
@@ -220,6 +221,20 @@ export async function POST(req: Request) {
         duplicate: updateResult.duplicate,
         restoredStock: updateResult.restoredStock
       });
+
+      // 7️⃣ Notificar al admin vía WhatsApp (fire-and-forget)
+      // Solo si no es duplicado, para evitar spam al celular
+      if (!updateResult.duplicate) {
+        sendOrderNotification({
+          orderId: externalRef,
+          customerName: orderData.nombre || orderData.customerName || "Cliente",
+          customerPhone: orderData.telefono || orderData.phone || "",
+          total: mpTransactionAmount,
+          paymentMethod: mpPaymentMethod,
+          status: updateResult.newStatus,
+          items: orderData.items || [],
+        });
+      }
 
       return NextResponse.json({
         received: true,
