@@ -154,9 +154,9 @@ export default function Home() {
               </motion.div>
             );
           })}
-          {/* Loading Skeleton or Empty state if no banners and finished loading */}
+          {/* Loading Skeleton */}
           {loading && (
-             <div className="absolute w-full h-full bg-gray-900 animate-pulse" />
+             <div className="absolute w-full h-full bg-black" />
           )}
           {!loading && heroBanners.length === 0 && (
              <div className="absolute w-full h-full bg-black" />
@@ -188,7 +188,7 @@ export default function Home() {
             );
           })}
           {loading && (
-             <div className="absolute w-full h-full bg-gray-900 animate-pulse" />
+             <div className="absolute w-full h-full bg-black" />
           )}
           {!loading && heroBanners.length === 0 && heroMobileBanners.length === 0 && (
              <div className="absolute w-full h-full bg-black" />

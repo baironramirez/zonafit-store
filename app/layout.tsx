@@ -6,7 +6,7 @@ import { FavoritesProvider } from "@/context/FavoritesContext";
 import Navbar from "@/components/layout/Navbar";
 import CartDrawer from "@/components/cart/CartDrawer";
 import { Analytics } from "@vercel/analytics/react";
-
+import { SpeedInsights } from "@vercel/speed-insights/next";
 export const metadata: Metadata = {
   title: "ZonaFit Store",
   description: "Tienda ZonaFit",
@@ -30,6 +30,7 @@ export default function RootLayout({
           </CartProvider>
         </AuthProvider>
         <Analytics />
+        <SpeedInsights />
       </body>
     </html>
   );
