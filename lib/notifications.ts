@@ -158,14 +158,20 @@ async function sendWhatsAppMessage(message: string): Promise<boolean> {
 /**
  * Envía una notificación al admin sobre un cambio de estado en un pedido.
  *
- * IMPORTANTE: Esta función es fire-and-forget.
- * Se ejecuta sin await desde el webhook para no bloquear la respuesta a MercadoPago.
- * Cualquier error se captura internamente y solo se loguea.
+ * ¿Por qué async/await y no fire-and-forget?
+ * En Vercel serverless, el runtime mata el proceso al enviar la response HTTP.
+ * Si el fetch a CallMeBot no se await-ea, la función se corta antes de completar
+ * el envío y el mensaje nunca llega. La latencia extra (~500ms) es aceptable
+ * porque MercadoPago tolera respuestas de hasta 10s en webhooks.
+ *
+ * Los errores se capturan internamente: si CallMeBot falla, el webhook sigue OK.
  */
-export function sendOrderNotification(data: OrderNotificationData): void {
-  // Fire-and-forget: no bloqueamos el webhook
-  const message = formatOrderMessage(data);
-  sendWhatsAppMessage(message).catch(() => {
-    // Ya se logueó internamente, aquí solo evitamos unhandled rejection
-  });
+export async function sendOrderNotification(data: OrderNotificationData): Promise<void> {
+  try {
+    const message = formatOrderMessage(data);
+    await sendWhatsAppMessage(message);
+  } catch {
+    // Errores ya logueados dentro de sendWhatsAppMessage.
+    // Aquí solo prevenimos que un error no capturado rompa el webhook.
+  }
 }

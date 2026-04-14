@@ -222,10 +222,11 @@ export async function POST(req: Request) {
         restoredStock: updateResult.restoredStock
       });
 
-      // 7️⃣ Notificar al admin vía WhatsApp (fire-and-forget)
-      // Solo si no es duplicado, para evitar spam al celular
+      // 7️⃣ Notificar al admin vía WhatsApp
+      // Se usa await porque en Vercel serverless el proceso muere al retornar la response
+      // y un fetch sin await nunca se completa. Los errores se capturan internamente.
       if (!updateResult.duplicate) {
-        sendOrderNotification({
+        await sendOrderNotification({
           orderId: externalRef,
           customerName: orderData.nombre || orderData.customerName || "Cliente",
           customerPhone: orderData.telefono || orderData.phone || "",
