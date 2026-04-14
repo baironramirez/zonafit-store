@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { ArrowRight, ArrowLeft, Heart, ShoppingBag } from "lucide-react";
 import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
@@ -135,15 +136,22 @@ export default function Home() {
           {heroBanners.map((bannerUrl, index) => {
             const isActive = heroBanners.length > 0 ? index === (currentBannerIndex % heroBanners.length) : false;
             return (
-              <motion.img
+              <motion.div
                 key={bannerUrl}
-                src={bannerUrl}
-                alt={`Banner Desktop ${index + 1}`}
-                className="absolute w-full h-full object-cover object-center"
+                className="absolute inset-0"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: isActive ? 1 : 0 }}
                 transition={{ duration: 1 }}
-              />
+              >
+                <Image
+                  src={bannerUrl}
+                  alt={`Banner Desktop ${index + 1}`}
+                  fill
+                  priority={index === 0}
+                  className="object-cover object-center"
+                  sizes="100vw"
+                />
+              </motion.div>
             );
           })}
           {/* Loading Skeleton or Empty state if no banners and finished loading */}
@@ -161,15 +169,22 @@ export default function Home() {
             const activeArray = heroMobileBanners.length > 0 ? heroMobileBanners : heroBanners;
             const isActive = activeArray.length > 0 ? index === (currentBannerIndex % activeArray.length) : false;
             return (
-              <motion.img
+              <motion.div
                 key={`mob-${bannerUrl}`}
-                src={bannerUrl}
-                alt={`Banner Mobile ${index + 1}`}
-                className="absolute w-full h-full object-cover object-center"
+                className="absolute inset-0"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: isActive ? 1 : 0 }}
                 transition={{ duration: 1 }}
-              />
+              >
+                <Image
+                  src={bannerUrl}
+                  alt={`Banner Mobile ${index + 1}`}
+                  fill
+                  priority={index === 0}
+                  className="object-cover object-center"
+                  sizes="100vw"
+                />
+              </motion.div>
             );
           })}
           {loading && (
@@ -302,17 +317,25 @@ export default function Home() {
               )}
 
               {/* Imagen Desktop */}
-              <img
-                src={block.desktopImage || '/images/b1.jpg'}
-                alt={block.title || `Banner Promocional ${index}`}
-                className="absolute inset-0 w-full h-full object-cover hidden md:block opacity-90 group-hover:scale-105 transition-transform duration-700"
-              />
+              <div className="absolute inset-0 hidden md:block opacity-90 group-hover:scale-105 transition-transform duration-700">
+                <Image
+                  src={block.desktopImage || '/images/b1.jpg'}
+                  alt={block.title || `Banner Promocional ${index}`}
+                  fill
+                  sizes="100vw"
+                  className="object-cover"
+                />
+              </div>
               {/* Imagen Mobile */}
-              <img
-                src={block.mobileImage || block.desktopImage || '/images/b1.jpg'}
-                alt={block.title || `Banner Promocional ${index} Móvil`}
-                className="absolute inset-0 w-full h-full object-cover md:hidden opacity-90 group-hover:scale-105 transition-transform duration-700"
-              />
+              <div className="absolute inset-0 md:hidden opacity-90 group-hover:scale-105 transition-transform duration-700">
+                <Image
+                  src={block.mobileImage || block.desktopImage || '/images/b1.jpg'}
+                  alt={block.title || `Banner Promocional ${index} Móvil`}
+                  fill
+                  sizes="100vw"
+                  className="object-cover"
+                />
+              </div>
             </Link>
           );
         }
