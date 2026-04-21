@@ -65,7 +65,7 @@ export async function processOrderUpdate({
   const orderDocRef = doc(db, "orders", orderId);
 
   try {
-    return await runTransaction(db, async (transaction) => {
+    const result = await runTransaction(db, async (transaction) => {
       const orderSnap = await transaction.get(orderDocRef);
       if (!orderSnap.exists()) {
         throw new Error("ORDER_NOT_FOUND");
