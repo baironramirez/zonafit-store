@@ -51,6 +51,7 @@ export async function processOrderUpdate({
   mpStatusDetail,
   mpPaymentMethod,
   mpTransactionAmount,
+  forceInternalStatus,
   logEvent = (level, event, payload) => console[level](`[${level.toUpperCase()}] ${event}:`, payload),
 }: {
   orderId: string;
@@ -59,9 +60,10 @@ export async function processOrderUpdate({
   mpStatusDetail?: string;
   mpPaymentMethod?: string;
   mpTransactionAmount?: number;
+  forceInternalStatus?: string;
   logEvent?: (level: 'info' | 'warn' | 'error', event: string, payload?: any) => void;
 }): Promise<UpdateResult> {
-  const newInternalStatus = mapPaymentStatus(mpStatus);
+  const newInternalStatus = forceInternalStatus || mapPaymentStatus(mpStatus);
   const orderDocRef = doc(db, "orders", orderId);
 
   try {

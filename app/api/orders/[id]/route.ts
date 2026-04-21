@@ -35,6 +35,7 @@ export async function PATCH(
         paymentId: "manual-" + Date.now(), // ID ficticio para cambios manuales
         mpStatus: estado === "pagado" ? "approved" : (estado === "rechazado" ? "rejected" : (estado === "reembolsado" ? "refunded" : "pending")),
         mpStatusDetail: "manual_admin_update",
+        forceInternalStatus: estado,
       });
 
       if (result.isDowngrade) {
