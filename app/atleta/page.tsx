@@ -20,6 +20,8 @@ interface AthleteOrder {
   total: number;
   fecha: any;
   cuponUsado: string;
+  estado: string;
+  cuponAcreditado: boolean;
 }
 
 interface AthleteCoupon {
@@ -84,26 +86,28 @@ export default function AtletaDashboard() {
         orderBy("fecha", "desc")
       );
       const ordersSnap = await getDocs(ordersQuery);
-      const ordersData = ordersSnap.docs
-        .filter(doc => doc.data().cuponAcreditado === true)
-        .map(doc => ({
-          id: doc.id,
-          total: doc.data().total,
-          fecha: doc.data().fecha,
-          cuponUsado: doc.data().cuponUsado
+      
+      const allAthleteOrders = ordersSnap.docs.map(doc => ({
+        id: doc.id,
+        total: doc.data().total,
+        fecha: doc.data().fecha,
+        cuponUsado: doc.data().cuponUsado,
+        estado: doc.data().estado || 'pendiente',
+        cuponAcreditado: doc.data().cuponAcreditado === true
       })) as AthleteOrder[];
 
-      setRecentOrders(ordersData);
+      // Mostrar en la lista pagados y en adelante (para que vean movimiento)
+      const displayOrders = allAthleteOrders.filter(o => ["pagado", "enviado", "entregado"].includes(o.estado));
+      setRecentOrders(displayOrders);
 
-      // 3. Calcular estadísticas basadas en los cupones y órdenes
+      // 3. Calcular estadísticas SOLO con las acreditadas (Entregadas)
+      const accreditedOrders = allAthleteOrders.filter(o => o.cuponAcreditado);
+
       let totalSales = 0;
-      let totalUses = ordersData.length;
+      let totalUses = accreditedOrders.length;
       let totalCommission = 0;
 
-      // Usamos la configuración de comisión de cada cupón en el momento del cálculo
-      // (Para histórico real, lo ideal es que cada orden guarde la comisión pactada,
-      // pero usaremos la actual del cupón por simplicidad inicial)
-      ordersData.forEach(order => {
+      accreditedOrders.forEach(order => {
         totalSales += order.total;
         const coupon = athleteCoupons.find(c => c.codigo === order.cuponUsado);
         if (coupon) {
@@ -226,12 +230,19 @@ export default function AtletaDashboard() {
                             <Clock className="w-5 h-5" />
                           </div>
                           <div>
-                            <p className="text-xs font-black uppercase tracking-tighter">Pedido #{order.id.slice(-6).toUpperCase()}</p>
+                            <div className="flex items-center gap-2 mb-1">
+                              <p className="text-xs font-black uppercase tracking-tighter">Pedido #{order.id.slice(-6).toUpperCase()}</p>
+                              {order.cuponAcreditado ? (
+                                <span className="bg-green-100 text-green-700 text-[9px] px-1.5 py-0.5 rounded-sm font-bold uppercase tracking-widest">Acreditado</span>
+                              ) : (
+                                <span className="bg-orange-100 text-orange-700 text-[9px] px-1.5 py-0.5 rounded-sm font-bold uppercase tracking-widest">{order.estado === 'enviado' ? 'En Tránsito' : 'Pendiente Entrega'}</span>
+                              )}
+                            </div>
                             <p className="text-[11px] text-gray-400 font-bold uppercase tracking-tight">{order.fecha?.toDate ? new Date(order.fecha.toDate()).toLocaleDateString() : 'Reciente'}</p>
                           </div>
                         </div>
                         <div className="text-right">
-                          <p className="text-sm font-bold text-black">${order.total.toLocaleString("es-AR")}</p>
+                          <p className={`text-sm font-bold ${order.cuponAcreditado ? 'text-green-600' : 'text-gray-400 line-through decoration-1'}`}>${order.total.toLocaleString("es-AR")}</p>
                           <span className="text-[10px] font-black uppercase tracking-widest text-orange-500">{order.cuponUsado}</span>
                         </div>
                       </div>
