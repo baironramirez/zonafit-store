@@ -238,11 +238,10 @@ export async function POST(req: Request) {
         });
 
         // 8️⃣ Notificar al cliente vía Email si el pago fue aprobado
-        if (updateResult.newStatus === "pagado" && orderData.email) {
-          // Llamamos a la función asíncrona sin await para no retrasar MercadoPago.
-          // En Vercel a veces es riesgoso soltar promesas huérfanas, pero Resend 
-          // usualmente es tan veloz que se procesará a tiempo, o al menos no bloqueará la API actual.
-          await sendOrderApprovedEmail(orderData.email, {
+        // El correo del cliente está en orderData.cliente.correo (así lo guarda el carrito)
+        const customerEmail = orderData.cliente?.correo || orderData.email || "";
+        if (updateResult.newStatus === "pagado" && customerEmail) {
+          await sendOrderApprovedEmail(customerEmail, {
              id: externalRef,
              total: mpTransactionAmount,
              items: orderData.items || []
