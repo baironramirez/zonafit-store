@@ -1,4 +1,4 @@
-import { doc, getDoc, runTransaction, DocumentReference } from "firebase/firestore";
+import { doc, getDoc, runTransaction, DocumentReference, updateDoc, increment, collection, query, where, getDocs } from "firebase/firestore";
 import { db } from "./firebase";
 import { CartItem } from "@/types/cart";
 
@@ -177,8 +177,46 @@ export async function processOrderUpdate({
         newStatus: isDowngrade ? currentStatus : newInternalStatus,
         duplicate: false,
         restoredStock,
+        orderDataForCoupon: {
+            cuponUsado: orderData.cuponUsado,
+            cuponAcreditado: orderData.cuponAcreditado,
+            total: mpTransactionAmount || orderData.total || 0
+        }
       };
     });
+
+    // 6. Global Coupon Accreditation Check (Post-Transaction)
+    if (
+      !result.isDowngrade && 
+      !result.duplicate && 
+      ["pagado", "entregado"].includes(result.newStatus) &&
+      result.orderDataForCoupon && 
+      result.orderDataForCoupon.cuponUsado && 
+      !result.orderDataForCoupon.cuponAcreditado
+    ) {
+      try {
+        const couponQuery = query(collection(db, "coupons"), where("codigo", "==", result.orderDataForCoupon.cuponUsado));
+        const couponSnap = await getDocs(couponQuery);
+
+        if (!couponSnap.empty) {
+          const couponDocRef = couponSnap.docs[0].ref;
+          const creditAmount = result.orderDataForCoupon.total;
+
+          await updateDoc(couponDocRef, {
+            usos: increment(1),
+            dineroGenerado: increment(creditAmount),
+          });
+
+          // Mark order as credited
+          await updateDoc(orderDocRef, { cuponAcreditado: true });
+          logEvent('info', 'coupon_accredited', { coupon: result.orderDataForCoupon.cuponUsado, orderId, creditAmount });
+        }
+      } catch (couponError: any) {
+        logEvent('error', 'coupon_accredit_failed', { orderId, message: couponError.message });
+      }
+    }
+
+    return result;
   } catch (error: any) {
     logEvent('error', 'order_process_failed', { orderId, message: error.message });
     throw error;

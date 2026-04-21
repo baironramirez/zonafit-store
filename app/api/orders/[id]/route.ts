@@ -48,35 +48,6 @@ export async function PATCH(
       throw orderError;
     }
 
-    // 2. Acreditar cupón cuando la orden pasa a "pagado" o "entregado"
-    if (estado === "pagado" || estado === "entregado") {
-      try {
-        const orderRef = doc(db, "orders", id);
-        const freshSnap = await getDoc(orderRef);
-        const freshData = freshSnap.data();
-
-        if (freshData && freshData.cuponUsado && !freshData.cuponAcreditado) {
-          const couponQuery = query(collection(db, "coupons"), where("codigo", "==", freshData.cuponUsado));
-          const couponSnap = await getDocs(couponQuery);
-
-          if (!couponSnap.empty) {
-            const couponDocRef = couponSnap.docs[0].ref;
-            const creditAmount = freshData.subtotal || freshData.total || 0;
-
-            await updateDoc(couponDocRef, {
-              usos: increment(1),
-              dineroGenerado: increment(creditAmount),
-            });
-
-            // Marcar la orden para no acreditar dos veces
-            await updateDoc(orderRef, { cuponAcreditado: true });
-            console.log(`✅ Cupón ${freshData.cuponUsado} acreditado para orden ${id}, monto: ${creditAmount}`);
-          }
-        }
-      } catch (couponError: any) {
-        console.error(`⚠️ Error acreditando cupón para orden ${id}:`, couponError.message);
-      }
-    }
 
     return NextResponse.json({
       success: true,
