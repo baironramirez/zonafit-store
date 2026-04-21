@@ -8,7 +8,7 @@ import { auth, db } from "@/lib/firebase";
 export interface UserProfile {
   uid: string;
   email: string | null;
-  rol: "admin" | "cliente" | "atleta";
+  rol: "admin" | "cliente" | "atleta" | "delivery";
   createdAt: string;
 }
 

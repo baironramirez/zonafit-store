@@ -264,6 +264,15 @@ export default function AdminPage() {
             <p className="text-sm text-gray-500 font-medium">Gestiona códigos de descuento, trackea usos y liquida comisiones a los atletas.</p>
           </Link>
 
+          {/* Tarjeta Usuarios */}
+          <Link href="/admin/usuarios" className="group bg-white border border-gray-200 rounded-2xl p-6 hover:border-black hover:shadow-lg transition-all">
+            <div className="w-12 h-12 bg-gray-50 rounded-xl border border-gray-100 flex items-center justify-center mb-6 group-hover:bg-black group-hover:border-black transition-colors">
+              <Users className="w-6 h-6 text-black group-hover:text-white transition-colors" />
+            </div>
+            <h3 className="text-lg font-bold text-black uppercase tracking-wide mb-2">Usuarios</h3>
+            <p className="text-sm text-gray-500 font-medium">Controla el acceso, gestiona niveles de permiso y asigna roles (Admin, Atleta, Delivery).</p>
+          </Link>
+
         </div>
       </div>
     </main>

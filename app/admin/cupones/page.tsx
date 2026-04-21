@@ -52,10 +52,26 @@ export default function CuponesAdmin() {
   const [editLimiteUsos, setEditLimiteUsos] = useState<number>(0);
   const [editFechaExpiracion, setEditFechaExpiracion] = useState("");
   const [editAtletaId, setEditAtletaId] = useState("");
+  const [atletas, setAtletas] = useState<{uid: string, email: string}[]>([]);
 
   useEffect(() => {
     fetchCoupons();
+    fetchAtletas();
   }, []);
+
+  const fetchAtletas = async () => {
+    try {
+      const q = query(collection(db, "users"), where("rol", "==", "atleta"));
+      const snap = await getDocs(q);
+      const data = snap.docs.map(doc => ({
+        uid: doc.id,
+        email: doc.data().email
+      }));
+      setAtletas(data);
+    } catch (error) {
+      console.error("Error fetching atletas:", error);
+    }
+  };
 
   const fetchCoupons = async () => {
     setLoading(true);
@@ -431,15 +447,18 @@ export default function CuponesAdmin() {
                     <p className="text-[11px] text-gray-400 mt-1">Vacío = nunca expira</p>
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2 text-orange-500">Asignar Atleta (UID)</label>
-                    <input
-                      type="text"
+                    <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2 text-orange-500">Vincular Atleta</label>
+                    <select
                       value={newAtletaId}
                       onChange={e => setNewAtletaId(e.target.value)}
-                      placeholder="UID de Firebase"
-                      className="w-full px-4 py-3 bg-white border border-orange-200 rounded-xl text-black font-bold focus:ring-2 focus:ring-orange-500 focus:outline-none transition-all"
-                    />
-                    <p className="text-[11px] text-gray-400 mt-1">Vincular este código a un Atleta</p>
+                      className="w-full px-4 py-3 bg-white border border-orange-200 rounded-xl text-black font-bold focus:ring-2 focus:ring-orange-500 focus:outline-none transition-all appearance-none outline-none"
+                    >
+                      <option value="">-- Sin Atleta (Opcional) --</option>
+                      {atletas.map(a => (
+                        <option key={a.uid} value={a.uid}>{a.email}</option>
+                      ))}
+                    </select>
+                    <p className="text-[11px] text-gray-400 mt-1">Selecciona al atleta para este código</p>
                   </div>
                 </div>
               </div>
@@ -552,14 +571,17 @@ export default function CuponesAdmin() {
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2 text-orange-500">Atleta Asignado (UID)</label>
-                      <input
-                        type="text"
+                      <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2 text-orange-500">Atleta Asignado</label>
+                      <select
                         value={editAtletaId}
                         onChange={e => setEditAtletaId(e.target.value)}
-                        placeholder="UID de Firebase"
-                        className="w-full px-4 py-3 bg-white border border-orange-200 rounded-xl text-black font-bold focus:ring-2 focus:ring-orange-500 focus:outline-none transition-all"
-                      />
+                        className="w-full px-4 py-3 bg-white border border-orange-200 rounded-xl text-black font-bold focus:ring-2 focus:ring-orange-500 focus:outline-none transition-all appearance-none outline-none"
+                      >
+                        <option value="">-- Sin Atleta --</option>
+                        {atletas.map(a => (
+                          <option key={a.uid} value={a.uid}>{a.email}</option>
+                        ))}
+                      </select>
                     </div>
                   </div>
                 </div>
