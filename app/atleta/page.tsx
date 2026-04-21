@@ -81,16 +81,16 @@ export default function AtletaDashboard() {
       const ordersQuery = query(
         collection(db, "orders"),
         where("cuponUsado", "in", couponCodes),
-        where("estado", "==", "pagado"),
         orderBy("fecha", "desc")
       );
-      
       const ordersSnap = await getDocs(ordersQuery);
-      const ordersData = ordersSnap.docs.map(doc => ({
-        id: doc.id,
-        total: doc.data().total,
-        fecha: doc.data().fecha,
-        cuponUsado: doc.data().cuponUsado
+      const ordersData = ordersSnap.docs
+        .filter(doc => doc.data().cuponAcreditado === true)
+        .map(doc => ({
+          id: doc.id,
+          total: doc.data().total,
+          fecha: doc.data().fecha,
+          cuponUsado: doc.data().cuponUsado
       })) as AthleteOrder[];
 
       setRecentOrders(ordersData);

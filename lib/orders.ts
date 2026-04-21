@@ -191,7 +191,7 @@ export async function processOrderUpdate({
     if (
       !result.isDowngrade && 
       !result.duplicate && 
-      ["pagado", "entregado"].includes(result.newStatus) &&
+      result.newStatus === "entregado" &&
       result.orderDataForCoupon && 
       result.orderDataForCoupon.cuponUsado && 
       !result.orderDataForCoupon.cuponAcreditado
