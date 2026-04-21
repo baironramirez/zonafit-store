@@ -90,7 +90,7 @@ export default function LoginPage() {
                 <label className="text-xs font-black text-black uppercase tracking-widest">
                   Contraseña
                 </label>
-                <Link href="#" className="text-xs font-bold text-gray-400 hover:text-black transition-colors uppercase">
+                <Link href="/recuperar" className="text-xs font-bold text-gray-400 hover:text-black transition-colors uppercase">
                   ¿Olvidaste?
                 </Link>
               </div>
