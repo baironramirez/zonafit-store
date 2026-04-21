@@ -1,13 +1,16 @@
 import { Resend } from 'resend';
 
-// Inicialización de la instancia de Resend con la key de Vercel/env
-const resend = new Resend(process.env.RESEND_API_KEY);
-
 // IMPORTANTE: Hasta que no configures un dominio propio verificado en Resend (ej: zonafit.com), 
 // debemos usar el correo base 'onboarding@resend.dev' para el remitente.
-// NOTA TEST: En modo test/dev usando este remitente, Resend solo permitirá que los correos
-// lleguen a la cuenta de email con la que creaste tu usuario en Resend.
 const FROM_EMAIL = 'onboarding@resend.dev'; 
+
+// Función segura para instanciar en tiempo de ejecución (evita problemas de variables de entorno en compilación Vercel)
+const getResendClient = () => {
+  if (!process.env.RESEND_API_KEY) {
+    console.warn("ADVERTENCIA: RESEND_API_KEY no está definido en las variables de entorno.");
+  }
+  return new Resend(process.env.RESEND_API_KEY);
+};
 
 /**
  * Plantilla HTML estática reutilizable para correos transaccionales de la marca.
@@ -64,6 +67,7 @@ export async function sendWelcomeEmail(toEmail: string) {
       </div>
     `;
 
+    const resend = getResendClient();
     const data = await resend.emails.send({
       from: FROM_EMAIL,
       to: [toEmail],
@@ -119,6 +123,7 @@ export async function sendOrderApprovedEmail(toEmail: string, orderData: any) {
       </div>
     `;
 
+    const resend = getResendClient();
     const data = await resend.emails.send({
       from: FROM_EMAIL,
       to: [toEmail],

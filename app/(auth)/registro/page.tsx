@@ -47,8 +47,10 @@ export default function RegisterPage() {
         createdAt: new Date().toISOString()
       });
 
-      // 2.5 Disparar correo de bienvenida asíncronamente (fire-and-forget)
-      fetch("/api/emails", {
+      // 2.5 Disparar correo de bienvenida y blindarlo con await
+      // Al no poner await, el navegador puede cancelar la petición fetch 
+      // tan pronto ejecuta el router.push, lo que sucede muy rápido en producción.
+      await fetch("/api/emails", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ type: "welcome", email: user.email })
