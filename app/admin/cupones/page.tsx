@@ -23,6 +23,7 @@ export interface Coupon {
   usoUnicoPorUsuario?: boolean;
   limiteUsos?: number; // 0 = unlimited
   fechaExpiracion?: string; // ISO date string
+  atletaId?: string; // UID del usuario con rol 'atleta'
 }
 
 export default function CuponesAdmin() {
@@ -39,6 +40,7 @@ export default function CuponesAdmin() {
   const [newUsoUnico, setNewUsoUnico] = useState(false);
   const [newLimiteUsos, setNewLimiteUsos] = useState<number>(0);
   const [newFechaExpiracion, setNewFechaExpiracion] = useState("");
+  const [newAtletaId, setNewAtletaId] = useState("");
 
   // Edit Modal State
   const [editingCoupon, setEditingCoupon] = useState<Coupon | null>(null);
@@ -49,6 +51,7 @@ export default function CuponesAdmin() {
   const [editUsoUnico, setEditUsoUnico] = useState(false);
   const [editLimiteUsos, setEditLimiteUsos] = useState<number>(0);
   const [editFechaExpiracion, setEditFechaExpiracion] = useState("");
+  const [editAtletaId, setEditAtletaId] = useState("");
 
   useEffect(() => {
     fetchCoupons();
@@ -96,6 +99,7 @@ export default function CuponesAdmin() {
         usoUnicoPorUsuario: newUsoUnico,
         limiteUsos: Number(newLimiteUsos),
         fechaExpiracion: newFechaExpiracion || null,
+        atletaId: newAtletaId.trim() || null,
         fechaCreacion: serverTimestamp()
       };
 
@@ -111,6 +115,7 @@ export default function CuponesAdmin() {
       setNewUsoUnico(false);
       setNewLimiteUsos(0);
       setNewFechaExpiracion("");
+      setNewAtletaId("");
       setIsCreating(false);
     } catch (error) {
       console.error("Error creating coupon:", error);
@@ -127,6 +132,7 @@ export default function CuponesAdmin() {
     setEditUsoUnico(coupon.usoUnicoPorUsuario || false);
     setEditLimiteUsos(coupon.limiteUsos || 0);
     setEditFechaExpiracion(coupon.fechaExpiracion || "");
+    setEditAtletaId(coupon.atletaId || "");
   };
 
   const handleEditCoupon = async (e: React.FormEvent) => {
@@ -142,6 +148,7 @@ export default function CuponesAdmin() {
         usoUnicoPorUsuario: editUsoUnico,
         limiteUsos: Number(editLimiteUsos),
         fechaExpiracion: editFechaExpiracion || null,
+        atletaId: editAtletaId.trim() || null,
       };
 
       await updateDoc(doc(db, "coupons", editingCoupon.id), updateData);
@@ -421,13 +428,18 @@ export default function CuponesAdmin() {
                   </div>
                   <div>
                     <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Fecha de Expiración</label>
-                    <input
-                      type="date"
-                      value={newFechaExpiracion}
-                      onChange={e => setNewFechaExpiracion(e.target.value)}
-                      className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-black font-bold focus:ring-2 focus:ring-black focus:outline-none transition-all"
-                    />
                     <p className="text-[11px] text-gray-400 mt-1">Vacío = nunca expira</p>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2 text-orange-500">Asignar Atleta (UID)</label>
+                    <input
+                      type="text"
+                      value={newAtletaId}
+                      onChange={e => setNewAtletaId(e.target.value)}
+                      placeholder="UID de Firebase"
+                      className="w-full px-4 py-3 bg-white border border-orange-200 rounded-xl text-black font-bold focus:ring-2 focus:ring-orange-500 focus:outline-none transition-all"
+                    />
+                    <p className="text-[11px] text-gray-400 mt-1">Vincular este código a un Atleta</p>
                   </div>
                 </div>
               </div>
@@ -537,6 +549,16 @@ export default function CuponesAdmin() {
                         value={editFechaExpiracion}
                         onChange={e => setEditFechaExpiracion(e.target.value)}
                         className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-black font-bold focus:ring-2 focus:ring-black focus:outline-none transition-all"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2 text-orange-500">Atleta Asignado (UID)</label>
+                      <input
+                        type="text"
+                        value={editAtletaId}
+                        onChange={e => setEditAtletaId(e.target.value)}
+                        placeholder="UID de Firebase"
+                        className="w-full px-4 py-3 bg-white border border-orange-200 rounded-xl text-black font-bold focus:ring-2 focus:ring-orange-500 focus:outline-none transition-all"
                       />
                     </div>
                   </div>

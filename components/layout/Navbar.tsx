@@ -256,6 +256,12 @@ export default function Navbar() {
                         </Link>
                       )}
 
+                      {userProfile?.rol === "atleta" && (
+                        <Link href="/atleta" onClick={() => setIsUserMenuOpen(false)} className="px-4 py-2 text-xs font-bold uppercase tracking-widest text-orange-600 hover:bg-orange-50 transition-colors">
+                          Panel Atleta
+                        </Link>
+                      )}
+
                       <Link href="/pedidos" onClick={() => setIsUserMenuOpen(false)} className="px-4 py-2 text-xs font-bold uppercase tracking-widest text-black hover:bg-gray-50 transition-colors">
                         Mis Pedidos
                       </Link>
