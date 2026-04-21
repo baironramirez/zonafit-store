@@ -238,14 +238,32 @@ export async function POST(req: Request) {
         });
 
         // 8️⃣ Notificar al cliente vía Email si el pago fue aprobado
-        // El correo del cliente está en orderData.cliente.correo (así lo guarda el carrito)
-        const customerEmail = orderData.cliente?.correo || orderData.email || "";
+        // Diagnóstico: logueamos TODOS los campos posibles donde puede estar el email
+        const customerEmail = orderData.cliente?.correo || orderData.correo || orderData.email || "";
+        logEvent('info', 'email_diagnosis', {
+          orderId: externalRef,
+          newStatus: updateResult.newStatus,
+          customerEmail,
+          clienteObj: orderData.cliente ? JSON.stringify(orderData.cliente) : 'NO_EXISTE',
+          hasCorreo: !!orderData.correo,
+          hasEmail: !!orderData.email,
+          hasClienteCorreo: !!orderData.cliente?.correo,
+          allTopLevelKeys: Object.keys(orderData),
+        });
+
         if (updateResult.newStatus === "pagado" && customerEmail) {
-          await sendOrderApprovedEmail(customerEmail, {
+          logEvent('info', 'email_sending_now', { orderId: externalRef, to: customerEmail });
+          const emailResult = await sendOrderApprovedEmail(customerEmail, {
              id: externalRef,
              total: mpTransactionAmount,
              items: orderData.items || []
-          }).catch(err => logEvent('error', 'email_send_failed', { orderId: externalRef, message: (err as any)?.message }));
+          });
+          logEvent('info', 'email_send_result', { orderId: externalRef, success: emailResult.success, data: emailResult.data });
+        } else {
+          logEvent('warn', 'email_skipped', {
+            orderId: externalRef,
+            reason: !customerEmail ? 'NO_EMAIL_FOUND' : `STATUS_IS_${updateResult.newStatus}`,
+          });
         }
       }
 
