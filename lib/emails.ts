@@ -2,7 +2,10 @@ import { Resend } from 'resend';
 
 // IMPORTANTE: Hasta que no configures un dominio propio verificado en Resend (ej: zonafit.com), 
 // debemos usar el correo base 'onboarding@resend.dev' para el remitente.
-const FROM_EMAIL = 'onboarding@resend.dev'; 
+const FROM_EMAIL = 'onboarding@resend.dev';
+
+// URL base dinámica: usa la variable de entorno de Vercel para que cada entorno apunte a su dominio correcto
+const getBaseUrl = () => process.env.NEXT_PUBLIC_BASE_URL || 'https://zonafit-store.vercel.app';
 
 // Función segura para instanciar en tiempo de ejecución (evita problemas de variables de entorno en compilación Vercel)
 const getResendClient = () => {
@@ -63,7 +66,7 @@ export async function sendWelcomeEmail(toEmail: string) {
       <p>Tu cuenta en <strong>ZonaFit</strong> ha sido forjada con éxito. A partir de este momento, tienes acceso a la mejor suplementación y equipo para llevar tu entrenamiento al máximo nivel.</p>
       <p>Nuestro enfoque es claro: disciplina, rendimiento y resultados.</p>
       <div style="text-align: center;">
-        <a href="https://zonafit-store.vercel.app/" class="btn">Explorar Combos y Productos</a>
+        <a href="${getBaseUrl()}/" class="btn">Explorar Combos y Productos</a>
       </div>
     `;
 
@@ -87,6 +90,7 @@ export async function sendWelcomeEmail(toEmail: string) {
  */
 export async function sendOrderApprovedEmail(toEmail: string, orderData: any) {
   try {
+
     // Formatear total del pedido
     const totalFormatted = new Intl.NumberFormat("es-CO", {
       style: "currency",
@@ -118,21 +122,21 @@ export async function sendOrderApprovedEmail(toEmail: string, orderData: any) {
       <p>Nos encargaremos de empacarlo y pronto recibirás el código de seguimiento de la transportadora a tu WhatsApp y a este medio.</p>
       
       <div style="text-align: center;">
-        <a href="https://zonafit-store.vercel.app/admin/pedidos" class="btn">Rastrear Estado (Próximamente)</a>
+        <a href="${getBaseUrl()}/pedidos" class="btn">Rastrear mi Pedido</a>
       </div>
     `;
 
     const resend = getResendClient();
-    const result = await resend.emails.send({
+    const data = await resend.emails.send({
       from: FROM_EMAIL,
       to: [toEmail],
       subject: `✅ Pago Confirmado - Orden #${orderIdShort} ZonaFit`,
       html: getEmailLayout(content)
     });
 
-    return { success: true, data: result };
-  } catch (error: any) {
-    console.error('Error enviando correo de confirmación de pedido:', error?.message);
+    return { success: true, data };
+  } catch (error) {
+    console.error('Error enviando correo de confirmación de pedido:', error);
     return { success: false, error };
   }
 }
