@@ -7,13 +7,17 @@ import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
 import ProductCard, { ProductoData } from "@/components/shop/ProductCard";
 import { db } from "@/lib/firebase";
-import { doc, getDoc, collection, getDocs } from "firebase/firestore";
+import { doc, getDoc, collection, getDocs, addDoc } from "firebase/firestore";
 
 export default function Home() {
   const [productos, setProductos] = useState<ProductoData[]>([]);
   const [loading, setLoading] = useState(true);
   const [featuredProductIds, setFeaturedProductIds] = useState<string[]>([]);
   const [extraBlocks, setExtraBlocks] = useState<any[]>([]);
+
+  // Newsletter State
+  const [email, setEmail] = useState("");
+  const [newsletterStatus, setNewsletterStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
 
   // Hero Banner State
   const [heroBanners, setHeroBanners] = useState<string[]>([]);
@@ -124,6 +128,25 @@ export default function Home() {
 
     return () => clearInterval(intervalId);
   }, [autoRotateBanner, heroBanners.length, heroMobileBanners.length, bannerInterval]);
+
+  const handleNewsletterSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email.trim()) return;
+    setNewsletterStatus("loading");
+    try {
+      await addDoc(collection(db, "newsletter"), {
+        email: email.trim(),
+        createdAt: new Date().toISOString()
+      });
+      setNewsletterStatus("success");
+      setEmail("");
+      setTimeout(() => setNewsletterStatus("idle"), 5000); // Reset after 5s
+    } catch (error) {
+      console.error("Error subscribing to newsletter:", error);
+      setNewsletterStatus("error");
+      setTimeout(() => setNewsletterStatus("idle"), 5000);
+    }
+  };
 
   return (
     <main className="pt-22 min-h-screen bg-white text-black selection:bg-black selection:text-white">
@@ -400,20 +423,40 @@ export default function Home() {
             Sé el primero en saber sobre nuevos productos y rutinas de los atletas Zinc.
           </p>
 
-          <form className="flex flex-col sm:flex-row max-w-xl mx-auto border border-gray-300">
+          <form onSubmit={handleNewsletterSubmit} className="flex flex-col sm:flex-row max-w-xl mx-auto border border-gray-300 relative">
             <input
               type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              disabled={newsletterStatus === "loading" || newsletterStatus === "success"}
               placeholder="Dirección de correo electrónico"
-              className="flex-1 px-6 py-4 bg-white text-black placeholder-gray-400 focus:outline-none text-sm font-medium"
+              className="flex-1 px-6 py-4 bg-white text-black placeholder-gray-400 focus:outline-none text-sm font-medium disabled:opacity-50"
               required
             />
 
             <button
               type="submit"
-              className="px-8 py-4 bg-black text-white font-bold uppercase tracking-widest transition-colors hover:bg-gray-800"
+              disabled={newsletterStatus === "loading" || newsletterStatus === "success"}
+              className="px-8 py-4 bg-black text-white font-bold uppercase tracking-widest transition-colors hover:bg-gray-800 disabled:opacity-70 flex items-center justify-center min-w-[160px]"
             >
-              Suscribir
+              {newsletterStatus === "loading" ? (
+                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+              ) : newsletterStatus === "success" ? (
+                "¡LISTO!"
+              ) : (
+                "SUSCRIBIR"
+              )}
             </button>
+            {newsletterStatus === "success" && (
+              <p className="absolute -bottom-8 left-0 right-0 text-green-600 text-xs font-bold uppercase tracking-wide">
+                ¡Gracias por unirte a nuestra familia!
+              </p>
+            )}
+            {newsletterStatus === "error" && (
+              <p className="absolute -bottom-8 left-0 right-0 text-red-500 text-xs font-bold uppercase tracking-wide">
+                Hubo un error. Inténtalo de nuevo.
+              </p>
+            )}
           </form>
         </div>
       </section>

@@ -51,6 +51,11 @@ export default function AjustesPage() {
   const [tiktokUrl, setTiktokUrl] = useState<string>("");
   const [facebookUrl, setFacebookUrl] = useState<string>("");
 
+  // Enlaces del Footer
+  const [faqUrl, setFaqUrl] = useState<string>("");
+  const [enviosUrl, setEnviosUrl] = useState<string>("");
+  const [contactoUrl, setContactoUrl] = useState<string>("");
+
   useEffect(() => {
     async function fetchSettings() {
       try {
@@ -105,6 +110,9 @@ export default function AjustesPage() {
           if (data.instagramUrl) setInstagramUrl(data.instagramUrl);
           if (data.tiktokUrl) setTiktokUrl(data.tiktokUrl);
           if (data.facebookUrl) setFacebookUrl(data.facebookUrl);
+          if (data.faqUrl) setFaqUrl(data.faqUrl);
+          if (data.enviosUrl) setEnviosUrl(data.enviosUrl);
+          if (data.contactoUrl) setContactoUrl(data.contactoUrl);
         } else {
           setCategorias(["Proteínas", "Pre-Entrenos", "Creatina", "Vitaminas"]);
           setMarcas(["Optimum Nutrition", "Dymatize", "MuscleTech", "BSN", "Cellucor"]);
@@ -325,7 +333,10 @@ export default function AjustesPage() {
         whatsappUrl,
         instagramUrl,
         tiktokUrl,
-        facebookUrl
+        facebookUrl,
+        faqUrl,
+        enviosUrl,
+        contactoUrl
       }, { merge: true });
       alert("¡Ajustes guardados correctamente!");
       setHasChanges(false);
@@ -460,6 +471,49 @@ export default function AjustesPage() {
                         onChange={(e) => { setFacebookUrl(e.target.value); setHasChanges(true); }}
                         className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:border-black focus:ring-1 focus:ring-black outline-none transition-all font-medium"
                         placeholder="https://facebook.com/..."
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3 mt-10 mb-6 pb-6 border-b border-gray-100">
+                    <div className="p-3 bg-gray-100 text-gray-600 rounded-xl">
+                      <LinkIcon className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <h2 className="text-xl font-bold uppercase tracking-wide">Enlaces de Ayuda</h2>
+                      <p className="text-sm text-gray-500">Configura hacia dónde redirigen los links del footer.</p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <label className="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-2">FAQ (Preguntas Frecuentes)</label>
+                      <input
+                        type="url"
+                        value={faqUrl}
+                        onChange={(e) => { setFaqUrl(e.target.value); setHasChanges(true); }}
+                        className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:border-black focus:ring-1 focus:ring-black outline-none transition-all font-medium"
+                        placeholder="/faq o https://wa.me/..."
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-2">Envíos y Devoluciones</label>
+                      <input
+                        type="url"
+                        value={enviosUrl}
+                        onChange={(e) => { setEnviosUrl(e.target.value); setHasChanges(true); }}
+                        className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:border-black focus:ring-1 focus:ring-black outline-none transition-all font-medium"
+                        placeholder="/envios o https://wa.me/..."
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-2">Contacto</label>
+                      <input
+                        type="url"
+                        value={contactoUrl}
+                        onChange={(e) => { setContactoUrl(e.target.value); setHasChanges(true); }}
+                        className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:border-black focus:ring-1 focus:ring-black outline-none transition-all font-medium"
+                        placeholder="/contacto o https://wa.me/..."
                       />
                     </div>
                   </div>

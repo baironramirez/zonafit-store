@@ -11,7 +11,10 @@ export default function Footer() {
     whatsapp: "",
     instagram: "",
     tiktok: "",
-    facebook: ""
+    facebook: "",
+    faqUrl: "",
+    enviosUrl: "",
+    contactoUrl: ""
   });
 
   useEffect(() => {
@@ -24,7 +27,10 @@ export default function Footer() {
             whatsapp: data.whatsappUrl || "",
             instagram: data.instagramUrl || "",
             tiktok: data.tiktokUrl || "",
-            facebook: data.facebookUrl || ""
+            facebook: data.facebookUrl || "",
+            faqUrl: data.faqUrl || "",
+            enviosUrl: data.enviosUrl || "",
+            contactoUrl: data.contactoUrl || ""
           });
         }
       } catch (err) {
@@ -52,19 +58,19 @@ export default function Footer() {
             <h4 className="text-xs font-bold uppercase tracking-widest text-gray-500 mb-6 border-b border-white/10 pb-2 inline-block">Ayuda</h4>
             <ul className="space-y-4">
               <li>
-                <Link href="/faq" className="text-sm text-gray-300 hover:text-white font-medium uppercase tracking-wide transition-colors">
+                <a href={socialLinks.faqUrl || "/faq"} className="text-sm text-gray-300 hover:text-white font-medium uppercase tracking-wide transition-colors">
                   FAQ
-                </Link>
+                </a>
               </li>
               <li>
-                <Link href="/envios" className="text-sm text-gray-300 hover:text-white font-medium uppercase tracking-wide transition-colors">
+                <a href={socialLinks.enviosUrl || "/envios"} className="text-sm text-gray-300 hover:text-white font-medium uppercase tracking-wide transition-colors">
                   Envíos y Devoluciones
-                </Link>
+                </a>
               </li>
               <li>
-                <Link href="/contacto" className="text-sm text-gray-300 hover:text-white font-medium uppercase tracking-wide transition-colors">
+                <a href={socialLinks.contactoUrl || "/contacto"} className="text-sm text-gray-300 hover:text-white font-medium uppercase tracking-wide transition-colors">
                   Contacto
-                </Link>
+                </a>
               </li>
             </ul>
           </div>
