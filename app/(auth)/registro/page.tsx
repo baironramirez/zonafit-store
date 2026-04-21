@@ -47,6 +47,13 @@ export default function RegisterPage() {
         createdAt: new Date().toISOString()
       });
 
+      // 2.5 Disparar correo de bienvenida asíncronamente (fire-and-forget)
+      fetch("/api/emails", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type: "welcome", email: user.email })
+      }).catch(err => console.error("Error disparando el correo de bienvenida:", err));
+
       // 3. Redirect back to homepage
       router.push("/");
     } catch (err: any) {

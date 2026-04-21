@@ -3,6 +3,7 @@ import { doc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { processOrderUpdate } from "@/lib/orders";
 import { sendOrderNotification } from "@/lib/notifications";
+import { sendOrderApprovedEmail } from "@/lib/emails";
 import { client } from "@/lib/mercadopago";
 import { Payment } from "mercadopago";
 import crypto from "crypto";
@@ -235,6 +236,18 @@ export async function POST(req: Request) {
           status: updateResult.newStatus,
           items: orderData.items || [],
         });
+
+        // 8️⃣ Notificar al cliente vía Email si el pago fue aprobado
+        if (updateResult.newStatus === "pagado" && orderData.email) {
+          // Llamamos a la función asíncrona sin await para no retrasar MercadoPago.
+          // En Vercel a veces es riesgoso soltar promesas huérfanas, pero Resend 
+          // usualmente es tan veloz que se procesará a tiempo, o al menos no bloqueará la API actual.
+          await sendOrderApprovedEmail(orderData.email, {
+             id: externalRef,
+             total: mpTransactionAmount,
+             items: orderData.items || []
+          }).catch(err => logEvent('error', 'email_send_failed', { orderId: externalRef, message: (err as any)?.message }));
+        }
       }
 
       return NextResponse.json({
