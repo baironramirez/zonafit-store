@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { db } from "@/lib/firebase";
-import { collection, getDocs, addDoc, deleteDoc, doc, updateDoc, serverTimestamp } from "firebase/firestore";
+import { collection, getDocs, addDoc, deleteDoc, doc, updateDoc, serverTimestamp, query, where } from "firebase/firestore";
 import Link from "next/link";
 import { ArrowLeft, Trash2, Plus, Download, Tag, DollarSign, Activity, Users, X, Pencil, Shield, Clock, Hash } from "lucide-react";
 
