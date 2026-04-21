@@ -86,19 +86,7 @@ export async function sendWelcomeEmail(toEmail: string) {
  * Envío de recibo y guía cuando un pago sea aprobado.
  */
 export async function sendOrderApprovedEmail(toEmail: string, orderData: any) {
-  // Log de diagnóstico: verificar que los parámetros lleguen correctamente
-  console.log(JSON.stringify({
-    event: 'email_order_attempt',
-    toEmail,
-    orderId: orderData.id,
-    total: orderData.total,
-    itemsCount: orderData.items?.length || 0,
-    hasApiKey: !!process.env.RESEND_API_KEY,
-    timestamp: new Date().toISOString()
-  }));
-
   try {
-    
     // Formatear total del pedido
     const totalFormatted = new Intl.NumberFormat("es-CO", {
       style: "currency",
@@ -142,26 +130,9 @@ export async function sendOrderApprovedEmail(toEmail: string, orderData: any) {
       html: getEmailLayout(content)
     });
 
-    // Log de resultado de Resend (incluye posibles errores de la API)
-    console.log(JSON.stringify({
-      event: 'email_order_result',
-      toEmail,
-      resendResponse: result,
-      timestamp: new Date().toISOString()
-    }));
-
     return { success: true, data: result };
   } catch (error: any) {
-    // Log detallado del error para diagnosticar en Vercel
-    console.error(JSON.stringify({
-      event: 'email_order_error',
-      toEmail,
-      errorMessage: error?.message,
-      errorName: error?.name,
-      errorStatusCode: error?.statusCode,
-      fullError: JSON.stringify(error),
-      timestamp: new Date().toISOString()
-    }));
+    console.error('Error enviando correo de confirmación de pedido:', error?.message);
     return { success: false, error };
   }
 }
