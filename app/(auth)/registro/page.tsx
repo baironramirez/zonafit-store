@@ -73,7 +73,7 @@ export default function RegisterPage() {
   };
 
   return (
-    <main className="min-h-screen bg-white text-black flex flex-col items-center justify-center p-6 selection:bg-black selection:text-white relative">
+    <main className="min-h-screen bg-white text-black flex flex-col items-center justify-center pt-32 pb-12 px-6 selection:bg-black selection:text-white relative">
 
 
 
@@ -81,7 +81,7 @@ export default function RegisterPage() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        className="w-full max-w-md pt-12 md:pt-0"
+        className="w-full max-w-md"
       >
 
         {/* Header Text */}

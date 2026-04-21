@@ -40,7 +40,7 @@ export default function LoginPage() {
   };
 
   return (
-    <main className="min-h-screen bg-white text-black flex flex-col items-center justify-center p-6 selection:bg-black selection:text-white relative">
+    <main className="min-h-screen bg-white text-black flex flex-col items-center justify-center pt-32 pb-12 px-6 selection:bg-black selection:text-white relative">
 
 
       <motion.div
