@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { doc, getDoc, setDoc, collection, getDocs } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL, listAll, deleteObject } from "firebase/storage";
 import { db, storage } from "@/lib/firebase";
-import { Image as ImageIcon, Save, ArrowLeft, Loader2, UploadCloud, Type, Megaphone, Trash2, ChevronLeft, ChevronRight, X, LayoutDashboard, Grid, ShoppingBag } from "lucide-react";
+import { Image as ImageIcon, Save, ArrowLeft, Loader2, UploadCloud, Type, Megaphone, Trash2, ChevronLeft, ChevronRight, X, LayoutDashboard, Grid, ShoppingBag, Link as LinkIcon } from "lucide-react";
 import Link from "next/link";
 import { ProductoData } from "@/components/shop/ProductCard";
 
@@ -44,6 +44,12 @@ export default function AjustesPage() {
   const [marcas, setMarcas] = useState<string[]>([]);
   const [newMarca, setNewMarca] = useState<string>("");
   const [extraBlocks, setExtraBlocks] = useState<any[]>([]);
+
+  // Redes Sociales
+  const [whatsappUrl, setWhatsappUrl] = useState<string>("");
+  const [instagramUrl, setInstagramUrl] = useState<string>("");
+  const [tiktokUrl, setTiktokUrl] = useState<string>("");
+  const [facebookUrl, setFacebookUrl] = useState<string>("");
 
   useEffect(() => {
     async function fetchSettings() {
@@ -95,6 +101,10 @@ export default function AjustesPage() {
           } else {
             setExtraBlocks([]);
           }
+          if (data.whatsappUrl) setWhatsappUrl(data.whatsappUrl);
+          if (data.instagramUrl) setInstagramUrl(data.instagramUrl);
+          if (data.tiktokUrl) setTiktokUrl(data.tiktokUrl);
+          if (data.facebookUrl) setFacebookUrl(data.facebookUrl);
         } else {
           setCategorias(["Proteínas", "Pre-Entrenos", "Creatina", "Vitaminas"]);
           setMarcas(["Optimum Nutrition", "Dymatize", "MuscleTech", "BSN", "Cellucor"]);
@@ -311,7 +321,11 @@ export default function AjustesPage() {
         featuredProductIds,
         categorias,
         marcas,
-        extraBlocks
+        extraBlocks,
+        whatsappUrl,
+        instagramUrl,
+        tiktokUrl,
+        facebookUrl
       }, { merge: true });
       alert("¡Ajustes guardados correctamente!");
       setHasChanges(false);
@@ -374,6 +388,7 @@ export default function AjustesPage() {
                 { id: 'hero', label: 'Banner & Destacados', icon: <ImageIcon className="w-4 h-4" /> },
                 { id: 'extra', label: 'Bloques Adicionales', icon: <LayoutDashboard className="w-4 h-4" /> },
                 { id: 'catalog', label: 'Categorías y Marcas', icon: <ShoppingBag className="w-4 h-4" /> },
+                { id: 'social', label: 'Redes Sociales', icon: <LinkIcon className="w-4 h-4" /> },
               ].map(t => (
                 <button
                   key={t.id}
@@ -392,6 +407,65 @@ export default function AjustesPage() {
 
             <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm">
               
+              {/* TAB SOCIAL */}
+              {activeTab === 'social' && (
+                <div className="p-6 md:p-8">
+                  <div className="flex items-center gap-3 mb-6 pb-6 border-b border-gray-100">
+                    <div className="p-3 bg-green-50 text-green-600 rounded-xl">
+                      <LinkIcon className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <h2 className="text-xl font-bold uppercase tracking-wide">Redes Sociales</h2>
+                      <p className="text-sm text-gray-500">Configura los enlaces para el Footer y botón de WhatsApp.</p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <label className="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-2">WhatsApp</label>
+                      <input
+                        type="url"
+                        value={whatsappUrl}
+                        onChange={(e) => { setWhatsappUrl(e.target.value); setHasChanges(true); }}
+                        className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:border-black focus:ring-1 focus:ring-black outline-none transition-all font-medium"
+                        placeholder="https://wa.me/..."
+                      />
+                      <p className="text-xs text-gray-400 mt-1">Ej: https://wa.me/573001234567</p>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-2">Instagram</label>
+                      <input
+                        type="url"
+                        value={instagramUrl}
+                        onChange={(e) => { setInstagramUrl(e.target.value); setHasChanges(true); }}
+                        className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:border-black focus:ring-1 focus:ring-black outline-none transition-all font-medium"
+                        placeholder="https://instagram.com/..."
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-2">TikTok</label>
+                      <input
+                        type="url"
+                        value={tiktokUrl}
+                        onChange={(e) => { setTiktokUrl(e.target.value); setHasChanges(true); }}
+                        className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:border-black focus:ring-1 focus:ring-black outline-none transition-all font-medium"
+                        placeholder="https://tiktok.com/@..."
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-2">Facebook</label>
+                      <input
+                        type="url"
+                        value={facebookUrl}
+                        onChange={(e) => { setFacebookUrl(e.target.value); setHasChanges(true); }}
+                        className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:border-black focus:ring-1 focus:ring-black outline-none transition-all font-medium"
+                        placeholder="https://facebook.com/..."
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* TAB HERO */}
               {activeTab === 'hero' && (
                 <>

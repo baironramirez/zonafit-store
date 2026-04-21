@@ -21,6 +21,7 @@ function ProductosContent() {
   const [searchQuery, setSearchQuery] = useState(initialQuery);
 
   const [categorias, setCategorias] = useState<string[]>(["Todos"]);
+  const [whatsappUrl, setWhatsappUrl] = useState<string>("");
 
   useEffect(() => {
     async function loadProductos() {
@@ -42,8 +43,15 @@ function ProductosContent() {
       try {
         const docRef = doc(db, "settings", "home");
         const docSnap = await getDoc(docRef);
-        if (docSnap.exists() && docSnap.data().categorias) {
-          setCategorias(["Todos", ...docSnap.data().categorias]);
+        if (docSnap.exists()) {
+          if (docSnap.data().categorias) {
+            setCategorias(["Todos", ...docSnap.data().categorias]);
+          } else {
+            setCategorias(["Todos", "Proteínas", "Pre-Entrenos", "Creatina", "Vitaminas"]);
+          }
+          if (docSnap.data().whatsappUrl) {
+            setWhatsappUrl(docSnap.data().whatsappUrl);
+          }
         } else {
           setCategorias(["Todos", "Proteínas", "Pre-Entrenos", "Creatina", "Vitaminas"]);
         }
@@ -214,9 +222,14 @@ function ProductosContent() {
           <p className="text-gray-400 mb-8 max-w-xl mx-auto font-medium">
             Contacta a nuestro equipo de ventas para acceder a la lista de precios mayoristas para gimnasios y preparadores físicos.
           </p>
-          <button className="bg-white text-black px-8 py-3 font-bold uppercase tracking-widest text-sm hover:bg-orange-500 hover:text-white transition-colors">
+          <a
+            href={whatsappUrl ? `${whatsappUrl}?text=${encodeURIComponent("Hola, quisiera solicitar información sobre compras por mayor.")}` : "#"}
+            target={whatsappUrl ? "_blank" : "_self"}
+            rel="noopener noreferrer"
+            className="inline-block bg-white text-black px-8 py-3 font-bold uppercase tracking-widest text-sm hover:bg-orange-500 hover:text-white transition-colors"
+          >
             Solicitar Presupuesto
-          </button>
+          </a>
         </div>
       </section>
     </main>
