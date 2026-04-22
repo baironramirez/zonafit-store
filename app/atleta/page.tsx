@@ -82,8 +82,7 @@ export default function AtletaDashboard() {
       // Si el atleta tiene más de 10 códigos (raro), habría que paginar.
       const ordersQuery = query(
         collection(db, "orders"),
-        where("cuponUsado", "in", couponCodes),
-        orderBy("fecha", "desc")
+        where("cuponUsado", "in", couponCodes)
       );
       const ordersSnap = await getDocs(ordersQuery);
       
@@ -95,6 +94,13 @@ export default function AtletaDashboard() {
         estado: doc.data().estado || 'pendiente',
         cuponAcreditado: doc.data().cuponAcreditado === true
       })) as AthleteOrder[];
+
+      // Ordenar por fecha de forma manual para evitar error de índice compuesto en Firebase
+      allAthleteOrders.sort((a, b) => {
+        const timeA = a.fecha?.toDate ? a.fecha.toDate().getTime() : 0;
+        const timeB = b.fecha?.toDate ? b.fecha.toDate().getTime() : 0;
+        return timeB - timeA;
+      });
 
       // Mostrar en la lista pagados y en adelante (para que vean movimiento)
       const displayOrders = allAthleteOrders.filter(o => ["pagado", "enviado", "entregado"].includes(o.estado));
