@@ -136,7 +136,6 @@ export default function AtletaDashboard() {
       });
 
       setStats({
-        totalSales: 0,
         totalUses,
         pendingCommission: Math.max(0, totalCommission - paidCommission),
         paidCommission
