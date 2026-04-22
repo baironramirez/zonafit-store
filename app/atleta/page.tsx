@@ -9,7 +9,6 @@ import { motion } from "framer-motion";
 import { Tag, DollarSign, Activity, ShoppingBag, Clock, ChevronRight, AlertCircle, TrendingUp } from "lucide-react";
 
 interface AthleteStats {
-  totalSales: number;
   totalUses: number;
   pendingCommission: number;
   paidCommission: number;
