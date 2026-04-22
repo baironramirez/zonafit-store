@@ -19,9 +19,9 @@ interface AthleteOrder {
   id: string;
   total: number;
   fecha: any;
-  cuponUsado: string;
   estado: string;
   cuponAcreditado: boolean;
+  comisionGenerada: number;
 }
 
 interface AthleteCoupon {
@@ -35,7 +35,6 @@ export default function AtletaDashboard() {
   const router = useRouter();
   
   const [stats, setStats] = useState<AthleteStats>({
-    totalSales: 0,
     totalUses: 0,
     pendingCommission: 0,
     paidCommission: 0
@@ -86,14 +85,26 @@ export default function AtletaDashboard() {
       );
       const ordersSnap = await getDocs(ordersQuery);
       
-      const allAthleteOrders = ordersSnap.docs.map(doc => ({
-        id: doc.id,
-        total: doc.data().total,
-        fecha: doc.data().fecha,
-        cuponUsado: doc.data().cuponUsado,
-        estado: doc.data().estado || 'pendiente',
-        cuponAcreditado: doc.data().cuponAcreditado === true
-      })) as AthleteOrder[];
+      const allAthleteOrders = ordersSnap.docs.map(doc => {
+        const data = doc.data();
+        const coupon = athleteCoupons.find(c => c.codigo === data.cuponUsado);
+        let comisionEst = 0;
+        if (coupon) {
+          comisionEst = coupon.tipoComision === "porcentaje" 
+            ? data.total * (coupon.valorComision / 100) 
+            : coupon.valorComision;
+        }
+
+        return {
+          id: doc.id,
+          total: data.total,
+          fecha: data.fecha,
+          cuponUsado: data.cuponUsado,
+          estado: data.estado || 'pendiente',
+          cuponAcreditado: data.cuponAcreditado === true,
+          comisionGenerada: comisionEst
+        };
+      }) as AthleteOrder[];
 
       // Ordenar por fecha de forma manual para evitar error de índice compuesto en Firebase
       allAthleteOrders.sort((a, b) => {
@@ -108,20 +119,11 @@ export default function AtletaDashboard() {
       // 3. Calcular estadísticas SOLO con las acreditadas (Entregadas)
       const accreditedOrders = allAthleteOrders.filter(o => o.cuponAcreditado);
 
-      let totalSales = 0;
       let totalUses = accreditedOrders.length;
       let totalCommission = 0;
 
       accreditedOrders.forEach(order => {
-        totalSales += order.total;
-        const coupon = athleteCoupons.find(c => c.codigo === order.cuponUsado);
-        if (coupon) {
-          if (coupon.tipoComision === "porcentaje") {
-            totalCommission += order.total * (coupon.valorComision / 100);
-          } else {
-            totalCommission += coupon.valorComision;
-          }
-        }
+        totalCommission += order.comisionGenerada;
       });
 
       // Dinero ya liquidado (leemos del cupón)
@@ -135,7 +137,7 @@ export default function AtletaDashboard() {
       });
 
       setStats({
-        totalSales,
+        totalSales: 0,
         totalUses,
         pendingCommission: Math.max(0, totalCommission - paidCommission),
         paidCommission
@@ -187,30 +189,23 @@ export default function AtletaDashboard() {
         ) : (
           <>
             {/* Stats Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
               <StatCard 
-                title="Ventas Generadas" 
-                value={`$${stats.totalSales.toLocaleString("es-AR")}`}
-                icon={<TrendingUp className="w-5 h-5 text-green-500" />}
-                description="Monto bruto de tus códigos"
-              />
-              <StatCard 
-                title="Usos Directos" 
+                title="Usuarios Referidos" 
                 value={stats.totalUses}
                 icon={<Activity className="w-5 h-5 text-blue-500" />}
                 description="Conversiones exitosas"
               />
               <StatCard 
-                title="Comisión Pendiente" 
+                title="Comisión Acumulada" 
                 value={`$${stats.pendingCommission.toLocaleString("es-AR")}`}
                 icon={<DollarSign className="w-5 h-5 text-orange-500" />}
-                description="Saldo listo para liquidar"
-                variant="highlight"
+                description="Saldo validado para liquidación"
               />
               <StatCard 
-                title="Total Cobrado" 
+                title="Total Liquidado" 
                 value={`$${stats.paidCommission.toLocaleString("es-AR")}`}
-                icon={<ShoppingBag className="w-5 h-5 text-gray-400" />}
+                icon={<ShoppingBag className="w-5 h-5 text-green-500" />}
                 description="Pagos históricos realizados"
               />
             </div>
@@ -253,8 +248,8 @@ export default function AtletaDashboard() {
                           </div>
                         </div>
                         <div className="text-right">
-                          <p className={`text-sm font-bold ${order.cuponAcreditado ? 'text-green-600' : 'text-gray-400 line-through decoration-1'}`}>${order.total.toLocaleString("es-AR")}</p>
-                          <span className="text-[10px] font-black uppercase tracking-widest text-orange-500">{order.cuponUsado}</span>
+                          <p className={`text-sm font-bold ${order.cuponAcreditado ? 'text-black' : 'text-gray-400'}`}>+${order.comisionGenerada.toLocaleString("es-AR")}</p>
+                          <span className="text-[10px] font-black uppercase tracking-widest text-orange-500">Comisión</span>
                         </div>
                       </div>
                     ))
