@@ -102,9 +102,8 @@ export default function AtletaDashboard() {
         return timeB - timeA;
       });
 
-      // Mostrar en la lista pagados y en adelante (para que vean movimiento)
-      const displayOrders = allAthleteOrders.filter(o => ["pagado", "enviado", "entregado"].includes(o.estado));
-      setRecentOrders(displayOrders);
+      // Mostrar en la lista todas las órdenes asociadas al cupón para transparencia total
+      setRecentOrders(allAthleteOrders);
 
       // 3. Calcular estadísticas SOLO con las acreditadas (Entregadas)
       const accreditedOrders = allAthleteOrders.filter(o => o.cuponAcreditado);
@@ -240,8 +239,14 @@ export default function AtletaDashboard() {
                               <p className="text-xs font-black uppercase tracking-tighter">Pedido #{order.id.slice(-6).toUpperCase()}</p>
                               {order.cuponAcreditado ? (
                                 <span className="bg-green-100 text-green-700 text-[9px] px-1.5 py-0.5 rounded-sm font-bold uppercase tracking-widest">Acreditado</span>
+                              ) : order.estado === 'enviado' ? (
+                                <span className="bg-blue-100 text-blue-700 text-[9px] px-1.5 py-0.5 rounded-sm font-bold uppercase tracking-widest">En Tránsito</span>
+                              ) : order.estado === 'pagado' ? (
+                                <span className="bg-yellow-100 text-yellow-800 text-[9px] px-1.5 py-0.5 rounded-sm font-bold uppercase tracking-widest">Pagado - Preparando</span>
+                              ) : order.estado === 'rechazado' || order.estado === 'reembolsado' ? (
+                                <span className="bg-red-100 text-red-700 text-[9px] px-1.5 py-0.5 rounded-sm font-bold uppercase tracking-widest">Cancelado</span>
                               ) : (
-                                <span className="bg-orange-100 text-orange-700 text-[9px] px-1.5 py-0.5 rounded-sm font-bold uppercase tracking-widest">{order.estado === 'enviado' ? 'En Tránsito' : 'Pendiente Entrega'}</span>
+                                <span className="bg-gray-100 text-gray-500 text-[9px] px-1.5 py-0.5 rounded-sm font-bold uppercase tracking-widest">Pendiente de Pago</span>
                               )}
                             </div>
                             <p className="text-[11px] text-gray-400 font-bold uppercase tracking-tight">{order.fecha?.toDate ? new Date(order.fecha.toDate()).toLocaleDateString() : 'Reciente'}</p>
