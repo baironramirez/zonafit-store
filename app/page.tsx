@@ -39,10 +39,10 @@ export default function Home() {
       try {
         const docSnap = await getDoc(doc(db, "settings", "home"));
         let pIds: string[] = [];
-        
+
         if (docSnap.exists()) {
           const data = docSnap.data();
-          
+
           if (data.heroBannerUrls && Array.isArray(data.heroBannerUrls)) {
             setHeroBanners(data.heroBannerUrls);
           } else if (data.heroBannerUrl) {
@@ -52,7 +52,7 @@ export default function Home() {
           if (data.heroMobileBannersUrls && Array.isArray(data.heroMobileBannersUrls)) {
             setHeroMobileBanners(data.heroMobileBannersUrls);
           }
-          
+
           if (data.heroTitle) setHeroTitle(data.heroTitle);
           if (data.heroSubtitle) setHeroSubtitle(data.heroSubtitle);
           if (data.heroDesc) setHeroDesc(data.heroDesc);
@@ -60,7 +60,7 @@ export default function Home() {
           if (data.heroBtn2) setHeroBtn2(data.heroBtn2);
           if (data.heroBtn1Cat) setHeroBtn1Cat(data.heroBtn1Cat);
           if (data.heroBtn2Cat) setHeroBtn2Cat(data.heroBtn2Cat);
-          
+
           if (data.autoRotateBanner !== undefined) setAutoRotateBanner(data.autoRotateBanner);
           if (data.bannerInterval !== undefined) setBannerInterval(data.bannerInterval);
           if (data.featuredProductIds && Array.isArray(data.featuredProductIds) && data.featuredProductIds.length > 0) {
@@ -85,7 +85,7 @@ export default function Home() {
           const productPromises = pIds.map(id => getDoc(doc(db, "products", id)));
           const docSnaps = await Promise.all(productPromises);
           const prods: ProductoData[] = [];
-          
+
           docSnaps.forEach((d) => {
             if (d.exists()) {
               prods.push({ id: d.id, ...d.data() } as ProductoData);
@@ -179,10 +179,10 @@ export default function Home() {
           })}
           {/* Loading Skeleton */}
           {loading && (
-             <div className="absolute w-full h-full bg-black" />
+            <div className="absolute w-full h-full bg-black" />
           )}
           {!loading && heroBanners.length === 0 && (
-             <div className="absolute w-full h-full bg-black" />
+            <div className="absolute w-full h-full bg-black" />
           )}
         </div>
 
@@ -211,15 +211,15 @@ export default function Home() {
             );
           })}
           {loading && (
-             <div className="absolute w-full h-full bg-black" />
+            <div className="absolute w-full h-full bg-black" />
           )}
           {!loading && heroBanners.length === 0 && heroMobileBanners.length === 0 && (
-             <div className="absolute w-full h-full bg-black" />
+            <div className="absolute w-full h-full bg-black" />
           )}
         </div>
 
-          {/* Dark overlay to improve contrast with navbar */}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/15 to-transparent pointer-events-none" />
+        {/* Dark overlay contraste inferior de banner */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-black/15 to-transparent pointer-events-none" />
         {/* Content */}
         <div className="relative z-10 px-6 max-w-[1400px] w-full mx-auto">
           <motion.div
@@ -289,10 +289,10 @@ export default function Home() {
                 .filter(p => featuredProductIds.length === 0 || featuredProductIds.includes(p.id))
                 .slice(0, 4)
                 .map((producto) => (
-                <div key={producto.id} className="group relative">
-                  <ProductCard producto={producto} />
-                </div>
-              ))}
+                  <div key={producto.id} className="group relative">
+                    <ProductCard producto={producto} />
+                  </div>
+                ))}
             </div>
           )}
 
@@ -315,7 +315,7 @@ export default function Home() {
               {/* Overlay Gradient for readability */}
               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent z-10 hidden md:block" />
               <div className="absolute inset-0 bg-black/40 z-10 md:hidden" />
-              
+
               {/* Text content overlapping banner */}
               {(block.title || block.subtitle || block.buttonText) && (
                 <div className="absolute inset-0 z-20 flex flex-col justify-end md:justify-center items-center text-center pb-20 md:pb-0 p-6">
