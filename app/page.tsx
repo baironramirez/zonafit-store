@@ -219,7 +219,7 @@ export default function Home() {
         </div>
 
           {/* Dark overlay to improve contrast with navbar */}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-black/30 pointer-events-none" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/15 to-transparent pointer-events-none" />
         {/* Content */}
         <div className="relative z-10 px-6 max-w-[1400px] w-full mx-auto">
           <motion.div
