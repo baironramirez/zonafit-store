@@ -1,11 +1,13 @@
 import { Resend } from 'resend';
 
-// IMPORTANTE: Hasta que no configures un dominio propio verificado en Resend (ej: zonafit.com), 
-// debemos usar el correo base 'onboarding@resend.dev' para el remitente.
+// DOMINIO PROPIO: Ahora que tenemos zonafitgym.com, debemos verificar este dominio en Resend
+// para poder enviar desde noreply@zonafitgym.com. Mientras tanto, seguimos con onboarding@resend.dev.
+// TODO: Verificar zonafitgym.com en Resend (https://resend.com/domains) y cambiar a 'noreply@zonafitgym.com'
 const FROM_EMAIL = 'onboarding@resend.dev';
 
-// URL base dinámica: usa la variable de entorno de Vercel para que cada entorno apunte a su dominio correcto
-const getBaseUrl = () => process.env.NEXT_PUBLIC_BASE_URL || 'https://zonafit-store.vercel.app';
+// URL base dinámica: usa la variable de entorno de Vercel para que cada entorno apunte a su dominio correcto.
+// Fallback al dominio de producción real para evitar links rotos en notificaciones.
+const getBaseUrl = () => process.env.NEXT_PUBLIC_BASE_URL || 'https://zonafitgym.com';
 
 // Función segura para instanciar en tiempo de ejecución (evita problemas de variables de entorno en compilación Vercel)
 const getResendClient = () => {

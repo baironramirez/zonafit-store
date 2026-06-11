@@ -79,7 +79,8 @@ function formatOrderMessage(data: OrderNotificationData): string {
     `📦 Productos:`,
     productList,
     ``,
-    `🔗 Ver pedido: ${process.env.NEXT_PUBLIC_BASE_URL || "https://zonafit-store.vercel.app"}/admin/pedidos`,
+    // Fallback al dominio real de producción para que el link del admin siempre sea válido
+    `🔗 Ver pedido: ${process.env.NEXT_PUBLIC_BASE_URL || "https://zonafitgym.com"}/admin/pedidos`,
   );
 
   return lines.join("\n");
