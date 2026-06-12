@@ -1,43 +1,22 @@
+/**
+ * API Route: POST /api/auth/login
+ *
+ * ¿Por qué este endpoint existe?
+ * Este endpoint fue un placeholder temporal. La autenticación real de administradores
+ * se gestiona completamente mediante Firebase Auth (Google + Email/Password) y
+ * los custom claims asignados por el Admin SDK.
+ * Este endpoint ya no tiene una función válida, pero se conserva devolviendo 404
+ * para no romper referencias en el middleware que pudiera existir. La validación
+ * de sesión admin ocurre en middleware.ts verificando el token de Firebase.
+ */
+
 import { NextResponse } from "next/server";
 
-export async function POST(request: Request) {
-  try {
-    const { email, password } = await request.json();
-
-    // In a real app, these should be securely stored in process.env
-    // For this demonstration, we are hardcoding a master user constraint
-    const MOCK_ADMIN_EMAIL = "admin@zonafit.com";
-    const MOCK_ADMIN_PASSWORD = "admin";
-
-    if (email === MOCK_ADMIN_EMAIL && password === MOCK_ADMIN_PASSWORD) {
-      // Create a response
-      const response = NextResponse.json(
-        { success: true },
-        { status: 200 }
-      );
-
-      // Set an HttpOnly cookie that expires in 1 day
-      response.cookies.set({
-        name: "zonafit_admin_session",
-        value: "authenticated_true",
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "lax",
-        maxAge: 60 * 60 * 24, // 1 day
-        path: "/",
-      });
-
-      return response;
-    }
-
-    return NextResponse.json(
-      { error: "Correo o contraseña incorrectos" },
-      { status: 401 }
-    );
-  } catch (error) {
-    return NextResponse.json(
-      { error: "Error en el servidor" },
-      { status: 500 }
-    );
-  }
+export async function POST() {
+  // El flujo de login admin ahora pasa completamente por Firebase Auth + custom claims.
+  // No se utiliza este endpoint; la sesión se maneja en el cliente con el SDK de Firebase.
+  return NextResponse.json(
+    { error: "Endpoint no disponible. Usa Firebase Authentication." },
+    { status: 404 }
+  );
 }
