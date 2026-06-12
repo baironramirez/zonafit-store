@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { db } from "@/lib/firebase";
+import { db, auth } from "@/lib/firebase";
 import { collection, getDocs, doc, updateDoc } from "firebase/firestore";
 import Link from "next/link";
 import { ArrowLeft, Search, UserCog, ShieldCheck, Truck, Trophy, User, ShieldAlert, Loader2 } from "lucide-react";
@@ -88,7 +88,36 @@ export default function UsuariosAdmin() {
   const performUpdate = async (uid: string, rol: UserData["rol"]) => {
     setUpdatingUid(uid);
     try {
+      // Paso 1: Actualizar el campo `rol` en Firestore (fuente de verdad para la UI)
       await updateDoc(doc(db, "users", uid), { rol });
+
+      // Paso 2: Sincronizar los custom claims en Firebase Auth via API serverless.
+      // ¿Por qué no directo desde el cliente?
+      // El Admin SDK (único que puede escribir claims) solo funciona en el servidor.
+      // Este endpoint verifica que el caller sea admin antes de proceder.
+      const idToken = await auth.currentUser?.getIdToken();
+      if (idToken) {
+        const claimsRes = await fetch("/api/admin/set-claims", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            // Enviamos el token del admin actual para que el servidor lo verifique
+            Authorization: `Bearer ${idToken}`,
+          },
+          body: JSON.stringify({ uid, rol }),
+        });
+
+        if (!claimsRes.ok) {
+          // El rol en Firestore ya se actualizó; logueamos el error pero no revertimos
+          // para evitar inconsistencias. El claim se puede reintentar.
+          const errData = await claimsRes.json();
+          console.error("Error sincronizando custom claims:", errData);
+          alert(`Rol actualizado en base de datos, pero hubo un error al sincronizar permisos de Storage: ${errData.error}`);
+        }
+      } else {
+        console.warn("No se pudo obtener el token del admin para actualizar claims.");
+      }
+
       setUsers(users.map(u => u.uid === uid ? { ...u, rol } : u));
       // Cerrar modal si estaba abierto
       setConfirmModal({ isOpen: false, user: null, targetRol: "" });
