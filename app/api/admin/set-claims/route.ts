@@ -21,7 +21,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { adminAuth } from "@/lib/firebase-admin";
+import { getAdminAuth } from "@/lib/firebase-admin";
 
 // Roles válidos para prevenir inyección de claims arbitrarios
 const VALID_ROLES = ["admin", "cliente", "atleta", "delivery"] as const;
@@ -29,6 +29,8 @@ type ValidRole = typeof VALID_ROLES[number];
 
 export async function POST(req: NextRequest) {
   try {
+    const adminAuth = getAdminAuth();
+
     // ── 1. Verificar que el caller es un admin autenticado ──────────────────
     // El frontend envía el ID token del usuario actualmente logueado en el header
     const authHeader = req.headers.get("Authorization");

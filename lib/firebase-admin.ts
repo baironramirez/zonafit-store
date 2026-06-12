@@ -15,26 +15,70 @@
  */
 
 import { getApps, initializeApp, cert, App } from "firebase-admin/app";
-import { getAuth } from "firebase-admin/auth";
+import { getAuth, Auth } from "firebase-admin/auth";
 
-// Inicialización lazy y segura del Admin SDK
-function getAdminApp(): App {
-  if (getApps().length > 0) {
-    // Reutilizar la app ya inicializada (warm start de Vercel)
-    return getApps()[0];
+let adminApp: App | null = null;
+let adminAuthInstance: Auth | null = null;
+
+/**
+ * Obtiene de forma perezosa (lazy) la instancia del Firebase Auth Admin.
+ * 
+ * ¿Por qué esta estructura?
+ * 1. Previene fallos de inicialización (crash) a nivel de módulo en Vercel.
+ *    Si una variable de entorno está ausente o mal formateada, el error ocurre
+ *    dentro del try/catch de la ruta API, retornando un JSON legible en vez de
+ *    un error 500 HTML crudo de Vercel.
+ * 2. Realiza limpieza automática de claves privadas mal copiadas (ej. con comillas extras).
+ */
+export function getAdminAuth(): Auth {
+  if (adminAuthInstance) {
+    return adminAuthInstance;
   }
 
-  // Credenciales de la service account desde variables de entorno
-  // NUNCA hardcodear estas credenciales en el código fuente
-  return initializeApp({
-    credential: cert({
-      projectId: process.env.FIREBASE_ADMIN_PROJECT_ID,
-      clientEmail: process.env.FIREBASE_ADMIN_CLIENT_EMAIL,
-      // Las private keys en variables de entorno reemplazan \n por \\n al importar
-      privateKey: process.env.FIREBASE_ADMIN_PRIVATE_KEY?.replace(/\\n/g, "\n"),
-    }),
-  });
-}
+  const projectId = process.env.FIREBASE_ADMIN_PROJECT_ID;
+  const clientEmail = process.env.FIREBASE_ADMIN_CLIENT_EMAIL;
+  let privateKey = process.env.FIREBASE_ADMIN_PRIVATE_KEY;
 
-// Exportar instancia del Auth Admin directamente
-export const adminAuth = getAuth(getAdminApp());
+  if (!projectId || !clientEmail || !privateKey) {
+    const missing = [];
+    if (!projectId) missing.push("FIREBASE_ADMIN_PROJECT_ID");
+    if (!clientEmail) missing.push("FIREBASE_ADMIN_CLIENT_EMAIL");
+    if (!privateKey) missing.push("FIREBASE_ADMIN_PRIVATE_KEY");
+    throw new Error(`Faltan variables de entorno esenciales del Firebase Admin SDK: ${missing.join(", ")}. Por favor configúralas en Vercel Dashboard.`);
+  }
+
+  // Limpieza robusta de la clave privada:
+  // 1. Quitar comillas dobles o simples al inicio y final si fueron añadidas por error al copiar
+  if (privateKey.startsWith('"') && privateKey.endsWith('"')) {
+    privateKey = privateKey.slice(1, -1);
+  }
+  if (privateKey.startsWith("'") && privateKey.endsWith("'")) {
+    privateKey = privateKey.slice(1, -1);
+  }
+
+  // 2. Reemplazar los saltos de línea escapados (\n) por saltos de línea reales
+  privateKey = privateKey.replace(/\\n/g, "\n");
+
+  if (!privateKey.includes("-----BEGIN PRIVATE KEY-----")) {
+    throw new Error("La clave privada FIREBASE_ADMIN_PRIVATE_KEY no tiene el formato PEM correcto. Debe comenzar con '-----BEGIN PRIVATE KEY-----'.");
+  }
+
+  if (getApps().length > 0) {
+    adminApp = getApps()[0];
+  } else {
+    try {
+      adminApp = initializeApp({
+        credential: cert({
+          projectId,
+          clientEmail,
+          privateKey,
+        }),
+      });
+    } catch (err: any) {
+      throw new Error(`Error al inicializar Firebase Admin App: ${err.message || err}`);
+    }
+  }
+
+  adminAuthInstance = getAuth(adminApp);
+  return adminAuthInstance;
+}
