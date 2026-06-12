@@ -1,0 +1,81 @@
+// =====================================================
+// REGLAS DE FIREBASE STORAGE - ZonaFit Store
+// =====================================================
+// ¿Por qué estas reglas?
+// - products/ y banners*/ son leídas públicamente por la tienda (usuarios no autenticados).
+// - Solo el admin autenticado (con custom claim "admin") puede subir, modificar o eliminar archivos.
+// - banners_pagos/ es solo de lectura pública (el logo de medios de pago).
+// - Se limita el tamaño de subida a 10MB para prevenir abuso.
+// - Se validan tipos de archivo permitidos (solo imágenes) para evitar subida de scripts.
+// =====================================================
+
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // ─────────────────────────────────────────────
+    // Funciones auxiliares reutilizables
+    // ─────────────────────────────────────────────
+
+    // Verifica que el usuario tenga el custom claim de admin
+    function isAdmin() {
+      return request.auth != null && request.auth.token.admin == true;
+    }
+
+    // Valida que el archivo sea una imagen y no supere 10MB
+    function isValidImage() {
+      return request.resource.size < 10 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*');
+    }
+
+    // ─────────────────────────────────────────────
+    // /products/** → Imágenes de productos
+    // Lectura pública: necesaria para que cualquier visitante vea las fotos.
+    // Escritura solo admin: para subir/editar/borrar imágenes desde el panel.
+    // ─────────────────────────────────────────────
+    match /products/{allPaths=**} {
+      allow read: if true;
+      allow write: if isAdmin() && isValidImage();
+      allow delete: if isAdmin();
+    }
+
+    // ─────────────────────────────────────────────
+    // /banners/** → Banners desktop del hero
+    // Misma lógica que products.
+    // ─────────────────────────────────────────────
+    match /banners/{allPaths=**} {
+      allow read: if true;
+      allow write: if isAdmin() && isValidImage();
+      allow delete: if isAdmin();
+    }
+
+    // ─────────────────────────────────────────────
+    // /banners_movil/** → Banners versión móvil
+    // ─────────────────────────────────────────────
+    match /banners_movil/{allPaths=**} {
+      allow read: if true;
+      allow write: if isAdmin() && isValidImage();
+      allow delete: if isAdmin();
+    }
+
+    // ─────────────────────────────────────────────
+    // /banners_pagos/** → Logo de métodos de pago (solo lectura pública)
+    // Este archivo es estático, solo el admin puede reemplazarlo.
+    // ─────────────────────────────────────────────
+    match /banners_pagos/{allPaths=**} {
+      allow read: if true;
+      allow write: if isAdmin() && isValidImage();
+      allow delete: if isAdmin();
+    }
+
+    // ─────────────────────────────────────────────
+    // Denegar todo lo demás explícitamente
+    // Principio de mínimo privilegio: cualquier ruta no listada arriba
+    // queda bloqueada por defecto.
+    // ─────────────────────────────────────────────
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}
