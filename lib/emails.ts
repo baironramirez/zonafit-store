@@ -3,7 +3,7 @@ import { Resend } from 'resend';
 // DOMINIO PROPIO: Ahora que tenemos zonafitgym.com, debemos verificar este dominio en Resend
 // para poder enviar desde noreply@zonafitgym.com. Mientras tanto, seguimos con onboarding@resend.dev.
 // TODO: Verificar zonafitgym.com en Resend (https://resend.com/domains) y cambiar a 'noreply@zonafitgym.com'
-const FROM_EMAIL = 'onboarding@resend.dev';
+const FROM_EMAIL = 'noreply@zonafitgym.com';
 
 // URL base dinámica: usa la variable de entorno de Vercel para que cada entorno apunte a su dominio correcto.
 // Fallback al dominio de producción real para evitar links rotos en notificaciones.
