@@ -1,6 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  transpilePackages: ["jose", "jwks-rsa", "firebase-admin"],
+
   images: {
     remotePatterns: [
       {
