@@ -14,11 +14,7 @@
 
 import { initializeApp, cert } from "firebase-admin/app";
 import { getAuth } from "firebase-admin/auth";
-import { readFileSync } from "fs";
-import { config } from "dotenv";
-
-// Cargar variables de entorno del .env.local
-config({ path: ".env.local" });
+import { getFirestore } from "firebase-admin/firestore";
 
 // Verificar que las variables estén configuradas
 const projectId = process.env.FIREBASE_ADMIN_PROJECT_ID;
@@ -48,22 +44,29 @@ const app = initializeApp({
 });
 
 const auth = getAuth(app);
+const db = getFirestore(app);
 
 try {
-  // Verificar que el usuario existe
+  // Verificar que el usuario existe en Firebase Auth
   const user = await auth.getUser(uid);
-  console.log(`\n✅ Usuario encontrado: ${user.email}`);
+  console.log(`\n✅ Usuario encontrado en Auth: ${user.email}`);
 
-  // Asignar el custom claim de admin
+  // 1. Asignar el custom claim de admin en Firebase Auth
   await auth.setCustomUserClaims(uid, { admin: true, rol: "admin" });
+  console.log(`🔐 Custom claims asignados correctamente en Auth (admin: true, rol: "admin")`);
 
-  console.log(`🔐 Custom claims asignados correctamente:`);
-  console.log(`   admin: true`);
-  console.log(`   rol: "admin"`);
-  console.log(`\n🎉 Listo! Cierra sesión y vuelve a iniciarla en la app para`);
+  // 2. Actualizar el rol en la base de datos de Firestore
+  // Usamos merge: true para no sobreescribir otros datos existentes (como nombre, email, etc.)
+  const userDocRef = db.collection("users").doc(uid);
+  await userDocRef.set({
+    rol: "admin",
+    email: user.email // nos aseguramos de que el email esté por si acaso
+  }, { merge: true });
+  console.log(`🗄️ Documento de usuario actualizado en Firestore (rol: "admin")`);
+
+  console.log(`\n🎉 Listo! El usuario ya es Admin en Auth y Firestore.`);
+  console.log(`   Por favor, cierra sesión y vuelve a iniciarla en la app para`);
   console.log(`   que el nuevo token con el claim sea emitido.`);
-  console.log(`\n   Desde ahora, puedes asignar otros admins directamente`);
-  console.log(`   desde el panel /admin/usuarios ✨`);
 } catch (error) {
   console.error("❌ Error:", error.message);
   process.exit(1);

@@ -11,12 +11,12 @@ import { SpeedInsights } from "@vercel/speed-insights/next";
 // Metadatos SEO completos: ahora que tenemos dominio propio, aprovechamos para
 // configurar Open Graph y canonical URL correctamente para motores de búsqueda.
 export const metadata: Metadata = {
-  title: "ZonaFit Store | Suplementación y Equipo Fitness",
-  description: "Tienda oficial de ZonaFit - Los mejores suplementos deportivos, proteínas, creatina y equipo de entrenamiento en Colombia. Envíos a todo el país.",
+  title: "ZonaFit Store | Suplementación y Accesorios Fitness",
+  description: "Tienda oficial de ZonaFit - Los mejores suplementos deportivos, proteínas, creatina y accesorios en Colombia. Envíos a todo el país.",
   metadataBase: new URL('https://zonafitgym.com'),
   openGraph: {
-    title: "ZonaFit Store | Suplementación y Equipo Fitness",
-    description: "Los mejores suplementos deportivos y equipo de entrenamiento en Colombia.",
+    title: "ZonaFit Store | Suplementación y Accesorios Fitness",
+    description: "Los mejores suplementos deportivos y accesorios en Colombia.",
     url: 'https://zonafitgym.com',
     siteName: 'ZonaFit Store',
     locale: 'es_CO',

@@ -110,9 +110,15 @@ export default function UsuariosAdmin() {
         if (!claimsRes.ok) {
           // El rol en Firestore ya se actualizó; logueamos el error pero no revertimos
           // para evitar inconsistencias. El claim se puede reintentar.
-          const errData = await claimsRes.json();
-          console.error("Error sincronizando custom claims:", errData);
-          alert(`Rol actualizado en base de datos, pero hubo un error al sincronizar permisos de Storage: ${errData.error}`);
+          let errorMsg = "Error desconocido en el servidor";
+          try {
+            const errData = await claimsRes.json();
+            errorMsg = errData.error || errorMsg;
+          } catch (jsonErr) {
+            errorMsg = `Código HTTP ${claimsRes.status} (Respuesta no JSON del servidor)`;
+          }
+          console.error("Error sincronizando custom claims:", errorMsg);
+          alert(`Rol actualizado en la base de datos, pero hubo un error al sincronizar permisos de Storage: ${errorMsg}`);
         }
       } else {
         console.warn("No se pudo obtener el token del admin para actualizar claims.");
@@ -121,9 +127,9 @@ export default function UsuariosAdmin() {
       setUsers(users.map(u => u.uid === uid ? { ...u, rol } : u));
       // Cerrar modal si estaba abierto
       setConfirmModal({ isOpen: false, user: null, targetRol: "" });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error updating user rol:", error);
-      alert("Error al actualizar el rol.");
+      alert(`Error al actualizar el rol: ${error.message || error}`);
     } finally {
       setUpdatingUid(null);
     }
