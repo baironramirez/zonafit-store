@@ -142,3 +142,37 @@ export async function sendOrderApprovedEmail(toEmail: string, orderData: any) {
     return { success: false, error };
   }
 }
+
+/**
+ * Envío de correo para recuperación de contraseña.
+ */
+export async function sendPasswordResetEmail(toEmail: string, resetLink: string) {
+  try {
+    const content = `
+      <h2 style="margin-top: 0; font-size: 24px; font-weight: 800; text-transform: uppercase; color: #111111;">Recuperar Contraseña ⚡</h2>
+      <p>Hola,</p>
+      <p>Hemos recibido una solicitud para restablecer la contraseña de tu cuenta en <strong>ZonaFit</strong>.</p>
+      <p>Para forjar una nueva contraseña y recuperar tu acceso, haz clic en el siguiente botón:</p>
+      
+      <div style="text-align: center; margin: 30px 0;">
+        <a href="${resetLink}" class="btn" style="background-color: #000000; color: #ffffff;">Restablecer mi Contraseña</a>
+      </div>
+
+      <p style="font-size: 13px; color: #666666;">Si no solicitaste este cambio, puedes ignorar este correo de forma segura. Tu contraseña actual no cambiará.</p>
+      <p style="font-size: 11px; color: #999999; word-break: break-all; margin-top: 20px;">Si tienes problemas con el botón, copia y pega esta dirección en tu navegador:<br>${resetLink}</p>
+    `;
+
+    const resend = getResendClient();
+    const data = await resend.emails.send({
+      from: FROM_EMAIL,
+      to: [toEmail],
+      subject: '🔑 Restablecer Contraseña - ZonaFit',
+      html: getEmailLayout(content)
+    });
+
+    return { success: true, data };
+  } catch (error) {
+    console.error('Error enviando correo de recuperación:', error);
+    return { success: false, error };
+  }
+}

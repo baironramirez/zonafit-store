@@ -2,8 +2,6 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { auth } from "@/lib/firebase";
-import { sendPasswordResetEmail } from "firebase/auth";
 import { Mail, AlertCircle, ArrowLeft, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
 import { motion } from "framer-motion";
@@ -21,21 +19,24 @@ export default function RecuperarPage() {
     setError("");
 
     try {
-      await sendPasswordResetEmail(auth, email);
+      const res = await fetch("/api/auth/recuperar", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || "Ocurrió un error al procesar tu solicitud.");
+      }
+
       setIsSuccess(true);
     } catch (err: any) {
       console.error("Password Reset Error:", err);
-      if (err.code === "auth/user-not-found") {
-        // Por seguridad muchas veces no se debe revelar que el usuario no existe,
-        // pero en tiendas pequeñas a veces es mejor dar feedback.
-        setError("No hay ninguna cuenta registrada con este correo.");
-      } else if (err.code === "auth/invalid-email") {
-        setError("El formato del correo es inválido.");
-      } else if (err.code === "auth/too-many-requests") {
-        setError("Demasiados intentos. Inténtalo más tarde.");
-      } else {
-        setError("Ocurrió un error al intentar enviar el correo de recuperación.");
-      }
+      setError(err.message || "Ocurrió un error al intentar enviar el correo de recuperación.");
     } finally {
       setIsLoading(false);
     }
