@@ -265,11 +265,43 @@ export async function POST(req: Request) {
   }
 }
 
+/**
+ * GET /api/webhooks/mercadopago?id={orderId}
+ *
+ * Herramienta de sincronización manual para el admin/debugging.
+ *
+ * ¿Por qué ahora requiere CRON_SECRET?
+ * Antes era totalmente público: cualquiera podía pasar un orderId y forzar
+ * una re-sincronización con MercadoPago, lo que podría alterar el estado
+ * de una orden. Ahora solo quien tenga el CRON_SECRET puede usarlo.
+ *
+ * Cómo usarlo:
+ *   curl -H "Authorization: Bearer <CRON_SECRET>" \
+ *        https://zonafitgym.com/api/webhooks/mercadopago?id=<orderId>
+ */
 export async function GET(req: Request) {
+  // 1. Verificar el secret antes de procesar nada
+  const expectedSecret = process.env.CRON_SECRET;
+  const authHeader = req.headers.get("Authorization");
   const url = new URL(req.url);
   const orderId = url.searchParams.get("id");
   const force = url.searchParams.get("force") === "true";
 
+  // 2. Verificar el secret — acepta header (preferido) o query param (fallback)
+  // Sin secret configurado: bloqueado siempre en producción
+  if (expectedSecret) {
+    const headerValid = authHeader === `Bearer ${expectedSecret}`;
+    const queryValid = url.searchParams.get("secret") === expectedSecret;
+    if (!headerValid && !queryValid) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+  } else if (process.env.VERCEL_ENV === "production") {
+    // Si no hay secret en producción, bloquear por seguridad
+    logEvent("error", "cron_secret_missing_in_production", {});
+    return NextResponse.json({ error: "Endpoint no disponible: CRON_SECRET no configurado." }, { status: 503 });
+  }
+
+  // 3. Si no hay orderId, retornar health check (solo llega aquí si pasó el secret)
   if (!orderId) {
     return NextResponse.json({ status: "ok", service: "mercadopago-webhook-pro" });
   }

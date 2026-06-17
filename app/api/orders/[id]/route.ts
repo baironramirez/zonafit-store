@@ -1,7 +1,16 @@
-import { NextResponse } from "next/server";
-import { db } from "@/lib/firebase";
-import { doc, getDoc, updateDoc, increment, collection, query, where, getDocs } from "firebase/firestore";
+/**
+ * PATCH /api/orders/[id]
+ *
+ * Actualiza el estado de una orden manualmente desde el panel de admin.
+ *
+ * ¿Por qué requiere auth de admin?
+ * Sin protección, cualquier usuario podía hacer PATCH a esta ruta con
+ * { estado: "pagado" } y marcar una orden como pagada sin haber pagado.
+ * Esto es un fraude directo. Solo el admin puede cambiar estados manualmente.
+ */
+import { NextRequest, NextResponse } from "next/server";
 import { processOrderUpdate } from "@/lib/orders";
+import { requireAdminAuth } from "@/lib/auth-helpers";
 
 const STATUS_PRIORITY: Record<string, number> = {
   pendiente: 0,
@@ -13,9 +22,13 @@ const STATUS_PRIORITY: Record<string, number> = {
 };
 
 export async function PATCH(
-  req: Request,
+  req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  // 1. Solo un admin puede cambiar el estado de una orden manualmente
+  const { error } = await requireAdminAuth(req);
+  if (error) return error;
+
   try {
     const { id } = await params;
     const body = await req.json();
@@ -28,7 +41,7 @@ export async function PATCH(
       );
     }
 
-    // 1. Usar la lógica unificada (Maneja Anti-Downgrade y Restauración de Inventario)
+    // 2. Usar la lógica unificada (maneja anti-downgrade y restauración de inventario)
     try {
       const result = await processOrderUpdate({
         orderId: id,
@@ -48,7 +61,6 @@ export async function PATCH(
       }
       throw orderError;
     }
-
 
     return NextResponse.json({
       success: true,

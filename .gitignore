@@ -44,3 +44,20 @@ next-env.d.ts
 # Archivos sensibles de service account (nunca subir a git)
 *.json.key
 /scripts/*.json
+
+# ─────────────────────────────────────────────────────────────────────────────
+# SEGURIDAD: Archivos de variables de entorno — NUNCA subir a git
+# Contienen API keys, tokens, credenciales de Firebase Admin, etc.
+# Se deben configurar directamente en Vercel Dashboard.
+# ─────────────────────────────────────────────────────────────────────────────
+.env
+.env.local
+.env.development
+.env.development.local
+.env.preview
+.env.preview.local
+.env.production
+.env.production.local
+.env.test
+.env.test.local
+

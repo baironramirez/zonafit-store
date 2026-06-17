@@ -1,23 +1,28 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { collection, query, where, getDocs } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { client } from "@/lib/mercadopago";
 import { Payment } from "mercadopago";
 import { processOrderUpdate } from "@/lib/orders";
+import { verifyCronSecret } from "@/lib/auth-helpers";
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
 /**
- * CRON Job to sync pending orders with MercadoPago.
- * This ensures that if a webhook was missed, the order still gets updated.
+ * GET /api/cron/sync-orders
+ *
+ * CRON Job para sincronizar órdenes pendientes con MercadoPago.
+ * Garantiza que si un webhook fue perdido, la orden igual se actualice.
+ *
+ * ¿Por qué verifyCronSecret en lugar de verificación manual?
+ * El helper acepta el secret vía header Authorization (estándar de Vercel Cron)
+ * o vía query param (para pruebas manuales). Centralizar la lógica evita
+ * divergencias si cambia la política de autenticación del cron.
  */
-export async function GET(req: Request) {
-  const url = new URL(req.url);
-  const secret = url.searchParams.get("secret");
-  const expectedSecret = process.env.CRON_SECRET;
-  
-  if (expectedSecret && secret !== expectedSecret) {
+export async function GET(req: NextRequest) {
+  // 1. Verificar que el llamador tiene el CRON_SECRET correcto
+  if (!verifyCronSecret(req)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
