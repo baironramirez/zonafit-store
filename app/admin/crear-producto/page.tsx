@@ -7,9 +7,11 @@ import { useState, useEffect } from "react";
 import { ArrowLeft, UploadCloud, Plus, X } from "lucide-react";
 import Link from "next/link";
 import { Variante } from "@/components/shop/ProductCard";
+import { useAuth } from "@/context/AuthContext";
 
 
 export default function CrearProducto() {
+  const { currentUser } = useAuth();
   const [nombre, setNombre] = useState("");
   // Default base price and stock
   const [precioBase, setPrecioBase] = useState(0);
@@ -96,6 +98,11 @@ export default function CrearProducto() {
       return;
     }
 
+    if (!currentUser) {
+      alert("Error: No se encontró una sesión activa de administrador.");
+      return;
+    }
+
     setIsLoading(true);
 
     try {
@@ -117,10 +124,12 @@ export default function CrearProducto() {
         precioFinal = Math.min(...variantes.map(v => v.precio));
       }
 
+      const token = await currentUser.getIdToken();
       const res = await fetch("/api/admin/productos", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
         },
         body: JSON.stringify({
           nombre,

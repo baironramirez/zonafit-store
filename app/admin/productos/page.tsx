@@ -8,8 +8,10 @@ import { doc, getDoc } from "firebase/firestore";
 import { Variante } from "@/components/shop/ProductCard";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
+import { useAuth } from "@/context/AuthContext";
 
 export default function AdminProductos() {
+  const { currentUser } = useAuth();
   const [products, setProducts] = useState<any[]>([]);
   const [isEditing, setIsEditing] = useState(false);
   const [editingProduct, setEditingProduct] = useState<any>(null);
@@ -71,9 +73,18 @@ export default function AdminProductos() {
   }
 
   async function fetchProducts() {
-    const res = await fetch("/api/admin/productos/list");
-    const data = await res.json();
-    setProducts(data);
+    try {
+      const headers: Record<string, string> = {};
+      if (currentUser) {
+        const token = await currentUser.getIdToken();
+        headers["Authorization"] = `Bearer ${token}`;
+      }
+      const res = await fetch("/api/admin/productos/list", { headers });
+      const data = await res.json();
+      setProducts(data);
+    } catch (error) {
+      console.error("Error fetching products:", error);
+    }
   }
 
   function openEditModal(product: any) {
@@ -141,10 +152,16 @@ export default function AdminProductos() {
         precioFinal = Math.min(...editingProduct.variantes.map((v: any) => v.precio));
       }
 
+      if (!currentUser) {
+        alert("Error: No se encontró una sesión activa de administrador.");
+        return;
+      }
+      const token = await currentUser.getIdToken();
       const res = await fetch("/api/admin/productos/edit", {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
         },
         body: JSON.stringify({
           ...editingProduct,
@@ -169,18 +186,27 @@ export default function AdminProductos() {
   }
 
   async function toggleProduct(id: string, activo: boolean) {
-    await fetch("/api/admin/productos/toggle", {
-      method: "POST",
-      headers: {
+    try {
+      const headers: Record<string, string> = {
         "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        id,
-        activo: !activo,
-      }),
-    });
+      };
+      if (currentUser) {
+        const token = await currentUser.getIdToken();
+        headers["Authorization"] = `Bearer ${token}`;
+      }
+      await fetch("/api/admin/productos/toggle", {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          id,
+          activo: !activo,
+        }),
+      });
 
-    fetchProducts();
+      fetchProducts();
+    } catch (error) {
+      console.error("Error toggling product:", error);
+    }
   }
 
   function handleInputChange(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) {

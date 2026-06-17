@@ -1,9 +1,13 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { doc, updateDoc } from "firebase/firestore";
 import { db } from "../../../../../lib/firebase";
+import { requireAdminAuth } from "@/lib/auth-helpers";
 
-export async function PUT(req: Request) {
+export async function PUT(req: NextRequest) {
   try {
+    // 1. Verificar que el caller es un admin autenticado antes de editar
+    const { error } = await requireAdminAuth(req);
+    if (error) return error;
     const body = await req.json();
     const { id, ...updateData } = body;
 
