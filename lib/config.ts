@@ -5,6 +5,12 @@
  * Centraliza el acceso a variables de entorno críticas y provee helpers consistentes.
  */
 
+// 🔹 Silenciar advertencias de deprecación (como DEP0169 de url.parse del SDK interno de Firebase)
+// para mantener los logs del servidor limpios y legibles.
+if (typeof process !== "undefined") {
+  (process as any).noDeprecation = true;
+}
+
 /**
  * Obtiene la URL base del sitio web de manera robusta.
  *
