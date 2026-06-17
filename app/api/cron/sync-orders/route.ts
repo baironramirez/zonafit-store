@@ -4,7 +4,7 @@ import { db } from "@/lib/firebase";
 import { client } from "@/lib/mercadopago";
 import { Payment } from "mercadopago";
 import { processOrderUpdate } from "@/lib/orders";
-import { verifyCronSecret } from "@/lib/auth-helpers";
+import { verifyCronSecret, requireAdminAuth } from "@/lib/auth-helpers";
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -21,9 +21,14 @@ export const revalidate = 0;
  * divergencias si cambia la política de autenticación del cron.
  */
 export async function GET(req: NextRequest) {
-  // 1. Verificar que el llamador tiene el CRON_SECRET correcto
-  if (!verifyCronSecret(req)) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  // 1. Verificar si el usuario está autenticado como administrador
+  const { error: adminAuthError } = await requireAdminAuth(req);
+
+  // 2. Si no es admin, verificar si la petición viene del cron oficial usando el secreto
+  if (adminAuthError) {
+    if (!verifyCronSecret(req)) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
   }
 
   console.log(`[CRON] Starting sync for pending orders...`);

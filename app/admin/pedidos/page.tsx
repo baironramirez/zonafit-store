@@ -8,6 +8,7 @@ import {
   ChevronLeft, Package, Clock, CheckCircle2, Truck, PackageCheck,
   XCircle, ChevronDown, ChevronUp, Eye, RefreshCw, Search
 } from "lucide-react";
+import { useAuth } from "@/context/AuthContext";
 
 interface OrderItem {
   nombre: string;
@@ -59,6 +60,7 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; 
 };
 
 export default function AdminPedidosPage() {
+  const { currentUser } = useAuth();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
@@ -77,7 +79,12 @@ export default function AdminPedidosPage() {
       // Step 1: Sync pending orders with MercadoPago before reading
       setSyncing(true);
       try {
-        const syncRes = await fetch("/api/cron/sync-orders");
+        const headers: Record<string, string> = {};
+        if (currentUser) {
+          const token = await currentUser.getIdToken();
+          headers["Authorization"] = `Bearer ${token}`;
+        }
+        const syncRes = await fetch("/api/cron/sync-orders", { headers });
         const syncData = await syncRes.json();
         if (syncRes.ok) {
           console.log("✅ Sincronización MP completada:", syncData);
@@ -117,11 +124,19 @@ export default function AdminPedidosPage() {
   }, []);
 
   async function handleStatusChange(orderId: string, newStatus: string) {
+    if (!currentUser) {
+      alert("Error: No se encontró una sesión activa de administrador.");
+      return;
+    }
     setUpdatingOrder(orderId);
     try {
+      const token = await currentUser.getIdToken();
       const res = await fetch(`/api/orders/${orderId}`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
         body: JSON.stringify({ estado: newStatus }),
       });
 
