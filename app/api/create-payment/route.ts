@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { client } from "../../../lib/mercadopago";
 import { Preference } from "mercadopago";
+import { getBaseUrl } from "../../../lib/config";
 
 export async function POST(req: Request) {
   try {
@@ -34,8 +35,8 @@ export async function POST(req: Request) {
 
     console.log("Items enviados a MercadoPago:", items);
 
-    // 🔹 url base del proyecto
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
+    // 🔹 url base del proyecto resuelta de forma centralizada y robusta
+    const baseUrl = getBaseUrl(req);
 
     const preference = new Preference(client);
 

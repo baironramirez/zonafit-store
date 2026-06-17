@@ -1,12 +1,9 @@
 import { Resend } from 'resend';
+import { getBaseUrl } from './config';
 
 // Dominio verificado en Resend: todos los correos transaccionales salen desde noreply@zonafitgym.com
 // ¿Por qué centralizar aquí? Facilita cambios futuros de remitente sin tocar cada función de envío.
 const FROM_EMAIL = 'noreply@zonafitgym.com';
-
-// URL base dinámica: usa la variable de entorno de Vercel para que cada entorno apunte a su dominio correcto.
-// Fallback al dominio de producción real para evitar links rotos en notificaciones.
-const getBaseUrl = () => process.env.NEXT_PUBLIC_BASE_URL || 'https://zonafitgym.com';
 
 // Función segura para instanciar en tiempo de ejecución (evita problemas de variables de entorno en compilación Vercel)
 const getResendClient = () => {

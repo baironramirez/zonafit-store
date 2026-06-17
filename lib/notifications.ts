@@ -42,6 +42,8 @@ const STATUS_CONFIG: Record<string, { emoji: string; label: string }> = {
 // Formateo del mensaje
 // ──────────────────────────────────────────────
 
+import { getBaseUrl } from "./config";
+
 function formatOrderMessage(data: OrderNotificationData): string {
   const statusInfo = STATUS_CONFIG[data.status] || { emoji: "📋", label: data.status.toUpperCase() };
 
@@ -80,7 +82,7 @@ function formatOrderMessage(data: OrderNotificationData): string {
     productList,
     ``,
     // Fallback al dominio real de producción para que el link del admin siempre sea válido
-    `🔗 Ver pedido: ${process.env.NEXT_PUBLIC_BASE_URL || "https://zonafitgym.com"}/admin/pedidos`,
+    `🔗 Ver pedido: ${getBaseUrl()}/admin/pedidos`,
   );
 
   return lines.join("\n");

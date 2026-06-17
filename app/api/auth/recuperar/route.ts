@@ -13,6 +13,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminAuth } from "@/lib/firebase-admin";
 import { sendPasswordResetEmail } from "@/lib/emails";
+import { getBaseUrl } from "@/lib/config";
 
 export async function POST(req: NextRequest) {
   try {
@@ -31,7 +32,7 @@ export async function POST(req: NextRequest) {
       // 1. Generar enlace de restauración de contraseña
       // El enlace utilizará la página por defecto de Firebase, y al finalizar redirigirá a nuestro login.
       const resetLink = await adminAuth.generatePasswordResetLink(email, {
-        url: `${process.env.NEXT_PUBLIC_BASE_URL || "https://zonafitgym.com"}/login`,
+        url: `${getBaseUrl(req)}/login`,
       });
 
       // 2. Enviar el correo usando Resend con nuestra plantilla premium
