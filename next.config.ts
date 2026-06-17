@@ -70,8 +70,9 @@ const nextConfig: NextConfig = {
               `font-src 'self' https://fonts.gstatic.com`,
               // Imágenes: dominio propio + Firebase Storage + data URIs
               `img-src 'self' data: blob: https://firebasestorage.googleapis.com https://lh3.googleusercontent.com`,
-              // Conexiones de red: Firebase, MercadoPago, Resend
-              `connect-src 'self' https://*.firebaseio.com https://*.googleapis.com https://api.mercadopago.com wss://*.firebaseio.com`,
+              // Conexiones de red: Firebase, MercadoPago, API Colombia (selector de departamentos/ciudades)
+              // api-colombia.com se usa en el carrito para listar departamentos y ciudades de Colombia
+              `connect-src 'self' https://*.firebaseio.com https://*.googleapis.com https://api.mercadopago.com wss://*.firebaseio.com https://api-colombia.com`,
               // Frames: MercadoPago requiere iframes para el checkout
               `frame-src https://sdk.mercadopago.com https://*.mercadopago.com`,
               // Workers: Firebase usa service workers internamente
