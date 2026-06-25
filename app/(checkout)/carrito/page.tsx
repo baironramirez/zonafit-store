@@ -17,6 +17,17 @@ export default function CarritoPage() {
   const [discountError, setDiscountError] = useState("");
   const [isVerifyingCoupon, setIsVerifyingCoupon] = useState(false);
 
+  const subtotal = cart.reduce(
+    (acc, item) => acc + item.precio * item.cantidad,
+    0,
+  );
+
+  const discountAmount = discount
+    ? discount.type === "porcentaje"
+      ? subtotal * (discount.value / 100)
+      : discount.value
+    : 0;
+
   // API Colombia States
   const [departments, setDepartments] = useState<any[]>([]);
   const [cities, setCities] = useState<any[]>([]);
@@ -24,9 +35,11 @@ export default function CarritoPage() {
   const [selectedCityName, setSelectedCityName] = useState<string>("");
 
   // ─── Configuración de envío desde Firestore ──────────────────────────────────
+  // Se incluye freeShippingThreshold para la lógica de envío gratis
   // null = cargando; si no hay config en Firestore queda en 0
   const [shippingConfig, setShippingConfig] = useState<{
     defaultPrice: number;
+    freeShippingThreshold: number;
     rules: { id: string; type: 'department' | 'city'; name: string; price: number }[];
   } | null>(null);
   const [shippingCost, setShippingCost] = useState<number | null>(null);
@@ -59,6 +72,7 @@ export default function CarritoPage() {
   }, []);
 
   // Carga la configuración de envíos desde Firestore al montar
+  // Incluimos freeShippingThreshold para evaluar si el monto de compra califica para envío gratis.
   useEffect(() => {
     async function fetchShippingConfig() {
       try {
@@ -67,24 +81,33 @@ export default function CarritoPage() {
           const d = snap.data();
           setShippingConfig({
             defaultPrice: d.defaultPrice ?? 0,
+            freeShippingThreshold: d.freeShippingThreshold ?? 0,
             rules: Array.isArray(d.rules) ? d.rules : [],
           });
         } else {
           // No hay config, envío gratuito o sin datos
-          setShippingConfig({ defaultPrice: 0, rules: [] });
+          setShippingConfig({ defaultPrice: 0, freeShippingThreshold: 0, rules: [] });
         }
       } catch (err) {
         console.error("Error cargando config de envíos:", err);
-        setShippingConfig({ defaultPrice: 0, rules: [] });
+        setShippingConfig({ defaultPrice: 0, freeShippingThreshold: 0, rules: [] });
       }
     }
     fetchShippingConfig();
   }, []);
 
-  // Recalcula el costo de envío cuando cambia el departamento/ciudad o la config
-  // Prioridad: ciudad específica > departamento > precio general
+  // Recalcula el costo de envío cuando cambia el departamento/ciudad o la config.
+  // También depende de subtotal y discountAmount para evaluar si califica para envío gratis.
+  // Prioridad: Ciudad específica > Departamento > Precio General. Si supera el umbral, queda en 0 (Gratis).
   useEffect(() => {
     if (!shippingConfig) return;
+
+    // Si califica para envío gratis por superar el umbral:
+    const orderTotalBeforeShipping = subtotal - discountAmount;
+    if (shippingConfig.freeShippingThreshold > 0 && orderTotalBeforeShipping >= shippingConfig.freeShippingThreshold) {
+      setShippingCost(0);
+      return;
+    }
 
     const deptName = departments.find(d => d.id.toString() === selectedDeptId)?.name ?? "";
     const cityName = selectedCityName;
@@ -115,7 +138,7 @@ export default function CarritoPage() {
 
     // 3° Precio general
     setShippingCost(shippingConfig.defaultPrice);
-  }, [selectedDeptId, selectedCityName, shippingConfig, departments]);
+  }, [selectedDeptId, selectedCityName, shippingConfig, departments, subtotal, discountAmount]);
 
   // Fetch Departments from API Colombia
   useEffect(() => {
@@ -144,16 +167,7 @@ export default function CarritoPage() {
     }
   }, [selectedDeptId]);
 
-  const subtotal = cart.reduce(
-    (acc, item) => acc + item.precio * item.cantidad,
-    0,
-  );
 
-  const discountAmount = discount
-    ? discount.type === "porcentaje"
-      ? subtotal * (discount.value / 100)
-      : discount.value
-    : 0;
   // El total final incluye el costo de envío una vez seleccionado el destino
   const finalTotal = Math.max(0, subtotal - discountAmount + (shippingCost ?? 0));
 
@@ -220,6 +234,23 @@ export default function CarritoPage() {
 
       const orderData = await orderRes.json();
 
+      const itemsToPay = cart.map((item) => ({
+        id: item.id,
+        title: item.nombre,
+        quantity: Number(item.cantidad),
+        unit_price: Math.round(item.precio * multiplier),
+      }));
+
+      // Incluimos el costo de envío como un item de cobro para evitar discrepancias en MercadoPago
+      if (shippingCost && shippingCost > 0) {
+        itemsToPay.push({
+          id: "envio",
+          title: "Costo de Envío",
+          quantity: 1,
+          unit_price: Math.round(shippingCost),
+        });
+      }
+
       // 2️⃣ Crear preferencia de pago en MercadoPago
       const mpRes = await fetch("/api/create-payment", {
         method: "POST",
@@ -227,12 +258,7 @@ export default function CarritoPage() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          items: cart.map((item) => ({
-            id: item.id,
-            title: item.nombre,
-            quantity: Number(item.cantidad),
-            unit_price: Math.round(item.precio * multiplier),
-          })),
+          items: itemsToPay,
           orderId: orderData.orderId,
         })
       });
@@ -313,6 +339,34 @@ export default function CarritoPage() {
                 <h3 className="text-sm font-bold uppercase tracking-widest text-gray-400 mb-6 pb-2 border-b border-gray-200">
                   Totalización
                 </h3>
+
+                {/* Barra de progreso de envío gratis (Aesthetics Premium) */}
+                {shippingConfig && shippingConfig.freeShippingThreshold > 0 && (
+                  <div className="mb-6 p-4 bg-orange-50/50 border border-orange-100 rounded-lg">
+                    <div className="flex justify-between items-center mb-2">
+                      <span className="text-xs font-semibold text-gray-700">
+                        {subtotal - discountAmount >= shippingConfig.freeShippingThreshold ? (
+                          <span className="text-emerald-700 font-bold flex items-center gap-1">
+                            🎉 ¡Envío gratis aplicado!
+                          </span>
+                        ) : (
+                          <span>
+                            Estás a <strong className="text-orange-600">${(shippingConfig.freeShippingThreshold - (subtotal - discountAmount)).toLocaleString("es-CO")}</strong> de envío gratis
+                          </span>
+                        )}
+                      </span>
+                      <span className="text-[10px] font-bold text-gray-400">
+                        {Math.round(Math.min(100, ((subtotal - discountAmount) / shippingConfig.freeShippingThreshold) * 100))}%
+                      </span>
+                    </div>
+                    <div className="w-full bg-gray-200 h-2 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-gradient-to-r from-orange-500 to-amber-400 transition-all duration-500 ease-out"
+                        style={{ width: `${Math.min(100, ((subtotal - discountAmount) / shippingConfig.freeShippingThreshold) * 100)}%` }}
+                      />
+                    </div>
+                  </div>
+                )}
 
                 {/* Subtotales */}
                 <div className="flex justify-between items-center mb-4 text-black font-medium">
