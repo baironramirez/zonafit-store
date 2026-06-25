@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { doc, getDoc, setDoc, collection, getDocs } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL, listAll, deleteObject } from "firebase/storage";
 import { db, storage } from "@/lib/firebase";
-import { Image as ImageIcon, Save, ArrowLeft, Loader2, UploadCloud, Type, Megaphone, Trash2, ChevronLeft, ChevronRight, X, LayoutDashboard, Grid, ShoppingBag, Link as LinkIcon } from "lucide-react";
+import { Image as ImageIcon, Save, ArrowLeft, Loader2, UploadCloud, Type, Megaphone, Trash2, ChevronLeft, ChevronRight, X, LayoutDashboard, Grid, ShoppingBag, Link as LinkIcon, Truck, Plus } from "lucide-react";
 import Link from "next/link";
 import { ProductoData } from "@/components/shop/ProductCard";
 
@@ -55,6 +55,33 @@ export default function AjustesPage() {
   const [faqUrl, setFaqUrl] = useState<string>("");
   const [enviosUrl, setEnviosUrl] = useState<string>("");
   const [contactoUrl, setContactoUrl] = useState<string>("");
+
+  // ─── Precios de Envío ─────────────────────────────────────────────────────
+  // Precio base que aplica cuando ninguna regla específica coincide
+  const [defaultShipping, setDefaultShipping] = useState<number>(12000);
+  // Reglas específicas: tipo 'department' | 'city', nombre exacto, precio
+  const [shippingRules, setShippingRules] = useState<{ id: string; type: 'department' | 'city'; name: string; price: number }[]>([]);
+  // Estado del formulario para agregar nueva regla
+  const [newRuleType, setNewRuleType] = useState<'department' | 'city'>('department');
+  const [newRuleName, setNewRuleName] = useState<string>("");
+  const [newRulePrice, setNewRulePrice] = useState<number>(0);
+
+  // Carga la configuración de envíos desde su propio documento en Firestore
+  useEffect(() => {
+    async function fetchShipping() {
+      try {
+        const snapShip = await getDoc(doc(db, "settings", "shipping"));
+        if (snapShip.exists()) {
+          const d = snapShip.data();
+          if (d.defaultPrice !== undefined) setDefaultShipping(d.defaultPrice);
+          if (Array.isArray(d.rules)) setShippingRules(d.rules);
+        }
+      } catch (err) {
+        console.error("Error cargando config de envíos:", err);
+      }
+    }
+    fetchShipping();
+  }, []);
 
   useEffect(() => {
     async function fetchSettings() {
@@ -307,10 +334,32 @@ export default function AjustesPage() {
     }
   };
 
+  // Agrega una nueva regla de envío a la lista local (aún sin persistir)
+  const handleAddShippingRule = () => {
+    if (!newRuleName.trim() || newRulePrice < 0) return;
+    const duplicate = shippingRules.find(
+      r => r.type === newRuleType && r.name.toLowerCase() === newRuleName.trim().toLowerCase()
+    );
+    if (duplicate) { alert("Ya existe una regla para ese departamento/ciudad."); return; }
+    setShippingRules(prev => [
+      ...prev,
+      { id: Date.now().toString(), type: newRuleType, name: newRuleName.trim(), price: newRulePrice }
+    ]);
+    setNewRuleName("");
+    setNewRulePrice(0);
+    setHasChanges(true);
+  };
+
+  // Elimina una regla por su id
+  const handleRemoveShippingRule = (id: string) => {
+    setShippingRules(prev => prev.filter(r => r.id !== id));
+    setHasChanges(true);
+  };
+
   const handleSave = async () => {
     setSaving(true);
     try {
-      // Save to Firestore
+      // Guarda ajustes generales de la home
       const docRef = doc(db, "settings", "home");
       await setDoc(docRef, {
         heroBannerUrls: currentBanners,
@@ -338,6 +387,14 @@ export default function AjustesPage() {
         enviosUrl,
         contactoUrl
       }, { merge: true });
+
+      // Guarda configuración de envíos en documento separado (Clean Architecture)
+      const shippingRef = doc(db, "settings", "shipping");
+      await setDoc(shippingRef, {
+        defaultPrice: defaultShipping,
+        rules: shippingRules,
+      }, { merge: true });
+
       alert("¡Ajustes guardados correctamente!");
       setHasChanges(false);
     } catch (error) {
@@ -399,6 +456,7 @@ export default function AjustesPage() {
                 { id: 'hero', label: 'Banner & Destacados', icon: <ImageIcon className="w-4 h-4" /> },
                 { id: 'extra', label: 'Bloques Adicionales', icon: <LayoutDashboard className="w-4 h-4" /> },
                 { id: 'catalog', label: 'Categorías y Marcas', icon: <ShoppingBag className="w-4 h-4" /> },
+                { id: 'envios', label: 'Precios de Envío', icon: <Truck className="w-4 h-4" /> },
                 { id: 'social', label: 'Redes Sociales', icon: <LinkIcon className="w-4 h-4" /> },
               ].map(t => (
                 <button
@@ -1037,6 +1095,186 @@ export default function AjustesPage() {
               </div>
             </div>
             </>
+            )}
+
+            {/* ═══════════════════════════════════════════════════════════════
+                 TAB ENVÍOS — Gestión de tarifas de envío por departamento/ciudad
+                 Se persiste en settings/shipping (separado de settings/home)
+            ══════════════════════════════════════════════════════════════════ */}
+            {activeTab === 'envios' && (
+              <div className="p-6 md:p-8">
+
+                {/* Encabezado */}
+                <div className="flex items-center gap-3 mb-6 pb-6 border-b border-gray-100">
+                  <div className="p-3 bg-emerald-50 text-emerald-600 rounded-xl">
+                    <Truck className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-bold uppercase tracking-wide">Precios de Envío</h2>
+                    <p className="text-sm text-gray-500">
+                      Define el precio base y tarifas específicas por departamento o ciudad. La prioridad es: Ciudad → Departamento → Precio General.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Precio General */}
+                <div className="mb-8">
+                  <label className="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-2">
+                    Precio General (Fallback para cualquier destino)
+                  </label>
+                  <div className="flex items-center gap-3 max-w-xs">
+                    <div className="relative flex-1">
+                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-sm">$</span>
+                      <input
+                        type="number"
+                        min={0}
+                        step={500}
+                        value={defaultShipping}
+                        onChange={e => { setDefaultShipping(Number(e.target.value)); setHasChanges(true); }}
+                        className="w-full pl-8 pr-4 py-3 rounded-lg border border-gray-300 focus:border-black focus:ring-1 focus:ring-black outline-none transition-all font-bold text-black"
+                      />
+                    </div>
+                    <span className="text-xs font-bold uppercase tracking-widest text-gray-400">COP</span>
+                  </div>
+                  <p className="text-xs text-gray-400 mt-1">
+                    Se aplicará cuando el cliente seleccione un destino sin regla específica.
+                  </p>
+                </div>
+
+                {/* Lista de reglas existentes */}
+                <div className="mb-8">
+                  <h3 className="text-xs font-bold uppercase tracking-widest text-gray-500 mb-4">Reglas Específicas ({shippingRules.length})</h3>
+
+                  {shippingRules.length === 0 ? (
+                    <div className="text-center py-10 border-2 border-dashed border-gray-200 rounded-xl bg-gray-50">
+                      <Truck className="w-8 h-8 text-gray-300 mx-auto mb-2" />
+                      <p className="text-sm font-medium text-gray-400">No hay reglas creadas.</p>
+                      <p className="text-xs text-gray-400 mt-1">Agrega una regla abajo para personalizar tarifas por zona.</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {/* Encabezados de tabla */}
+                      <div className="grid grid-cols-12 gap-2 px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-gray-400">
+                        <span className="col-span-2">Tipo</span>
+                        <span className="col-span-6">Nombre</span>
+                        <span className="col-span-3 text-right">Precio</span>
+                        <span className="col-span-1"></span>
+                      </div>
+
+                      {/* Filas de reglas */}
+                      {shippingRules.map(rule => (
+                        <div
+                          key={rule.id}
+                          className="grid grid-cols-12 gap-2 items-center bg-white border border-gray-200 rounded-xl px-4 py-3 hover:border-gray-300 transition-colors"
+                        >
+                          {/* Badge de tipo */}
+                          <div className="col-span-2">
+                            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                              rule.type === 'city'
+                                ? 'bg-blue-50 text-blue-700 border border-blue-100'
+                                : 'bg-emerald-50 text-emerald-700 border border-emerald-100'
+                            }`}>
+                              {rule.type === 'city' ? 'Ciudad' : 'Dpto.'}
+                            </span>
+                          </div>
+
+                          {/* Nombre */}
+                          <span className="col-span-6 text-sm font-semibold text-black truncate">{rule.name}</span>
+
+                          {/* Precio */}
+                          <span className="col-span-3 text-right text-sm font-bold text-black">
+                            ${rule.price.toLocaleString('es-CO')}
+                          </span>
+
+                          {/* Eliminar */}
+                          <div className="col-span-1 flex justify-end">
+                            <button
+                              onClick={() => handleRemoveShippingRule(rule.id)}
+                              className="p-1.5 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                              title="Eliminar regla"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Formulario para agregar nueva regla */}
+                <div className="border border-gray-200 rounded-xl p-5 bg-gray-50">
+                  <h3 className="text-xs font-bold uppercase tracking-widest text-gray-500 mb-4 flex items-center gap-2">
+                    <Plus className="w-3.5 h-3.5" /> Agregar Nueva Regla
+                  </h3>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+
+                    {/* Tipo */}
+                    <div>
+                      <label className="block text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-1.5">Tipo</label>
+                      <select
+                        value={newRuleType}
+                        onChange={e => setNewRuleType(e.target.value as 'department' | 'city')}
+                        className="w-full px-4 py-3 rounded-lg border border-gray-300 bg-white focus:border-black focus:ring-1 focus:ring-black outline-none transition-all font-medium text-sm"
+                      >
+                        <option value="department">Departamento</option>
+                        <option value="city">Ciudad</option>
+                      </select>
+                    </div>
+
+                    {/* Nombre */}
+                    <div>
+                      <label className="block text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-1.5">
+                        {newRuleType === 'city' ? 'Nombre de la Ciudad' : 'Nombre del Departamento'}
+                      </label>
+                      <input
+                        type="text"
+                        value={newRuleName}
+                        onChange={e => setNewRuleName(e.target.value)}
+                        onKeyDown={e => e.key === 'Enter' && handleAddShippingRule()}
+                        placeholder={newRuleType === 'city' ? 'Ej: Medellín' : 'Ej: Antioquia'}
+                        className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:border-black focus:ring-1 focus:ring-black outline-none transition-all font-medium text-sm"
+                      />
+                      <p className="text-[10px] text-gray-400 mt-1">Debe coincidir exactamente con el nombre de la API Colombia.</p>
+                    </div>
+
+                    {/* Precio */}
+                    <div>
+                      <label className="block text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-1.5">Precio (COP)</label>
+                      <div className="relative">
+                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-sm">$</span>
+                        <input
+                          type="number"
+                          min={0}
+                          step={500}
+                          value={newRulePrice}
+                          onChange={e => setNewRulePrice(Number(e.target.value))}
+                          onKeyDown={e => e.key === 'Enter' && handleAddShippingRule()}
+                          className="w-full pl-8 pr-4 py-3 rounded-lg border border-gray-300 focus:border-black focus:ring-1 focus:ring-black outline-none transition-all font-bold text-black"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={handleAddShippingRule}
+                    className="mt-4 flex items-center gap-2 px-6 py-3 bg-black hover:bg-gray-800 text-white rounded-lg text-xs font-bold uppercase tracking-wider transition-colors"
+                  >
+                    <Plus className="w-4 h-4" />
+                    Agregar Regla
+                  </button>
+
+                  {/* Tip informativo */}
+                  <div className="mt-4 p-3 bg-emerald-50 border border-emerald-100 rounded-lg flex gap-2">
+                    <span className="text-lg">💡</span>
+                    <p className="text-xs text-emerald-700">
+                      <strong>Tip:</strong> Escribe el nombre tal como aparece en la API de Colombia. Ej: si la API muestra <em>"Bogotá D.C."</em>, escribe exactamente así. Las ciudades tienen prioridad sobre los departamentos.
+                    </p>
+                  </div>
+                </div>
+
+              </div>
             )}
 
             {/* TAB EXTRA BLOCKS */}

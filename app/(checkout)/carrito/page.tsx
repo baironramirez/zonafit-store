@@ -3,8 +3,10 @@
 import { useCart } from "@/context/CartContext";
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { Trash2, ShoppingBag, CreditCard, ChevronLeft, Minus, Plus, Tag, X } from "lucide-react";
+import { Trash2, ShoppingBag, CreditCard, ChevronLeft, Minus, Plus, Tag, X, Truck } from "lucide-react";
 import { getAuth } from "firebase/auth";
+import { doc, getDoc } from "firebase/firestore";
+import { db } from "@/lib/firebase";
 
 export default function CarritoPage() {
   const { cart, removeFromCart, updateQuantity, discount, applyDiscount, removeDiscount } = useCart();
@@ -20,6 +22,14 @@ export default function CarritoPage() {
   const [cities, setCities] = useState<any[]>([]);
   const [selectedDeptId, setSelectedDeptId] = useState<string>("");
   const [selectedCityName, setSelectedCityName] = useState<string>("");
+
+  // ─── Configuración de envío desde Firestore ──────────────────────────────────
+  // null = cargando; si no hay config en Firestore queda en 0
+  const [shippingConfig, setShippingConfig] = useState<{
+    defaultPrice: number;
+    rules: { id: string; type: 'department' | 'city'; name: string; price: number }[];
+  } | null>(null);
+  const [shippingCost, setShippingCost] = useState<number | null>(null);
 
   useEffect(() => {
     // Verificamos si hay usuario activo para pre-cargar correo
@@ -47,6 +57,65 @@ export default function CarritoPage() {
       })
       .catch((err) => console.error("Error fetching db products:", err));
   }, []);
+
+  // Carga la configuración de envíos desde Firestore al montar
+  useEffect(() => {
+    async function fetchShippingConfig() {
+      try {
+        const snap = await getDoc(doc(db, "settings", "shipping"));
+        if (snap.exists()) {
+          const d = snap.data();
+          setShippingConfig({
+            defaultPrice: d.defaultPrice ?? 0,
+            rules: Array.isArray(d.rules) ? d.rules : [],
+          });
+        } else {
+          // No hay config, envío gratuito o sin datos
+          setShippingConfig({ defaultPrice: 0, rules: [] });
+        }
+      } catch (err) {
+        console.error("Error cargando config de envíos:", err);
+        setShippingConfig({ defaultPrice: 0, rules: [] });
+      }
+    }
+    fetchShippingConfig();
+  }, []);
+
+  // Recalcula el costo de envío cuando cambia el departamento/ciudad o la config
+  // Prioridad: ciudad específica > departamento > precio general
+  useEffect(() => {
+    if (!shippingConfig) return;
+
+    const deptName = departments.find(d => d.id.toString() === selectedDeptId)?.name ?? "";
+    const cityName = selectedCityName;
+
+    if (!deptName && !cityName) {
+      // Todavía no seleccionó destino → mostrar null
+      setShippingCost(null);
+      return;
+    }
+
+    const normalize = (s: string) => s.trim().toLowerCase();
+
+    // 1° Buscar regla de ciudad
+    if (cityName) {
+      const cityRule = shippingConfig.rules.find(
+        r => r.type === 'city' && normalize(r.name) === normalize(cityName)
+      );
+      if (cityRule) { setShippingCost(cityRule.price); return; }
+    }
+
+    // 2° Buscar regla de departamento
+    if (deptName) {
+      const deptRule = shippingConfig.rules.find(
+        r => r.type === 'department' && normalize(r.name) === normalize(deptName)
+      );
+      if (deptRule) { setShippingCost(deptRule.price); return; }
+    }
+
+    // 3° Precio general
+    setShippingCost(shippingConfig.defaultPrice);
+  }, [selectedDeptId, selectedCityName, shippingConfig, departments]);
 
   // Fetch Departments from API Colombia
   useEffect(() => {
@@ -85,7 +154,8 @@ export default function CarritoPage() {
       ? subtotal * (discount.value / 100)
       : discount.value
     : 0;
-  const finalTotal = Math.max(0, subtotal - discountAmount);
+  // El total final incluye el costo de envío una vez seleccionado el destino
+  const finalTotal = Math.max(0, subtotal - discountAmount + (shippingCost ?? 0));
 
   async function handleCheckout(e: any) {
     e.preventDefault();
@@ -115,12 +185,11 @@ export default function CarritoPage() {
       imagen: item.imagen || "",
     }));
 
-    const orderTotal = finalTotal;
-
+    // multiplier para MercadoPago: aplica el descuento proporcional al precio unitario
     const multiplier = discount
       ? discount.type === "porcentaje"
         ? (1 - discount.value / 100)
-        : Math.max(0, 1 - discount.value / subtotal) // for metric purposes if needed
+        : Math.max(0, 1 - discount.value / subtotal)
       : 1;
 
     try {
@@ -136,7 +205,8 @@ export default function CarritoPage() {
           subtotal,
           descuento: discountAmount,
           cuponUsado: discount ? discount.code : null,
-          total: orderTotal,
+          costoEnvio: shippingCost ?? 0,
+          total: finalTotal,
         }),
       });
 
@@ -256,8 +326,18 @@ export default function CarritoPage() {
                   </div>
                 )}
                 <div className="flex justify-between items-center mb-6 text-black font-medium pb-6 border-b border-gray-200">
-                  <span>Envío</span>
-                  <span className="text-orange-500 text-sm font-bold uppercase tracking-wider">Por Calcular</span>
+                  <span className="flex items-center gap-2">
+                    <Truck className="w-4 h-4 text-gray-400" />
+                    Envío
+                  </span>
+                  {shippingCost === null ? (
+                    // Todavía no ha seleccionado destino
+                    <span className="text-orange-500 text-sm font-bold uppercase tracking-wider">Por Calcular</span>
+                  ) : shippingCost === 0 ? (
+                    <span className="text-emerald-600 text-sm font-bold uppercase tracking-wider">Gratis</span>
+                  ) : (
+                    <span className="text-black font-bold">${shippingCost.toLocaleString("es-CO")}</span>
+                  )}
                 </div>
 
                 {/* Total Final */}
