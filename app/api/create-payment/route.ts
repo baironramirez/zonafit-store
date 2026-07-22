@@ -24,9 +24,11 @@ export async function POST(req: Request) {
     }
 
     // 🔹 transformar items al formato que exige MercadoPago
+    // description mejora la tasa de aprobación (recomendación oficial de MP)
     const items = body.items.map((item: any) => ({
       id: item.id ?? "item",
       title: item.title ?? "Producto",
+      description: item.description ?? item.title ?? "Producto ZonaFit",
       quantity: Number(item.quantity ?? 1),
       unit_price: Math.round(Number(item.unit_price ?? 0)),
       // currency_id se remueve para que MercadoPago use la moneda nativa de la cuenta (evita error "algo anduvo mal")

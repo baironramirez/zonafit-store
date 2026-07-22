@@ -234,9 +234,11 @@ export default function CarritoPage() {
 
       const orderData = await orderRes.json();
 
+      // 🔹 description mejora la tasa de aprobación en MercadoPago (reduce rechazos por fraude)
       const itemsToPay = cart.map((item) => ({
         id: item.id,
         title: item.nombre,
+        description: `${item.nombre} - Suplemento deportivo ZonaFit`,
         quantity: Number(item.cantidad),
         unit_price: Math.round(item.precio * multiplier),
       }));
@@ -246,6 +248,7 @@ export default function CarritoPage() {
         itemsToPay.push({
           id: "envio",
           title: "Costo de Envío",
+          description: "Envío a domicilio - ZonaFit Store",
           quantity: 1,
           unit_price: Math.round(shippingCost),
         });
