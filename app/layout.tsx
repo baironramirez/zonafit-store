@@ -38,21 +38,24 @@ export default function RootLayout({
   return (
     <html lang="es">
       <head>
-        {/* Google Ads Tag (gtag.js) - Se carga después de la hidratación para
-            no bloquear el LCP. strategy="afterInteractive" es el equivalente
-            a colocar el script justo después de <head> como recomienda Google */}
+        {/* Script de inicialización del dataLayer como script nativo:
+            Al usar dangerouslySetInnerHTML, Next.js lo incluye en el HTML
+            del servidor (SSR), así Google puede detectarlo al escanear la página.
+            El script externo de gtag.js se carga asíncronamente para no bloquear LCP */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              window.dataLayer = window.dataLayer || [];
+              function gtag(){dataLayer.push(arguments);}
+              gtag('js', new Date());
+              gtag('config', '${GA_MEASUREMENT_ID}');
+            `,
+          }}
+        />
         <Script
           src={`https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`}
           strategy="afterInteractive"
         />
-        <Script id="google-ads-gtag" strategy="afterInteractive">
-          {`
-            window.dataLayer = window.dataLayer || [];
-            function gtag(){dataLayer.push(arguments);}
-            gtag('js', new Date());
-            gtag('config', '${GA_MEASUREMENT_ID}');
-          `}
-        </Script>
       </head>
       <body>
         <AuthProvider>
