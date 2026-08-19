@@ -62,19 +62,21 @@ const nextConfig: NextConfig = {
             value: [
               // Solo scripts de nuestro dominio y los SDKs necesarios
               `default-src 'self'`,
-              // Scripts: dominio propio + Firebase + MercadoPago (necesarios para el checkout)
-              `script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.firebaseapp.com https://*.googleapis.com https://http2.mlstatic.com https://sdk.mercadopago.com`,
+              // Scripts: dominio propio + Firebase + MercadoPago + Google Ads/Tag Manager
+              // www.googletagmanager.com: necesario para cargar el gtag.js de Google Ads
+              `script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.firebaseapp.com https://*.googleapis.com https://http2.mlstatic.com https://sdk.mercadopago.com https://www.googletagmanager.com https://googleads.g.doubleclick.net`,
               // Estilos: dominio propio + Google Fonts + inline styles (Next.js los usa)
               `style-src 'self' 'unsafe-inline' https://fonts.googleapis.com`,
               // Fuentes: Google Fonts
               `font-src 'self' https://fonts.gstatic.com`,
-              // Imágenes: dominio propio + Firebase Storage + data URIs
-              `img-src 'self' data: blob: https://firebasestorage.googleapis.com https://lh3.googleusercontent.com`,
-              // Conexiones de red: Firebase, MercadoPago, API Colombia (selector de departamentos/ciudades)
-              // api-colombia.com se usa en el carrito para listar departamentos y ciudades de Colombia
-              `connect-src 'self' https://*.firebaseio.com https://*.googleapis.com https://api.mercadopago.com wss://*.firebaseio.com https://api-colombia.com`,
+              // Imágenes: dominio propio + Firebase Storage + data URIs + Google Ads pixel
+              `img-src 'self' data: blob: https://firebasestorage.googleapis.com https://lh3.googleusercontent.com https://www.google.com https://googleads.g.doubleclick.net`,
+              // Conexiones de red: Firebase, MercadoPago, API Colombia + Google Ads
+              // www.google-analytics.com y googletagmanager.com: necesarios para enviar
+              // eventos de conversión de Google Ads cuando un usuario completa una compra
+              `connect-src 'self' https://*.firebaseio.com https://*.googleapis.com https://api.mercadopago.com wss://*.firebaseio.com https://api-colombia.com https://www.googletagmanager.com https://www.google-analytics.com https://stats.g.doubleclick.net`,
               // Frames: MercadoPago requiere iframes para el checkout
-              `frame-src https://sdk.mercadopago.com https://*.mercadopago.com`,
+              `frame-src https://sdk.mercadopago.com https://*.mercadopago.com https://googleads.g.doubleclick.net`,
               // Workers: Firebase usa service workers internamente
               `worker-src 'self' blob:`,
               // Objetos y embeds: bloqueados por defecto
