@@ -8,6 +8,12 @@ import CartDrawer from "@/components/cart/CartDrawer";
 import Footer from "@/components/layout/Footer";
 import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/next";
+// next/script es la forma correcta de cargar scripts de terceros en Next.js:
+// maneja deduplicación, orden de carga y no bloquea el rendering inicial
+import Script from "next/script";
+
+// ID de seguimiento de Google Ads para ZonaFit Store
+const GA_MEASUREMENT_ID = "AW-18397686872";
 // Metadatos SEO completos: ahora que tenemos dominio propio, aprovechamos para
 // configurar Open Graph y canonical URL correctamente para motores de búsqueda.
 export const metadata: Metadata = {
@@ -31,6 +37,23 @@ export default function RootLayout({
 }) {
   return (
     <html lang="es">
+      <head>
+        {/* Google Ads Tag (gtag.js) - Se carga después de la hidratación para
+            no bloquear el LCP. strategy="afterInteractive" es el equivalente
+            a colocar el script justo después de <head> como recomienda Google */}
+        <Script
+          src={`https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`}
+          strategy="afterInteractive"
+        />
+        <Script id="google-ads-gtag" strategy="afterInteractive">
+          {`
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', '${GA_MEASUREMENT_ID}');
+          `}
+        </Script>
+      </head>
       <body>
         <AuthProvider>
           <CartProvider>
