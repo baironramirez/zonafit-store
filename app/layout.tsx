@@ -41,7 +41,8 @@ export default function RootLayout({
         {/* Script de inicialización del dataLayer como script nativo:
             Al usar dangerouslySetInnerHTML, Next.js lo incluye en el HTML
             del servidor (SSR), así Google puede detectarlo al escanear la página.
-            El script externo de gtag.js se carga asíncronamente para no bloquear LCP */}
+            strategy="beforeInteractive" garantiza que el script externo
+            también aparezca en el HTML inicial del servidor */}
         <script
           dangerouslySetInnerHTML={{
             __html: `
@@ -52,9 +53,11 @@ export default function RootLayout({
             `,
           }}
         />
+        {/* beforeInteractive: se incluye en el HTML del servidor (Google puede detectarlo)
+            a diferencia de afterInteractive que se inyecta via JS cliente */}
         <Script
           src={`https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`}
-          strategy="afterInteractive"
+          strategy="beforeInteractive"
         />
       </head>
       <body>
