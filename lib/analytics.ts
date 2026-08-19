@@ -10,10 +10,9 @@
 
 export const GA_TRACKING_ID = "AW-18397686872";
 
-// Si Google Ads te provee un Conversion Label específico (ej: "AW-18397686872/AbCdEfGh123"),
-// se puede configurar aquí o mediante variable de entorno NEXT_PUBLIC_GOOGLE_ADS_CONVERSION_LABEL
+// Label específico de conversión de Compra generado por Google Ads
 export const DEFAULT_PURCHASE_CONVERSION_LABEL =
-  process.env.NEXT_PUBLIC_GOOGLE_ADS_PURCHASE_LABEL || "";
+  process.env.NEXT_PUBLIC_GOOGLE_ADS_PURCHASE_LABEL || "P9VZCNKThOQcENjY2cRE";
 
 export interface PurchaseConversionData {
   orderId: string;
