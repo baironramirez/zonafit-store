@@ -280,7 +280,25 @@ export default function CarritoPage() {
       const mpData = await mpRes.json();
       console.log("Preferencia creada:", mpData);
 
-      // 4️⃣ Redirigir a checkout de MercadoPago (usa init_point que devuelve la API)
+      // 4️⃣ Guardar datos de la orden temporalmente para analítica y medición de conversiones
+      if (typeof window !== "undefined") {
+        try {
+          sessionStorage.setItem(
+            `order_data_${orderData.orderId}`,
+            JSON.stringify({
+              orderId: orderData.orderId,
+              total: finalTotal,
+              email: cliente.correo ? String(cliente.correo) : undefined,
+              phone: cliente.telefono ? String(cliente.telefono) : undefined,
+              currency: "COP",
+            })
+          );
+        } catch (storageErr) {
+          console.warn("No se pudo guardar la orden en sessionStorage", storageErr);
+        }
+      }
+
+      // 5️⃣ Redirigir a checkout de MercadoPago (usa init_point que devuelve la API)
       if (mpData.init_point) {
         window.location.href = mpData.init_point;
       } else {
