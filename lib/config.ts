@@ -25,9 +25,13 @@ if (typeof process !== "undefined") {
  * 3. Fallback ordenado a `process.env.NEXT_PUBLIC_BASE_URL` y finalmente a la URL por defecto.
  */
 export function getBaseUrl(req?: Request): string {
-  // En producción real, siempre preferimos el dominio oficial zonafitgym.com
+  // En producción real (Vercel), el dominio canónico principal es https://www.zonafitgym.com.
+  // Es crítico usar 'www' porque Vercel redirige con HTTP 308 el dominio raíz zonafitgym.com
+  // hacia www.zonafitgym.com. Si Mercado Pago u otros servicios envían un webhook POST
+  // a una URL que redirige (308), el cliente HTTP del webhook no sigue la redirección en POST
+  // y falla inmediatamente con 502 Bad Gateway.
   if (process.env.VERCEL_ENV === "production") {
-    return "https://zonafitgym.com";
+    return "https://www.zonafitgym.com";
   }
 
   // Si se provee la petición HTTP, resolvemos el host dinámicamente. Esto maneja
@@ -47,6 +51,6 @@ export function getBaseUrl(req?: Request): string {
     return process.env.NEXT_PUBLIC_BASE_URL;
   }
 
-  // Fallback definitivo
-  return "https://zonafitgym.com";
+  // Fallback definitivo al dominio canónico
+  return "https://www.zonafitgym.com";
 }

@@ -66,7 +66,7 @@ function verifySignatureSafe(req: Request): boolean {
 
   // data.id SOLO viene de query params (especificación de firma MP)
   const url = new URL(req.url);
-  let dataId = url.searchParams.get("data.id") || url.searchParams.get("data_id");
+  let dataId = url.searchParams.get("data.id") || url.searchParams.get("data_id") || url.searchParams.get("id");
 
   // Normalizar a minúsculas si es alfanumérico
   if (dataId && /^[a-zA-Z0-9]+$/.test(dataId)) {
@@ -112,7 +112,7 @@ export async function POST(req: Request) {
 
   try {
     const bodyText = await req.text();
-    let body;
+    let body: any = {};
     try {
       body = JSON.parse(bodyText);
     } catch (e) {
@@ -122,9 +122,14 @@ export async function POST(req: Request) {
 
     logEvent('info', 'webhook_payload', { type: body.type, action: body.action, dataId: body.data?.id });
 
-    // 1️⃣ Filtrar eventos: solo procesamos pagos
-    if (body.type !== "payment") {
-      logEvent('info', 'webhook_ignored', { reason: "non_payment_event", type: body.type });
+    // 1️⃣ Filtrar eventos: admitimos 'payment' tanto por type, topic o action (ej. payment.created)
+    const isPaymentEvent =
+      body.type === "payment" ||
+      body.topic === "payment" ||
+      (typeof body.action === "string" && body.action.startsWith("payment."));
+
+    if (!isPaymentEvent) {
+      logEvent('info', 'webhook_ignored', { reason: "non_payment_event", type: body.type, action: body.action });
       return NextResponse.json({ received: true });
     }
 
@@ -134,7 +139,13 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
     }
 
-    const paymentId = body.data?.id;
+    const url = new URL(req.url);
+    const paymentId =
+      body.data?.id ||
+      url.searchParams.get("data.id") ||
+      url.searchParams.get("data_id") ||
+      url.searchParams.get("id");
+
     if (!paymentId) {
       logEvent('error', 'webhook_data_error', { type: "missing_payment_id" });
       return NextResponse.json({ received: true });
@@ -280,15 +291,19 @@ export async function POST(req: Request) {
  *        https://zonafitgym.com/api/webhooks/mercadopago?id=<orderId>
  */
 export async function GET(req: Request) {
-  // 1. Verificar el secret antes de procesar nada
-  const expectedSecret = process.env.CRON_SECRET;
-  const authHeader = req.headers.get("Authorization");
   const url = new URL(req.url);
   const orderId = url.searchParams.get("id");
   const force = url.searchParams.get("force") === "true";
 
-  // 2. Verificar el secret — acepta header (preferido) o query param (fallback)
-  // Sin secret configurado: bloqueado siempre en producción
+  // 1. Health check público: si no hay orderId, respondemos ok para pings de verificación y monitores
+  if (!orderId) {
+    return NextResponse.json({ status: "ok", service: "mercadopago-webhook-pro" });
+  }
+
+  // 2. Si se intenta sincronizar una orden por orderId, verificar CRON_SECRET por seguridad
+  const expectedSecret = process.env.CRON_SECRET;
+  const authHeader = req.headers.get("Authorization");
+
   if (expectedSecret) {
     const headerValid = authHeader === `Bearer ${expectedSecret}`;
     const queryValid = url.searchParams.get("secret") === expectedSecret;
@@ -296,14 +311,9 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
   } else if (process.env.VERCEL_ENV === "production") {
-    // Si no hay secret en producción, bloquear por seguridad
-    logEvent("error", "cron_secret_missing_in_production", {});
+    // Si no hay secret en producción, bloquear la acción de sincronización manual
+    logEvent("error", "cron_secret_missing_in_production", { orderId });
     return NextResponse.json({ error: "Endpoint no disponible: CRON_SECRET no configurado." }, { status: 503 });
-  }
-
-  // 3. Si no hay orderId, retornar health check (solo llega aquí si pasó el secret)
-  if (!orderId) {
-    return NextResponse.json({ status: "ok", service: "mercadopago-webhook-pro" });
   }
 
   // Sincronización manual (útil para admin/debugging)

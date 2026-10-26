@@ -19,11 +19,11 @@ const GA_MEASUREMENT_ID = "AW-18397686872";
 export const metadata: Metadata = {
   title: "ZonaFit Store | Suplementación y Accesorios Fitness",
   description: "Tienda oficial de ZonaFit - Los mejores suplementos deportivos, proteínas, creatina y accesorios en Colombia. Envíos a todo el país.",
-  metadataBase: new URL('https://zonafitgym.com'),
+  metadataBase: new URL('https://www.zonafitgym.com'),
   openGraph: {
     title: "ZonaFit Store | Suplementación y Accesorios Fitness",
     description: "Los mejores suplementos deportivos y accesorios en Colombia.",
-    url: 'https://zonafitgym.com',
+    url: 'https://www.zonafitgym.com',
     siteName: 'ZonaFit Store',
     locale: 'es_CO',
     type: 'website',

@@ -15,8 +15,8 @@
 
 import type { NextConfig } from "next";
 
-// Dominio de producción — único origen autorizado para hacer requests cross-origin
-const PRODUCTION_DOMAIN = "https://zonafitgym.com";
+// Dominio de producción canónico — único origen autorizado para requests cross-origin
+const PRODUCTION_DOMAIN = "https://www.zonafitgym.com";
 
 // Subdominios de Vercel autorizados (preview y desarrollo)
 const VERCEL_PREVIEW_PATTERN = "https://*.vercel.app";
