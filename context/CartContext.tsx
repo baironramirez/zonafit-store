@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useState, useEffect } from "react";
+import { createContext, useContext, useState, useEffect, useCallback } from "react";
 import { db, auth } from "@/lib/firebase";
 import { collection, query, where, getDocs, limit } from "firebase/firestore";
 import { CartItem } from "../types/cart";
@@ -91,9 +91,14 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     });
   }
 
-  function clearCart() {
+  const clearCart = useCallback(() => {
     setCart([]);
-  }
+    try {
+      localStorage.removeItem("cart");
+    } catch {
+      // Ignorar errores de storage
+    }
+  }, []);
 
   function openCart() {
     setIsCartOpen(true);

@@ -1,21 +1,31 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { auth, db } from "@/lib/firebase";
 import { createUserWithEmailAndPassword } from "firebase/auth";
 import { doc, setDoc } from "firebase/firestore";
-import { UserPlus, Mail, KeyRound, AlertCircle, ArrowLeft } from "lucide-react";
+import { UserPlus, Mail, KeyRound, AlertCircle, ArrowLeft, PackageCheck } from "lucide-react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 
-export default function RegisterPage() {
-  const [email, setEmail] = useState("");
+function RegisterContent() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const emailParam = searchParams.get("email") || "";
+  const redirectParam = searchParams.get("redirect") || "/";
+
+  const [email, setEmail] = useState(emailParam);
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const router = useRouter();
+
+  useEffect(() => {
+    if (emailParam) {
+      setEmail(emailParam);
+    }
+  }, [emailParam]);
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -48,20 +58,18 @@ export default function RegisterPage() {
       });
 
       // 2.5 Disparar correo de bienvenida y blindarlo con await
-      // Al no poner await, el navegador puede cancelar la petición fetch 
-      // tan pronto ejecuta el router.push, lo que sucede muy rápido en producción.
       await fetch("/api/emails", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ type: "welcome", email: user.email })
       }).catch(err => console.error("Error disparando el correo de bienvenida:", err));
 
-      // 3. Redirect back to homepage
-      router.push("/");
+      // 3. Redirect back to desired route or home
+      router.push(redirectParam);
     } catch (err: any) {
       console.error("Register Error:", err);
       if (err.code === "auth/email-already-in-use") {
-        setError("Este correo ya está registrado en nuestro sistema.");
+        setError("Este correo ya está registrado. Inicia sesión para acceder.");
       } else if (err.code === "auth/invalid-email") {
         setError("El formato del correo es inválido.");
       } else {
@@ -72,32 +80,39 @@ export default function RegisterPage() {
     }
   };
 
+  const isOrderTrackingFlow = redirectParam.includes("pedidos");
+
   return (
     <main className="min-h-screen bg-white text-black flex flex-col items-center justify-center pt-32 pb-12 px-6 selection:bg-black selection:text-white relative">
-
-
-
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
         className="w-full max-w-md"
       >
-
         {/* Header Text */}
         <div className="text-center mb-8">
+          {isOrderTrackingFlow && (
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-orange-100 text-orange-700 text-xs font-black uppercase rounded-full mb-3 tracking-wide">
+              <PackageCheck className="w-3.5 h-3.5" /> Seguimiento de Pedidos
+            </div>
+          )}
           <h1 className="text-4xl md:text-5xl font-black uppercase tracking-tighter text-black mb-3 leading-none truncate">
-            ÚNETE A LA <span className="text-transparent bg-clip-text bg-gradient-to-r from-gray-900 to-gray-500">COMUNIDAD</span>
+            {isOrderTrackingFlow ? "CREA TU " : "ÚNETE A LA "}
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-600 to-black">
+              {isOrderTrackingFlow ? "CUENTA" : "COMUNIDAD"}
+            </span>
           </h1>
           <p className="text-gray-500 font-medium text-sm">
-            Crea tu perfil y accede a suplementación élite.
+            {isOrderTrackingFlow
+              ? "Crea tu contraseña para rastrear tu pedido y ver tu guía de entrega."
+              : "Crea tu perfil y accede a suplementación élite."}
           </p>
         </div>
 
         {/* Register Box */}
         <div className="bg-white border-2 border-gray-100 rounded-3xl p-8 shadow-2xl shadow-gray-200/50">
           <form onSubmit={handleRegister} className="space-y-5">
-
             {/* Email Field */}
             <div className="space-y-2">
               <label className="text-xs font-black text-black uppercase tracking-widest pl-1">
@@ -170,9 +185,9 @@ export default function RegisterPage() {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full py-5 bg-black text-white rounded-xl font-black uppercase tracking-widest hover:scale-[1.02] hover:shadow-[0_15px_40px_-10px_rgba(0,0,0,0.4)] transition-all duration-300 disabled:opacity-50 disabled:hover:scale-100 mt-4"
+              className="w-full py-5 bg-black text-white rounded-xl font-black uppercase tracking-widest hover:scale-[1.02] hover:shadow-[0_15px_40px_-10px_rgba(0,0,0,0.4)] transition-all duration-300 disabled:opacity-50 disabled:hover:scale-100 mt-4 cursor-pointer"
             >
-              {isLoading ? "REGISTRANDO ATLETA..." : "FORJAR MI CUENTA"}
+              {isLoading ? "REGISTRANDO ATLETA..." : isOrderTrackingFlow ? "CREAR CUENTA Y VER PEDIDO" : "FORJAR MI CUENTA"}
             </button>
           </form>
         </div>
@@ -180,12 +195,28 @@ export default function RegisterPage() {
         {/* Footer actions */}
         <div className="text-center mt-8">
           <span className="text-gray-500 font-medium text-sm">¿Ya tienes una cuenta? </span>
-          <Link href="/login" className="text-black font-black uppercase tracking-widest text-sm border-b-2 border-black pb-0.5 hover:text-gray-600 hover:border-gray-600 transition-colors">
+          <Link
+            href={`/login?redirect=${encodeURIComponent(redirectParam)}${email ? `&email=${encodeURIComponent(email)}` : ""}`}
+            className="text-black font-black uppercase tracking-widest text-sm border-b-2 border-black pb-0.5 hover:text-orange-600 hover:border-orange-600 transition-colors"
+          >
             INICIAR SESIÓN AQUÍ
           </Link>
         </div>
-
       </motion.div>
     </main>
+  );
+}
+
+export default function RegisterPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-white flex items-center justify-center">
+          <div className="w-12 h-12 border-4 border-orange-500 border-t-transparent rounded-full animate-spin" />
+        </div>
+      }
+    >
+      <RegisterContent />
+    </Suspense>
   );
 }
