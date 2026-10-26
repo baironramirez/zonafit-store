@@ -47,9 +47,12 @@ export default function Footer() {
           
           {/* Logo & About */}
           <div className="col-span-1 md:col-span-1">
-            <h3 className="text-2xl font-black uppercase tracking-widest mb-6">ZONAFIT</h3>
-            <p className="text-sm text-gray-400 font-medium leading-relaxed max-w-xs">
+            <h3 className="text-2xl font-black uppercase tracking-widest mb-4">ZONAFIT</h3>
+            <p className="text-sm text-gray-400 font-medium leading-relaxed max-w-xs mb-3">
               Equipamiento y suplementación diseñada para aquellos que se niegan a rendirse. Rendimiento Élite en cada detalle.
+            </p>
+            <p className="text-xs text-orange-400 font-bold uppercase tracking-wider">
+              📍 Facatativá, Cundinamarca · Envíos a toda Colombia
             </p>
           </div>
 

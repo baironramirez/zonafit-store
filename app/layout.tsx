@@ -11,22 +11,44 @@ import { SpeedInsights } from "@vercel/speed-insights/next";
 // next/script es la forma correcta de cargar scripts de terceros en Next.js:
 // maneja deduplicación, orden de carga y no bloquea el rendering inicial
 import Script from "next/script";
+import LocalBusinessJsonLd from "@/components/seo/LocalBusinessJsonLd";
 
 // ID de seguimiento de Google Ads para ZonaFit Store
 const GA_MEASUREMENT_ID = "AW-18397686872";
-// Metadatos SEO completos: ahora que tenemos dominio propio, aprovechamos para
-// configurar Open Graph y canonical URL correctamente para motores de búsqueda.
+
+// Metadatos SEO enfocados en posicionamiento local (Facatativá y Sabana Occidente) y nacional:
 export const metadata: Metadata = {
-  title: "ZonaFit Store | Suplementación y Accesorios Fitness",
-  description: "Tienda oficial de ZonaFit - Los mejores suplementos deportivos, proteínas, creatina y accesorios en Colombia. Envíos a todo el país.",
-  metadataBase: new URL('https://www.zonafitgym.com'),
+  title: {
+    default: "ZonaFit Store | Suplementación Deportiva en Facatativá y Colombia",
+    template: "%s | ZonaFit Store Facatativá",
+  },
+  description:
+    "Tienda líder de suplementación deportiva en Facatativá y Sabana de Occidente. Proteínas, creatinas, pre-entrenos, aminoácidos y accesorios fitness. Entrega rápida en Facatativá y envíos seguros a todo el país.",
+  keywords: [
+    "suplementos facatativa",
+    "suplementacion facatativa",
+    "suplementos deportivos facatativa",
+    "proteina facatativa",
+    "creatina facatativa",
+    "zonafit facatativa",
+    "tienda fitness facatativa",
+    "suplementos cundinamarca",
+    "suplementos sabana de occidente",
+    "zonafit gym store",
+    "proteina limpia facatativa",
+  ],
+  metadataBase: new URL("https://www.zonafitgym.com"),
+  alternates: {
+    canonical: "https://www.zonafitgym.com",
+  },
   openGraph: {
-    title: "ZonaFit Store | Suplementación y Accesorios Fitness",
-    description: "Los mejores suplementos deportivos y accesorios en Colombia.",
-    url: 'https://www.zonafitgym.com',
-    siteName: 'ZonaFit Store',
-    locale: 'es_CO',
-    type: 'website',
+    title: "ZonaFit Store | Suplementación Deportiva en Facatativá y Colombia",
+    description:
+      "Los mejores suplementos deportivos, proteínas, creatinas y accesorios fitness en Facatativá y Colombia. Entregas locales y envíos a todo el país.",
+    url: "https://www.zonafitgym.com",
+    siteName: "ZonaFit Store",
+    locale: "es_CO",
+    type: "website",
   },
 };
 
@@ -38,6 +60,8 @@ export default function RootLayout({
   return (
     <html lang="es">
       <head>
+        {/* Datos estructurados Schema.org para Google Search y SEO Local en Facatativá */}
+        <LocalBusinessJsonLd />
         {/* Script de inicialización del dataLayer como script nativo:
             Al usar dangerouslySetInnerHTML, Next.js lo incluye en el HTML
             del servidor (SSR), así Google puede detectarlo al escanear la página.

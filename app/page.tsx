@@ -6,6 +6,7 @@ import { ArrowRight, ArrowLeft, Heart, ShoppingBag } from "lucide-react";
 import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
 import ProductCard, { ProductoData } from "@/components/shop/ProductCard";
+import LocalSeoSection from "@/components/home/LocalSeoSection";
 import { db } from "@/lib/firebase";
 import { doc, getDoc, collection, getDocs, addDoc } from "firebase/firestore";
 
@@ -411,6 +412,9 @@ export default function Home() {
 
         return null;
       })}
+
+      {/* SECCIÓN SEO LOCAL: SUPLEMENTACIÓN EN FACATATIVÁ */}
+      <LocalSeoSection />
 
       {/* 3. NEWSLETTER */}
       <section className="py-20 bg-gray-50 border-t border-gray-100">
